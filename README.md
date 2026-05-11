@@ -1,0 +1,2 @@
+# newmo
+Pneumococcus NFDS modelling
