@@ -51,7 +51,7 @@ rr  <- -log(1 - VT)
 rho <- log(1 + modelpars$sigma)
 migr <- modelpars$migr # 0.001: a small rate compared to VT (0.06 for vaccine strains) 
 
-K      <- 100000 # populatoin size (carrying capacity) 
+K      <- 100000 # population size (carrying capacity) 
 LL     <- nrow(G)
 tmax   <- 6 # years 
 tspan  <- seq(0, tmax * 12, by = 12) # time steps are monthly 
