@@ -225,6 +225,18 @@ final_yearly = final_yearly %>% mutate( syncount = p_final*100000)
 xt = final_yearly %>% select(year, serotype, gpsc,group, p_final, syncount) %>%
     rename(frac = p_final, count = syncount) 
 
+# we want the order to match our grouped G matrix, so we can set up our dynamics 
+# without having to worry about reordering 
+
+Gg = read.csv("data/SouthAfrica/Ggrouped.csv", row.names = 1, check.names = FALSE)
+
+xt <- xt %>% mutate(group = factor(group, levels = rownames(Gg))) %>% 
+    complete(year, group, fill = list(frac = 0, count = 0)) %>% 
+    arrange(year, group)
+
+# sanity check? 
+all(xt$group[1:50] == rownames(Gg)[1:50]) # TRUE 
+
 write_csv(xt, "data/SouthAfrica/xt_grouped.csv")
 
 
