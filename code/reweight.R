@@ -5,12 +5,18 @@ library(lubridate) # may not be needed
 library(openxlsx) # read.xlxs
 
 
-# this script takes meta_clean, either loaded in or created from make-grouped-G-SA.R, 
+# this script takes meta_clean 
 # and reweights the counts of the groups, to adjust for the fact that the 
 # data have invasiveness and carriage samples from kids, adults and unknown-aged people. 
 
+# with the reweighting done, we now have the corrected locus frequencies, 
+# and so can make the delta statistics that we need to reorder the columns of G. 
+# this script creates information for 2 files (and saves them): 
+# (1) xt_grouped.csv has the xt information (how much of each group is there at each time)
+# (2) locus_freqs_deltas.csv has the locus frequency information for each year and the "delta stastic"
+
 # eventually maybe we should do an inverse variance weighting or something. 
-# but for now i'll use Nick's estimates from his paper in a series of adjustments for age and carriage vs ipd to get synthetic carriage population
+# but for now i'll use Nick's inv. estimates from his paper in a series of adjustments for age and carriage vs ipd to get synthetic carriage population
 
 nickkids = read.xlsx("data/Invasiveness/nick-inv-sts-children.xlsx")
 nickadults = read.xlsx("data/Invasiveness/nick-inv-sts-adults.xlsx")
@@ -241,7 +247,7 @@ write_csv(xt, "data/SouthAfrica/xt_grouped.csv")
 
 
 ###########################################################################
-# Plot: locus frequencies across the years, all plotted against 2000 
+# locus frequencies across the years, all plotted against 2000 
 ###########################################################################
 
 
@@ -253,14 +259,15 @@ locus_by_year <- sapply(years, function(y) {
         select(group, p_final)
     p_vec <- setNames(p_df$p_final, p_df$group)[rownames(G_mean)]
     p_vec[is.na(p_vec)] <- 0
-    as.numeric(t(p_vec) %*% G_mean)
+    as.numeric(t(p_vec) %*% as.matrix(Gg))
 })
 
-rownames(locus_by_year) <- colnames(G_mean)
+rownames(locus_by_year) <- colnames(Gg)
 colnames(locus_by_year) <- paste("t",years, sep="")
 locus_by_year = as.data.frame(locus_by_year)
 plot(locus_by_year$t2000, locus_by_year$t2014)
 
+# ---- PLOT - ---
 # reorg to long form so i can make a plot with frequency in the year 2000 on the x
 # axis and frequency in other years on the y axis, for 2001 to 2014 
 plotdat <- as.data.frame(locus_by_year) %>%
@@ -289,36 +296,65 @@ ggplot(plotdat, aes(x = freq_2000, y = freq)) +
         y = "Locus frequency in year T"
     )
 
-# CONCLUSION: in this weighting, locus frequencies are very table until about 2013, 2014. 
-# i wonder if this is because i did not account for post-PCV changes in the actual invasiveness 
+
+# CONCLUSION: in this weighting, locus frequencies are very stable until about 2013, 2014. 
+# i wonder if this is because i did not account for post-PCV changes in the  invasiveness 
 # (which i think are the gamma values in Nick's paper) ? but i don't want to revisit that now. i want to use G
 # and get on with making a model and comparing it to data. 
 
+# vaccination: PCV7 in 2009, PCV13 in 2011 (See Bellman paper figure 1). 
 
-# so now i have G, I have locus frequencies, i can in principle create the delta statistics, and 
-# then i can write the ODE model 
+# Corander et al defined Delta as (f - e)^2 / (1 - e(1-e)) 
+# where e is the frequency before vaccination and f is the frequency after vaccination 
+# (all pre- and during vaccination samples for e, all post-vaccination samples for f). 
+
+# here, to do approximately the same, i would take the pre-2009 and post-2011 
+# mean frequencies of these 
+
+locus_by_year <- locus_by_year %>%
+    mutate(
+       pre2009  = rowMeans(across(num_range("t", 2000:2008))),
+       post2011 = rowMeans(across(num_range("t", 2012:2014))),
+    )
+
+plot(locus_by_year$pre2009, locus_by_year$post2011) # sensible 
 
 
+# - aside 
+# do we get the delta info from just pre-vax frequency comparison? 
+tmp <- locus_by_year %>% 
+    transmute(
+        pre2005 = rowMeans(across(num_range("t", 2000:2004))),
+        f2005.2008 = rowMeans(across(num_range("t", 2005:2008))),
+        delta = (post2011 - pre2009)^2/(1-pre2009*(1-pre2009)),
+        delPRE = (f2005.2008 - pre2005)^2/(1-pre2005*(1-pre2005))
+    )
+
+plot(tmp$delta, tmp$delPRE  ) 
+# interesting. No, we don't get 
+# the delta information from pre-vaccine frequency comparisons. 
+
+locus_by_year <- locus_by_year %>% 
+    mutate( 
+        delta = (post2011 - pre2009)^2/(1-pre2009*(1-pre2009))
+            )
+
+hist(locus_by_year$delta,breaks = 50)
+plot(locus_by_year$pre2009, locus_by_year$delta) 
+# no clear relationship 
+# between frequency pre-vaccination and delta. 
+
+# ok, let's proceed to use these deltas. 
 
 
-
-
-
-
-
-
-
-
-
-
-
+write_csv(locus_by_year, "data/SouthAfrica/locus_freqs_deltas.csv")
 
 
 
 
 
 ################################################################################
-# compare the unknown age people to kids and to adults; let's see which they look more like. i bet kids .
+# Aside: compare the unknown age people to kids and to adults; let's see which they look more like. i bet kids .
 ################################################################################
 group_var <- "serotype"
 

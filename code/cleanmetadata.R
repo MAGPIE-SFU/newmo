@@ -8,29 +8,15 @@ library(lubridate) # may not be needed
 ###########
 
 
-# this script creates a grouped version of the matrix G for the South Africa data 
-# it uses the metadata and a "raw" matrix G. 
-# In a "raw" matrix G, each row corresponds to an isolate, and the corresponding 
-# metadata tells us information about that isolate.
-# the elements of the raw G are 0 if isolate i has the gene at locus l and 0 otherwise. 
-# Graw's entries all 0 and 1s 
+# this script refines the metadata and creates the sc-st group column for the South Africa data 
 
-# in a grouped matrix G, each row corresponds to a gpsc-st combination. 
-# the elements of the grouped G, Gjl, are the fraction of isolates with the 
-# gpsc and serotype combo that define strain j that have the gene at locus l 
-# Gg entries are in [0,1]. 
 
 ###########
-# ----- read the data, reorder G, do a bit of cleaning, checking, merge some serotypes etc 
+# ----- read the data do a bit of cleaning, checking, merge some serotypes etc 
 ###########
 
 
-G <- as.matrix(read.csv("data/SouthAfrica/gene_matrix.csv",row.names=1) )
 meta <- read_csv("data/SouthAfrica/metadata.csv") # all of these are in the same order, though 
-ind = match(meta$Sample_accession, rownames(G)) # no NAs, good 
-
-G = as.matrix(G[match(meta$Sample_accession, rownames(G)),]) # G, reordered . 
-all(rownames(G) == meta$Sample_accession) # should be TRUE, good 
 
 meta$serotype= meta$In_Silico_Serotype
 meta <- meta %>%
@@ -96,29 +82,6 @@ all(rownames(G) == meta_clean$Sample_accession) # TRUE good
 
 # write_csv(meta_clean, "data/SouthAfrica/meta_clean.csv") 
 # I left this line here because this script explains why meta_clean differs from the original metadata 
-
-
-
-###########
-# ----- now create the grouped version of G ------ 
-###########
-
-
-group_ids <- meta_clean$group
-
-G_sum <- rowsum(G, group = group_ids)
-groupcounts <- table(group_ids)[rownames(G_sum)]
-
-# We want Gg[j,l] to be the mean prevalence of each locus; values in [0,1]
-Gg <- G_sum / as.numeric(groupcounts)
-
-# a spot check: 
-hist(Gg[sample(1:nrow(Gg), 1), ])
-
-# a visualization (but not a useful one) 
-heatmap(Gg)
-
-# write.csv(Gg, "data/SouthAfrica/Ggrouped.csv")
 
 
 
