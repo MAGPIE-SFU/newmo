@@ -80,8 +80,8 @@ meta_clean <- meta %>%
 
 all(rownames(G) == meta_clean$Sample_accession) # TRUE good 
 
-# write_csv(meta_clean, "data/SouthAfrica/meta_clean.csv") 
-# I left this line here because this script explains why meta_clean differs from the original metadata 
+ write_csv(meta_clean, "data/SouthAfrica/meta_clean.csv") 
+#
 
 
 

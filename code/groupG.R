@@ -51,6 +51,8 @@ heatmap(Gg)
 locus_by_year <- read_csv("data/SouthAfrica/locus_freqs_deltas.csv")
 
 # want to order Gg's columns from lowest to highest delta 
+# (Note that this order checking is redundant now, because i went back and sorted them 
+# for the locus_freqs_deltas.csv file). 
 locsinorder <- rownames(locus_by_year)[order(locus_by_year$delta)]
 
 # sanity check: (same for tail; verifies) 

@@ -346,6 +346,11 @@ plot(locus_by_year$pre2009, locus_by_year$delta)
 
 # ok, let's proceed to use these deltas. 
 
+# want to order Gg's columns from lowest to highest delta 
+# so i might as well order the loci this way here too 
+locsinorder <- rownames(locus_by_year)[order(locus_by_year$delta)]
+
+locus_by_year <- locus_by_year[ order(locus_by_year$delta) , ] 
 
 write_csv(locus_by_year, "data/SouthAfrica/locus_freqs_deltas.csv")
 
