@@ -15,8 +15,9 @@ We refer to the information needed to define the NFDS dynamics (for a location) 
 For now, we refer to the gpsc-st groups as "strains". 
 
 The information needed to simulate an NFDS model forward in time is: 
-* G (columns in order of most stable loci first),
-* the serotype for each strain
+
+* G: $G_jl$ is the fraction of isolates in strain $j$ that have the gene at locus $l$. The columns in order of most stable loci first. 
+* the serotype for each strain (this is also in the strain name, given in the rownames of G)
 * el (the equilibrium frequencies), 
 * x0 (the starting values of the populations for each strain)
 
