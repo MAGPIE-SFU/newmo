@@ -14,13 +14,13 @@ We refer to the information needed to define the NFDS dynamics (for a location) 
 
 For now, we refer to the gpsc-st groups as "strains". 
 
-The information needed to simulate an NFDS model forward in time is: 
+The information needed to simulate an NFDS model forward in time is
+ 
+1. G $G_{jl}$ is the fraction of isolates in strain $j$ that have the gene at locus $l$. The columns in order of most stable loci first. 
+1. The serotype for each strain (this is also in the strain name, given in the rownames of G).
+1. el (the equilibrium frequencies).
+1. x0 (the starting values of the populations for each strain).
 
-- G: $G_{jl}$ is the fraction of isolates in strain $j$ that have the gene at locus $l$. The columns in order of most stable loci first. 
-- the serotype for each strain (this is also in the strain name, given in the rownames of G)
-- el (the equilibrium frequencies) 
-- x0 (the starting values of the populations for each strain)
-
-  For the South Africa data (published in Bellman et al), this is in the form of a list in a file called samodel.rds, in the data/ folder.
+For the South Africa data (published in Bellman et al), this is in the form of a list in a file called samodel.rds, in the data/ folder.
   
 There is a file called simulate_ode.R which does what it says: simulates the ode version of the NFDS dynamics.
