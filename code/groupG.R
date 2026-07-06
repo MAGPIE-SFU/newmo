@@ -1,7 +1,4 @@
-
-
-
-# --- readme ---- 
+# --- readme ----
 # this file creates the grouped G matrix (Ggrouped.csv), with columns sorted according to 
 # the stability of the locus. The most stable columns will be first. 
 

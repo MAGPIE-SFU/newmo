@@ -114,17 +114,17 @@ head(outdf)
 
 # Plotting and investigation
 
-library(tidyverse)
-library(ggplot2)
-
-df_long <- sttime %>%
-  pivot_longer(
-    cols = starts_with("time"),
-    names_to = "time",
-    values_to = "value"
-  )
-
-sep_positions <- seq(3.5, by = 3, length.out = nrow(sttime) - 1)
+# library(tidyverse)
+# library(ggplot2)
+#
+# df_long <- sttime %>%
+#   pivot_longer(
+#     cols = starts_with("time"),
+#     names_to = "time",
+#     values_to = "value"
+#   )
+#
+# sep_positions <- seq(3.5, by = 3, length.out = nrow(sttime) - 1)
 
 # todo
 #  what are the frequencies?
@@ -132,42 +132,42 @@ sep_positions <- seq(3.5, by = 3, length.out = nrow(sttime) - 1)
 #  what are the blue red bars, i.e. what is vaccine type isolates and NVT isolates?
 #  How do these ST frequencies link to the Strain numbers? is this even the correct plot?
 
-p <- ggplot(
-  df_long,
-   aes(
-    x = time,
-    y = value,
-    fill = time
-   )
-  ) +
-  geom_col(
-    width=1
-  ) +
-  facet_grid(
-    . ~ names,
-    switch = "x",
-    scales = "free_x",
-    space = "free_x"
-  ) +
-  labs(
-    x = NULL,
-    y = "Value"
-  ) +
-  theme_bw() +
-  theme(
-    strip.background = element_rect(fill = "black"),
-    strip.text = element_text(color = "white", size = 8, angle=90, hjust = 1, vjust = 1),
-    panel.border = element_rect(color = "black"),
-    axis.text.x = element_blank(),
-    axis.ticks.x = element_blank(),
-    legend.position = "none",
-    panel.spacing = unit(0, "lines")
-  )
-
-ggsave(
-  "../plots/histogram_recreation.pdf",
-  plot = p,
-  width = 20,
-  height = 4,
-  units = "cm"
-)
+# p <- ggplot(
+#   df_long,
+#    aes(
+#     x = time,
+#     y = value,
+#     fill = time
+#    )
+#   ) +
+#   geom_col(
+#     width=1
+#   ) +
+#   facet_grid(
+#     . ~ names,
+#     switch = "x",
+#     scales = "free_x",
+#     space = "free_x"
+#   ) +
+#   labs(
+#     x = NULL,
+#     y = "Value"
+#   ) +
+#   theme_bw() +
+#   theme(
+#     strip.background = element_rect(fill = "black"),
+#     strip.text = element_text(color = "white", size = 8, angle=90, hjust = 1, vjust = 1),
+#     panel.border = element_rect(color = "black"),
+#     axis.text.x = element_blank(),
+#     axis.ticks.x = element_blank(),
+#     legend.position = "none",
+#     panel.spacing = unit(0, "lines")
+#   )
+#
+# ggsave(
+#   "../plots/histogram_recreation.pdf",
+#   plot = p,
+#   width = 20,
+#   height = 4,
+#   units = "cm"
+# )
