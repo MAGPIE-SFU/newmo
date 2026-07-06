@@ -1,11 +1,8 @@
 library(deSolve)
 library(readr)
 
-# 
-# simulate ode version of the dynamics for SA 
-
-
-load("data/samodel.rds") # this is the samodel; has G, st, x0, el, delta
+# simulate ode version of the dynamics for SA
+samodel <- readRDS("../data/samodel.rds") # this is the samodel; has G, st, x0, el, delta
 
 # model parameters 
 modelpars <-list()
@@ -45,9 +42,8 @@ simulate = function(samodel, modelpars, tspan ) {
                                         # called "weighteddev" in earlier models
     modifiedGT  <- t(samodel$G) *w # this is Gw
     modelpars$GtimesModG  <- as.matrix(samodel$G) %*% modifiedGT
-    
 
-# define the differential equation 
+    # define the differential equation
     diffxt <- function(t, x, modelpars) {
         with(modelpars, { 
             totalx <- sum(x)
@@ -79,8 +75,9 @@ simulate = function(samodel, modelpars, tspan ) {
     return(outdf)
 }
 
+mysim = simulate(samodel, modelpars, tspan)
 
-mysim = simulate(samodel, modelpars, tspan) 
-
-
-
+# modified dataframe saved to csv, path sensitive...
+library(tibble)
+mod_df <- rownames_to_column(mysim, var="id")
+write.csv(mod_df, "../data/SouthAfrica/simulation_data.csv", row.names=F)
