@@ -53,46 +53,69 @@ def _write_grouped_pdf(df, group_col, output_file, x, y, title_prefix, x_order=N
             plt.close(fig)
 
 
-def sa_observed_histograms(df, overwrite=False):
-    output_file = "../plots/sa_observed_histograms.pdf"
-
-    _write_grouped_pdf(
-        df=df,
-        group_col="group",
-        output_file=output_file,
-        x="year",
-        y="frac",
-        title_prefix="Group",
-        overwrite=overwrite
-    )
-
-
-def sa_simulated_histograms(df, overwrite=False):
-    output_file = "../plots/sa_simulated_histograms.pdf"
-
+def sa_combined_pdf(observed_df, simulated_df, overwrite=False):
+    output_file = "../plots/sa_combined_histograms.pdf"
     if os.path.exists(output_file) and not overwrite:
         return
 
-    df_long = df.melt(
+    sim_long = simulated_df.melt(
         id_vars="id",
         var_name="month",
         value_name="value"
     )
+    sim_long["month"] = sim_long["month"].str.replace("month\\.", "", regex=True)
 
-    df_long["month"] = df_long["month"].str.replace("month\\.", "", regex=True)
+    month_order = sorted(sim_long["month"].unique(), key=int)
 
-    month_order = sorted(df_long["month"].unique(), key=int)
+    with PdfPages(output_file) as pdf:
 
-    _write_grouped_pdf(
-        df=df_long,
-        group_col="id",
-        output_file=output_file,
-        x="month",
-        y="value",
-        title_prefix="ID",
-        x_order=month_order,
-        overwrite=True
-    )
+        for group, obs_d in sorted(observed_df.groupby("group"), key=lambda x: x[0]):
+
+            sim_d = sim_long[sim_long["id"] == group]
+
+            fig, (ax1, ax2) = plt.subplots(
+                1, 2,
+                figsize=(10, 4),
+                sharey=False
+            )
+
+            fig.suptitle(f"Group: {group}")
+
+            # -----------------------
+            # Observed plot
+            # -----------------------
+            sns.barplot(
+                data=obs_d,
+                x="year",
+                y="frac",
+                order=sorted(obs_d["year"].unique()),
+                ax=ax1,
+                errorbar=None
+            )
+            ax1.set_title(f"Observed")
+            ax1.set_xlabel("Year")
+            ax1.set_ylabel("Fraction")
+            ax1.tick_params(axis="x", rotation=45)
+
+            # -----------------------
+            # Simulated plot
+            # -----------------------
+            sns.barplot(
+                data=sim_d,
+                x="month",
+                y="value",
+                order=month_order,
+                ax=ax2,
+                errorbar=None
+            )
+            ax2.set_title(f"Simulated")
+            ax2.set_xlabel("Month")
+            ax2.set_ylabel("Value")
+            ax2.tick_params(axis="x", rotation=45)
+
+            plt.tight_layout()
+            pdf.savefig(fig)
+            plt.close(fig)
 
 
 if __name__ == '__main__':
@@ -104,7 +127,8 @@ if __name__ == '__main__':
 
     # South Africa data
     sa_real_data = pd.read_csv("../data/SouthAfrica/xt_grouped.csv")
-    sa_observed_histograms(sa_real_data)
 
     sa_simulated_data = pd.read_csv("../data/SouthAfrica/simulation_data.csv")
-    sa_simulated_histograms(sa_simulated_data)
+
+    # one pdf with both bar plots
+    sa_combined_pdf(sa_real_data, sa_simulated_data)
