@@ -5,16 +5,16 @@ library(readr)
 samodel <- readRDS("../data/samodel.rds") # this is the samodel; has G, st, x0, el, delta
 
 # model parameters 
-modelpars <-list()
-modelpars$v <- 0.061 # there is a reference to 0.1 in my notes, too.. 
-modelpars$sigma <- 0.18 # from previous NFDS models 
-modelpars$migr <- 0.001 # migration parameter 
-modelpars$portion <- 0.3 # fraction under NFDS 
-modelpars$vaccine = c("1", "3", "4", "5", "6A","6B","7F","9V","14","18C","19F","23F") # the serotypes in the PCV7 vaccines 
-modelpars$whigh = 0.1363 # from MA model and previous paper 
-modelpars$wlow = 0.0023 # from MA model too; could be 0 (Leonie) 
-
-modelpars$K=sum(samodel$x0)
+# modelpars <-list()
+# modelpars$v <- 0.061 # there is a reference to 0.1 in my notes, too..
+# modelpars$sigma <- 0.18 # from previous NFDS models
+# modelpars$migr <- 0.001 # migration parameter
+# modelpars$portion <- 0.3 # fraction under NFDS
+# modelpars$vaccine = c("1", "3", "4", "5", "6A","6B","7F","9V","14","18C","19F","23F") # the serotypes in the PCV7 vaccines
+# modelpars$whigh = 0.1363 # from MA model and previous paper
+# modelpars$wlow = 0.0023 # from MA model too; could be 0 (Leonie)
+#
+# modelpars$K=sum(samodel$x0)
 
 # pcv 13 (1, 3, 4, 5, 6A, 6B, 7F, 9V, 14, 18C, 19A, 19F, and 23F) 
 # note pcv7 is  c("4","6A","6B","9V","14","18C","19F","23F") 
@@ -75,9 +75,9 @@ simulate = function(samodel, modelpars, tspan ) {
     return(outdf)
 }
 
-mysim = simulate(samodel, modelpars, tspan)
-
-# modified dataframe saved to csv, path sensitive...
-library(tibble)
-mod_df <- rownames_to_column(mysim, var="id")
-write.csv(mod_df, "../data/SouthAfrica/simulation_data.csv", row.names=F)
+# mysim = simulate(samodel, modelpars, tspan)
+#
+# # modified dataframe saved to csv, path sensitive...
+# library(tibble)
+# mod_df <- rownames_to_column(mysim, var="id")
+# write.csv(mod_df, "../data/SouthAfrica/simulation_data.csv", row.names=F)
