@@ -8,7 +8,7 @@ from sklearn.metrics import confusion_matrix
 from histogram import FIXED_POPULATION_SIZE
 
 
-def get_trends(values, threshold=0.05):
+def get_trends(values, threshold=0.07):
     trends = []
 
     scale = max(values) - min(values)
@@ -109,6 +109,9 @@ def explore_confusion_matrices(obs_df, simulated_df, overwrite=False):
     # serotype, month, value, simulation_id, v, sigma, migr
     simulated_df = simulated_df.copy()
     simulated_df["frac"] = simulated_df["value"] / FIXED_POPULATION_SIZE
+    # simulated_df["frac"] = simulated_df.groupby(["simulation_id", "month"])["value"].transform(
+    #     lambda x: x / x.sum()
+    # )
 
     parameter_cols = ["v", "sigma", "migr"]
 
