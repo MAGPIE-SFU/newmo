@@ -215,8 +215,26 @@ def get_trends(values, threshold=0.05):
 
 
 def population_size_model_plot(sim_df):
+    sim_long = sim_df.melt(
+        id_vars="id",
+        var_name="month",
+        value_name="value"
+    )
+    sim_long["month"] = sim_long["month"].str.replace("month\\.", "", regex=True)
 
-    return None
+    monthly_population_simulation = sim_long.groupby("month")["value"].sum().reset_index()
+
+    fig, ax = plt.subplots(figsize=(10, 4))
+
+    ax.plot(monthly_population_simulation.month, monthly_population_simulation.value, marker="o")
+    ax.axhline(y=FIXED_POPULATION_SIZE, color="red", linestyle="dashed")
+
+    ax.set_xlabel("Month")
+    ax.set_ylabel("Population")
+
+    plt.tight_layout()
+    plt.savefig("../plots/population_size_model.pdf")
+    plt.close()
 
 
 if __name__ == '__main__':
