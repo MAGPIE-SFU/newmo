@@ -54,32 +54,147 @@ common_groups <- group_totals %>%
     select(serotype, gpsc)
 
 # FIX FIX ! PLEASE -- unknown Age_Year may be a known age given in months
+#meta_clean <- meta %>%
+#    mutate(
+#        year = Col_Year,
+#        gpsc = new_GPSC,
+#        age_group = case_when(
+#            is.na(Age_Year) ~ "unknown",
+#            Age_Year < child_cutoff ~ "child",
+#            TRUE ~ "adult"
+#        ),
+#        collection_type = if_else(Source == "NP", "carriage", "IPD")
+#    ) %>%
+#    filter(Country == "South Africa") %>%
+#    left_join(
+#        common_groups %>% mutate(keep_group = TRUE),
+#        by = c("serotype", "gpsc")
+#    ) %>%
+#    mutate(
+#        gpsc = if_else(is.na(keep_group), "other", as.character(gpsc)),
+#        group = paste(serotype, gpsc, sep = "_")
+#    ) %>%
+#    select(
+#        Sample_accession, year, serotype, gpsc, group,
+#        Age_Year, age_group, collection_type, Source
+#    )
+
+
+
+## fixing the age year thing from above -- basically, age is recorded in number of years or number of days sometimes, those can be converted to year. there are still some missing 
+
 meta_clean <- meta %>%
     mutate(
+        # Convert "." and other non-numeric values to NA
+        Age_Year_num = parse_number(
+            na_if(as.character(Age_Year), ".")
+        ),
+        Age_Month_num = parse_number(
+            na_if(as.character(Age_Month), ".")
+        ),
+        Age_Day_num = parse_number(
+            na_if(as.character(Age_Day), ".")
+        ),
+
+        # Prioritize years, then months, then days
+        age_years = coalesce(
+            Age_Year_num,
+            Age_Month_num / 12,
+            Age_Day_num / 365.25
+        ),
+
         year = Col_Year,
         gpsc = new_GPSC,
+
         age_group = case_when(
-            is.na(Age_Year) ~ "unknown",
-            Age_Year < child_cutoff ~ "child",
-            TRUE ~ "adult"
+            is.na(age_years)       ~ "unknown",
+            age_years < child_cutoff ~ "child",
+            TRUE                   ~ "adult"
         ),
-        collection_type = if_else(Source == "NP", "carriage", "IPD")
+
+        collection_type = if_else(
+            Source == "NP",
+            "carriage",
+            "IPD"
+        )
     ) %>%
     filter(Country == "South Africa") %>%
     left_join(
-        common_groups %>% mutate(keep_group = TRUE),
+        common_groups %>%
+            mutate(keep_group = TRUE),
         by = c("serotype", "gpsc")
     ) %>%
     mutate(
-        gpsc = if_else(is.na(keep_group), "other", as.character(gpsc)),
+        gpsc = if_else(
+            is.na(keep_group),
+            "other",
+            as.character(gpsc)
+        ),
         group = paste(serotype, gpsc, sep = "_")
     ) %>%
     select(
-        Sample_accession, year, serotype, gpsc, group,
-        Age_Year, age_group, collection_type, Source
+        Sample_accession,
+        year,
+        serotype,
+        gpsc,
+        group,
+        Age_Year,
+        Age_Month,
+        Age_Day,
+        Age_Year_num,
+        Age_Month_num,
+        Age_Day_num,
+        age_years,
+        age_group,
+        collection_type,
+        Source
     )
 
 all(rownames(G) == meta_clean$Sample_accession) # TRUE good 
+
+# check how many ages of each type. there are still NAs (272 with no age info at all)
+meta_clean %>%
+    summarise(
+        year_only = sum(
+            !is.na(Age_Year_num) &
+            is.na(Age_Month_num) &
+            is.na(Age_Day_num)
+        ),
+
+        month_only = sum(
+            is.na(Age_Year_num) &
+            !is.na(Age_Month_num) &
+            is.na(Age_Day_num)
+        ),
+
+        day_only = sum(
+            is.na(Age_Year_num) &
+            is.na(Age_Month_num) &
+            !is.na(Age_Day_num)
+        ),
+
+        multiple = sum(
+            rowSums(
+                cbind(
+                    !is.na(Age_Year_num),
+                    !is.na(Age_Month_num),
+                    !is.na(Age_Day_num)
+                )
+            ) > 1
+        ),
+
+        all_missing = sum(
+            rowSums(
+                cbind(
+                    !is.na(Age_Year_num),
+                    !is.na(Age_Month_num),
+                    !is.na(Age_Day_num)
+                )
+            ) == 0
+        )
+    )
+
+
 
  write_csv(meta_clean, "data/SouthAfrica/meta_clean.csv") 
 #
