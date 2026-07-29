@@ -53,6 +53,7 @@ common_groups <- group_totals %>%
     filter(n_total >= 10) %>%
     select(serotype, gpsc)
 
+# FIX FIX ! PLEASE -- unknown Age_Year may be a known age given in months
 meta_clean <- meta %>%
     mutate(
         year = Col_Year,
