@@ -1,10 +1,11 @@
 import os
 
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.backends.backend_pdf import PdfPages
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, balanced_accuracy_score
 from histogram import FIXED_POPULATION_SIZE
 
 
@@ -115,9 +116,13 @@ def explore_confusion_matrices(obs_df, simulated_df, overwrite=False):
 
     parameter_cols = ["v", "sigma", "migr"]
 
+    skipped_groups = []
+
+    scores = []  # collect one row per simulation
+
     with PdfPages(output_file) as pdf:
         for sim_id, sim_group in sorted(
-            simulated_df.groupby("simulation_id"), key=lambda x: x[0]
+                simulated_df.groupby("simulation_id"), key=lambda x: x[0]
         ):
             params = sim_group[parameter_cols].iloc[0]
 
@@ -126,10 +131,13 @@ def explore_confusion_matrices(obs_df, simulated_df, overwrite=False):
 
             for group, obs_d in sorted(obs_df.groupby("group"), key=lambda x: x[0]):
                 sim_d = sim_group[sim_group["serotype"] == group]
-
                 obs_d = obs_d.sort_values("year")
-                sim_d = sim_d.sort_values("month")
 
+                if not (obs_d["frac"] >= 0.025).any():
+                    skipped_groups.append(group)
+                    continue
+
+                sim_d = sim_d.sort_values("month")
                 obs = obs_d["frac"].to_numpy()
                 sim = sim_d["frac"].to_numpy()
 
@@ -139,11 +147,21 @@ def explore_confusion_matrices(obs_df, simulated_df, overwrite=False):
                 all_obs.extend(obs_trends)
                 all_sim.extend(sim_trends)
 
-            cm = confusion_matrix(
-                all_obs,
-                all_sim,
-                labels=labels
-            )
+            cm = confusion_matrix(all_obs, all_sim, labels=labels)
+
+            # --- diagonal-based scoring ---
+            n_total = cm.sum()
+            n_correct = np.trace(cm)
+            accuracy = n_correct / n_total if n_total > 0 else np.nan
+            bal_acc = balanced_accuracy_score(all_obs, all_sim) if n_total > 0 else np.nan
+
+            scores.append({
+                "simulation_id": sim_id,
+                "accuracy": accuracy,
+                "balanced_accuracy": bal_acc,
+                "n_points": n_total,
+                **params.to_dict(),
+            })
 
             cm_df = pd.DataFrame(
                 cm,
@@ -152,24 +170,55 @@ def explore_confusion_matrices(obs_df, simulated_df, overwrite=False):
             )
 
             plt.figure(figsize=(6, 5))
-
-            sns.heatmap(
-                cm_df,
-                annot=True,
-                fmt="d",
-                cmap="Blues",
-                cbar=False,
-                linewidths=0.5
-            )
-
+            sns.heatmap(cm_df, annot=True, fmt="d", cmap="Blues", cbar=False, linewidths=0.5)
             plt.title(
-                f"Simulation {sim_id}: v={params['v']}, "
-                f"sigma={params['sigma']}, migr={params['migr']}"
+                f"Simulation {sim_id}: v={params['v']}, sigma={params['sigma']}, "
+                f"migr={params['migr']}\nAccuracy={accuracy:.2f}, Balanced={bal_acc:.2f}"
             )
-
             plt.tight_layout()
             pdf.savefig(bbox_inches="tight")
             plt.close()
+
+    # --- ranking summary, separate PDF ---
+    scores_df = pd.DataFrame(scores).sort_values("balanced_accuracy", ascending=False)
+
+    ranking_file = output_file.replace(".pdf", "_ranking.pdf")
+
+    with PdfPages(ranking_file) as pdf:
+        # Page 1: bar chart of top N by balanced accuracy
+        top_n = min(30, len(scores_df))
+        plt.figure(figsize=(8, max(4, top_n * 0.3)))
+        plot_df = scores_df.head(top_n).iloc[::-1]  # reverse so best is on top
+        plt.barh(plot_df["simulation_id"].astype(str), plot_df["balanced_accuracy"],
+                 color="steelblue")
+        plt.xlabel("Balanced Accuracy")
+        plt.ylabel("Simulation ID")
+        plt.title(f"Top {top_n} Simulations by Balanced Accuracy")
+        plt.tight_layout()
+        pdf.savefig(bbox_inches="tight")
+        plt.close()
+
+        # Page 2: full table
+        fig, ax = plt.subplots(figsize=(8.5, max(4, len(scores_df) * 0.25)))
+        ax.axis("off")
+        table_cols = ["simulation_id", "accuracy", "balanced_accuracy", "n_points"] + parameter_cols
+        tbl = ax.table(
+            cellText=scores_df[table_cols].round(3).values,
+            colLabels=table_cols,
+            loc="center",
+            cellLoc="center",
+        )
+        tbl.auto_set_font_size(False)
+        tbl.set_fontsize(7)
+        tbl.scale(1, 1.2)
+        plt.title("Full Ranking", pad=20)
+        pdf.savefig(bbox_inches="tight")
+        plt.close()
+
+    # also handy to have as CSV for later analysis (e.g. feeding into SALib)
+    scores_df.to_csv(output_file.replace(".pdf", "_ranking.csv"), index=False)
+
+    # print(f"Skipped groups: {set(skipped_groups)}")
 
 
 if __name__ == '__main__':
