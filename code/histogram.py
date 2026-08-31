@@ -73,16 +73,23 @@ def sa_combined_pdf(observed_df, simulated_df, overwrite=False):
 
     month_order = sorted(sim_long["month"].unique(), key=int)
 
+    skipped_groups = []
+
     with PdfPages(output_file) as pdf:
 
         for group, obs_d in sorted(observed_df.groupby("group"), key=lambda x: x[0]):
+            # Following Corander et al., only consider groups that are present
+            # in 2.5 percent or more at any time point
+            if not (obs_d["frac"] >= 0.025).any():
+                skipped_groups.append(group)
+                continue
 
             sim_d = sim_long[sim_long["id"] == group]
 
             fig, (ax1, ax2) = plt.subplots(
                 1, 2,
                 figsize=(10, 4),
-                sharey=False
+                sharey=True
             )
 
             fig.suptitle(f"Group: {group}")
@@ -122,6 +129,8 @@ def sa_combined_pdf(observed_df, simulated_df, overwrite=False):
             plt.tight_layout()
             pdf.savefig(fig)
             plt.close(fig)
+
+    print(f"The following groups were skipped:\n{skipped_groups}")
 
 
 def population_size_model_plot(sim_df):
@@ -163,6 +172,6 @@ if __name__ == '__main__':
     sa_simulated_data = pd.read_csv("../data/SouthAfrica/simulation_data.csv")
 
     # one pdf with both bar plots
-    # sa_combined_pdf(sa_real_data, sa_simulated_data)
+    sa_combined_pdf(sa_real_data, sa_simulated_data, overwrite=True)
 
-    population_size_model_plot(sa_simulated_data)
+    # population_size_model_plot(sa_simulated_data)
