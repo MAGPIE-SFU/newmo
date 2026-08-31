@@ -2,7 +2,7 @@ library(deSolve)
 library(readr)
 
 # simulate ode version of the dynamics for SA
-samodel <- readRDS("../data/samodel.rds") # this is the samodel; has G, st, x0, el, delta
+samodel <- readRDS("data/SouthAfrica/samodel.rds") # this is the samodel; has G, st, x0, el, delta
 
 # model parameters 
 # modelpars <-list()
@@ -21,24 +21,24 @@ samodel <- readRDS("../data/samodel.rds") # this is the samodel; has G, st, x0, 
 tmax   <- 6 # years 
 tspan  <- seq(0, tmax * 12, by = 12) # time steps are monthly 
 
-simulate = function(samodel, modelpars, tspan ) {
+simulate <- function(samodel, modelpars, tspan ) {
     # preliminary to running a simulation, but depends on model parameters: 
     
     # create logged versions to translate to continuous time
     rho <- log(1 + modelpars$sigma)
     
     # create vt: 0 or parameter v, one value for each strain (row of G) 
-    vt =  modelpars$v * (samodel$st %in% modelpars$vaccine)
+    vt <-  modelpars$v * (samodel$st %in% modelpars$vaccine)
     rr  <- -log(1 - vt)
     
     # create weight vector w (one value for each locus) 
-    w = rep(1, length(samodel$el))
-    tmpind = round(modelpars$portion*length(samodel$el))
-    w[1:tmpind] = modelpars$whigh
-    w[(tmpind+1):length(w)]=modelpars$wlow
+    w <- rep(1, length(samodel$el))
+    tmpind <- round(modelpars$portion*length(samodel$el))
+    w[1:tmpind] <- modelpars$whigh
+    w[(tmpind+1):length(w)] <- modelpars$wlow
 
     # create matrix multiples to simplify pi calculation 
-    modelpars$Gwe = samodel$G %*% (w * samodel$el) # this is sum_l Gil wl el , the first part of pi 
+    modelpars$Gwe <- samodel$G %*% (w * samodel$el) # this is sum_l Gil wl el , the first part of pi
                                         # called "weighteddev" in earlier models
     modifiedGT  <- t(samodel$G) *w # this is Gw
     modelpars$GtimesModG  <- as.matrix(samodel$G) %*% modifiedGT

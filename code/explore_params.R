@@ -1,6 +1,6 @@
 library(tidyverse)
 
-source("simulate_ode.R")   # defines simulate(); also loads `samodel` via readRDS()
+source("code/simulate_ode.R")   # defines simulate(); also loads `samodel` via readRDS()
 
 # -----------------------------
 # Base parameters
@@ -52,7 +52,15 @@ for (i in seq_len(nrow(parameter_grid))) {
     pars$sigma <- parameter_grid$sigma[i]
     pars$migr  <- parameter_grid$migr[i]
 
+    print(samodel)
+
+    print(pars)
+
+    print(tspan)
+
     sim <- simulate(samodel, pars, tspan)   # rows = strains, cols = "month.<t>"
+
+    print(sim)
 
     sim_df <- sim |>
         rownames_to_column("serotype") |>
@@ -75,6 +83,6 @@ final_df <- bind_rows(all_simulations)
 
 write.csv(
     final_df,
-    "../data/SouthAfrica/parameter_exploration.csv",
+    "data/SouthAfrica/parameter_exploration.csv",
     row.names = FALSE
 )

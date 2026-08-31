@@ -1,6 +1,7 @@
 library(dplyr)
 library(ggplot2)
 library(tidyr)
+library(readr)
 library(lubridate) # may not be needed 
 
 ###########
@@ -15,10 +16,11 @@ library(lubridate) # may not be needed
 # ----- read the data do a bit of cleaning, checking, merge some serotypes etc 
 ###########
 
+G <- as.matrix(read.csv("data/SouthAfrica/Ggrouped.csv", row.names=1))
 
 meta <- read_csv("data/SouthAfrica/metadata.csv") # all of these are in the same order, though 
 
-meta$serotype= meta$In_Silico_Serotype
+meta$serotype <- meta$In_Silico_Serotype
 meta <- meta %>%
     mutate(serotype = recode(serotype,
                              "11B" = "11BC",
