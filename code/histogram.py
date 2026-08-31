@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from matplotlib.backends.backend_pdf import PdfPages
-from sklearn.metrics import confusion_matrix
 
 
 FIXED_POPULATION_SIZE = 100000
@@ -169,9 +168,30 @@ if __name__ == '__main__':
     # model only starts in 2008, so we delete earlier times
     sa_real_data = sa_real_data[sa_real_data["year"] > 2007]
 
-    sa_simulated_data = pd.read_csv("../data/SouthAfrica/simulation_data.csv")
+    # extract specific simulation from the whole df
+    all_sim_data = pd.read_csv("../data/SouthAfrica/parameter_exploration.csv")
+    simulated_df = all_sim_data.copy()
+    simulated_df["frac"] = simulated_df["value"] / FIXED_POPULATION_SIZE
+
+
+    def extract_sim_wide(df, sim_id, value_col="value"):
+        sub = df[df["simulation_id"] == sim_id]
+
+        wide = sub.pivot(index="serotype", columns="month", values=value_col)
+
+        # rename columns from e.g. 0 -> "month.0"
+        wide.columns = [f"month.{int(c)}" for c in wide.columns]
+
+        # make serotype a regular column named "id", matching your target format
+        wide = wide.reset_index().rename(columns={"serotype": "id"})
+
+        return wide
+
+
+    # example usage, fixed simulation_id = 1
+    sim_wide = extract_sim_wide(simulated_df, sim_id=27)
 
     # one pdf with both bar plots
-    sa_combined_pdf(sa_real_data, sa_simulated_data, overwrite=True)
+    sa_combined_pdf(sa_real_data, sim_wide, overwrite=True)
 
     # population_size_model_plot(sa_simulated_data)
