@@ -30,7 +30,7 @@ nickadults = read.xlsx("data/Invasiveness/nick-inv-sts-adults.xlsx")
 # pseudocounts 
 alpha <- 0.05          # pseudocount in r_g = (d_g + alpha)/v_g -- need to check that we aren't adding a ton of wrongness with alpha too high
 omega <- 0.10          # carriage weight in the final blend
-
+beta <- 0.05           # another pseudo count, in child carriage 
 
 
 ######################################################
@@ -44,10 +44,9 @@ yearly_counts_long <- meta_clean %>%
     count( year, age_group, collection_type,
         serotype, gpsc, group,  name = "n" )
 
-hist(filter(yearly_counts_long, year==2005)$n,breaks = 50) # in a given year most are 1 (!)
+hist(filter(yearly_counts_long, year==2007)$n,breaks = 50) # in a given year most are 1 (!)
 # which probably means i need to figure out which types to remove
 # and also means i should have alpha << 1 (alpha is a parameter to avoid problems with 0s later. so is beta)
-
 
 # make it wider by splitting IPD and carriage to cols
 yearly_counts <- yearly_counts_long %>%
@@ -105,7 +104,7 @@ unknown_proxy <- yearly_counts %>%
 # i want to also include the carriage data we do have, such as it is.. 
 # here are the raw carriage fractions by group in kids 
 # beta helps avoid 0s
-beta = 0.05
+
 
 # 
 child_carriage_counts <- yearly_counts %>%
@@ -176,9 +175,23 @@ unknown_proxy %>%
 
 # then i can combine that with my carriage sample for the years when i have carriage 
 # I do not know the best values of the pars tauA, tauU and omega
-tauA <- 0.10
-tauU <- 0.05
-omega <- 0.10
+
+# Leonie's paper notes that the NFDS model datasets to date only had data from children (!) 
+# suggests that tauA (the adult contribution) should be basically 0 to be in keeping with those studies 
+# since we have it, i will use it a tiny bit, i suppose. 
+# but we might want to simplify our model by removing adults entirely before model-building
+tauA <- 0.01
+tauU <- (272/(3865+1386)) # prop of the dataset that are unknown age - small 
+
+omega <- 0.27 # omega is the contribution of our carriage dataset 
+# i suppose perhaps it should be more than 0.1 (where we hvae carriage..) 
+# sept 22: setting to 0.27 because that's the fraction of the data that's from carriage 
+# note that we have 439 adult carriage samples that aren't contributing 
+# here even though adult IPD is seen as reflective of the carriage in the population
+# should we use kids only throughout , or adults only throughout? or this weird mix? 
+# seems like carriage is directly what we want and IPD is a biased sample - up-weight carriage? 
+
+
 final_yearly <- components_yearly %>%
   group_by(year) %>%
   mutate(
@@ -224,6 +237,11 @@ ggplot(final_yearly, aes(x=p_final, fill=year))+geom_histogram() +facet_wrap(~as
 # make x(t) and start exploring locus and ST frequencies over time 
 ###########################################################################
 
+# NOTE - sept 22 changed this file, will push to git, but i did NOT
+# re-save the reweighted output or recreate G from Tanu's file so from 
+# here, this has to be completed 
+# and it would be good to have an order in which to run all this to recreate with different values 
+# of the fixed parameters 
 
 final_yearly = final_yearly %>% mutate( syncount = p_final*100000)
 # x(t) is now just final_yearly$syncount for year t 
