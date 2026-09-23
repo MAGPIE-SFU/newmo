@@ -16,7 +16,8 @@ library(readr)
 library(dplyr)
 library(tibble)
 
-G <- as.matrix(read.csv("data/SouthAfrica/gene_matrix.csv",row.names=1) )
+# G <- as.matrix(read.csv("data/SouthAfrica/gene_matrix.csv",row.names=1) )
+G <- as.matrix(read.csv("data/SouthAfrica/pa_matrix_final.csv",row.names=1) )
 meta_clean <- read_csv("data/SouthAfrica/meta_clean.csv", show_col_types = FALSE)
 
 # reorder rows of G 
@@ -71,4 +72,4 @@ stopifnot(identical(colnames(Greord), locsinorder))
 Greord <- Gg[, match(locsinorder, colnames(Gg))]
 all(colnames(Greord)==locsinorder) # true. 
 
-write.csv(Greord, "data/SouthAfrica/Ggrouped.csv")
+write.csv(Greord, "data/SouthAfrica/G_cols_ordered.csv")

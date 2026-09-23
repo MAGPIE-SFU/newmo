@@ -237,9 +237,8 @@ ggplot(final_yearly, aes(x=p_final, fill=year))+geom_histogram() +facet_wrap(~as
 # make x(t) and start exploring locus and ST frequencies over time 
 ###########################################################################
 
-# NOTE - sept 22 changed this file, will push to git, but i did NOT
-# re-save the reweighted output or recreate G from Tanu's file so from 
-# here, this has to be completed 
+# NOTE - sept 22 changed this file, will push to git
+# 
 # and it would be good to have an order in which to run all this to recreate with different values 
 # of the fixed parameters 
 
@@ -249,10 +248,10 @@ final_yearly = final_yearly %>% mutate( syncount = p_final*100000)
 xt = final_yearly %>% select(year, serotype, gpsc,group, p_final, syncount) %>%
     rename(frac = p_final, count = syncount) 
 
-# we want the order to match our grouped G matrix, so we can set up our dynamics 
-# without having to worry about reordering 
+# we want the row order to match our grouped G matrix, so we can set up our dynamics 
+# without having to worry about reordering the  
 
-Gg = read.csv("data/SouthAfrica/Ggrouped.csv", row.names = 1, check.names = FALSE)
+# Gg = read.csv("data/SouthAfrica/Ggrouped.csv", row.names = 1, check.names = FALSE)
 
 xt <- xt %>% mutate(group = factor(group, levels = rownames(Gg))) %>% 
     complete(year, group, fill = list(frac = 0, count = 0)) %>% 
@@ -275,7 +274,7 @@ locus_by_year <- sapply(years, function(y) {
     p_df <- final_yearly %>%
         filter(year == y) %>%
         select(group, p_final)
-    p_vec <- setNames(p_df$p_final, p_df$group)[rownames(G_mean)]
+    p_vec <- setNames(p_df$p_final, p_df$group)[rownames(Gg)]
     p_vec[is.na(p_vec)] <- 0
     as.numeric(t(p_vec) %*% as.matrix(Gg))
 })
@@ -315,10 +314,12 @@ ggplot(plotdat, aes(x = freq_2000, y = freq)) +
     )
 
 
-# CONCLUSION: in this weighting, locus frequencies are very stable until about 2013, 2014. 
-# i wonder if this is because i did not account for post-PCV changes in the  invasiveness 
-# (which i think are the gamma values in Nick's paper) ? but i don't want to revisit that now. i want to use G
-# and get on with making a model and comparing it to data. 
+# CONCLUSION: overall good stability in the locus frequencies. 
+# in this weighting, locus frequencies are very stable until about 2013, 2014. 
+# they probably change more during vaccination than before
+# NOTE that there were post-vax different invasiveness values in Nick's paper 
+# (which i think are the gamma values in Nick's paper) ?
+# but i don't want to revisit that now.
 
 # vaccination: PCV7 in 2009, PCV13 in 2011 (See Bellman paper figure 1). 
 
@@ -328,6 +329,11 @@ ggplot(plotdat, aes(x = freq_2000, y = freq)) +
 
 # here, to do approximately the same, i would take the pre-2009 and post-2011 
 # mean frequencies of these 
+
+# NOTE ALSO - need to figure out what to do about filtering for only intermediate
+# frequency genes. The lowest values of delta may be for very rare genes since 
+# the top quantity is squared. That is unlikely to be what we want to choose 
+# for the NFDS model. 
 
 locus_by_year <- locus_by_year %>%
     mutate(
@@ -347,10 +353,9 @@ tmp <- locus_by_year %>%
         delta = (post2011 - pre2009)^2/(1-pre2009*(1-pre2009)),
         delPRE = (f2005.2008 - pre2005)^2/(1-pre2005*(1-pre2005))
     )
-
-plot(tmp$delta, tmp$delPRE  ) 
+ggplot(tmp, aes(x = sqrt(delta), y = sqrt(delPRE)  )) + geom_point(alpha = 0.1) 
 # interesting. No, we don't get 
-# the delta information from pre-vaccine frequency comparisons. 
+# the delta information from pre-vaccine frequency comparisons. but there is something
 
 locus_by_year <- locus_by_year %>% 
     mutate( 
@@ -372,7 +377,7 @@ locus_by_year <- locus_by_year[ order(locus_by_year$delta) , ]
 
 write_csv(locus_by_year, "data/SouthAfrica/locus_freqs_deltas.csv")
 
-
+# NOTE we should remove the non-intermediate frequency genes here before building the NFDS model 
 
 
 
