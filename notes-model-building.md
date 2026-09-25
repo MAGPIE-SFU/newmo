@@ -9,51 +9,46 @@ has the metadata, but with some new serotype names to match Nick's
 invasiveness, the groups defined (now there are 87 of them) and the
 ages fixed. 
 
-`make_invasiveness_lookup.R` makes the file
-`invasiveness_lookup.csv`. It adjusts the invasiveness weights,
-pulling towards the mean. This avoids having just one IPD case end up
-contributing a large fraction of the synthetic carriage population in
-a year, when we come to that. 
+`make_invasiveness_lookup.R` makes the file `invasiveness_lookup.csv`. It adjusts the
+invasiveness weights, pulling towards the mean. This avoids having just one IPD case end
+up contributing a large fraction of the synthetic carriage population in a year, when we
+come to that.
 
-The reweighting script, `reweight.R` creates the variable `xt`, in
+The reweighting script, `reweight.R` creates the variable $x(t)$ (`xt` in the code), in
 `xt_grouped.csv`. This is the synthetic carriage population. 
 
-It, in turn, is needed to create the locus frequencies, because we can't know
-how frequent a locus was in year x without knowing the population
-composition. And locus frequencies are needed for two reasons: first,
-we need to select which loci will go in the model (and that's usually
-between 5 and 95% frequency). Also, we like to order the columns of G
-by locus stability, and we can't know the stability before we know the
-frequencies. 
+It, in turn, is needed to create the locus frequencies, because we can't know how frequent
+a locus was in year $t$ without knowing the population composition. And locus frequencies
+are needed for two reasons: first, we need to select which loci will go in the model (and
+that's usually between 5 and 95% frequency). Also, we like to order the columns of G by
+locus stability, and we can't know the stability before we know the frequencies.
 
-Therefore, the $G$ script, `groupG.R`, reads the raw $G$ matrix (now
-in `pa_matrix_final.csv`) and the $xt$ information. It groups $G$ by
-the ST-SC groups, sets $G_{ij}$ to the fraction of isolates in group $i$
-with gene $j$, computes locus frequencies, saves them in
-`locus_freqs_deltas.csv`, then reorders $G$'s columns and saves
-`Gnfds.csv`. 
+Therefore, the $G$ script, `groupG.R`, reads the raw $G$ matrix (now in
+`pa_matrix_final.csv`) and the $x(t)$ information. It groups $G$ by the ST-SC groups, sets
+$G_{ij}$ to the fraction of isolates in group $i$ with gene $j$, computes locus
+frequencies, saves them in `locus_freqs_deltas.csv`, then reorders $G$'s columns and saves
+`Gnfds.csv`.
 
-Finally, `create-SA-nfdsmodel.R` pulls the information together to
-make an NFDS model with the initial condition $x_0$, $G$, the serotype
-(for record-keeping), the group, the equilibrium locus frequencies and
-for context the logit frequency difference (see below). 
+Finally, `create-SA-nfdsmodel.R` pulls the information together to make an NFDS model with
+the initial condition $x_0$, $G$, the serotype (for record-keeping), the group, the
+equilibrium locus frequencies and for context the logit frequency difference (see below).
 
 | Script | Inputs | Outputs |
 |---|---|---|
 | `cleanmetadata.R` | `metadata.csv` | `meta_clean.csv` |
 | `make_invasiveness_lookup.R` | `meta_clean.csv`, Nick's two xlsx tables | `invasiveness_lookup.csv` |
-| `reweight.R` | `meta_clean.csv`, `invasiveness_lookup.csv` | `xt` (`xt_grouped.csv`) |
-| `groupG` | `xt`, raw `G`, `meta_clean.csv` | `locus_freqs_deltas.csv`, `Gnfds` |
+| `reweight.R` | `meta_clean.csv`, `invasiveness_lookup.csv` | $x(t)$ (`xt_grouped.csv`) |
+| `groupG` | $x(t)$, `pa_matrix_final.csv`, `meta_clean.csv` | `locus_freqs_deltas.csv`, `Gnfds` |
 
 ---
 
 ## 2026-09-25 — IPD vs carriage in G
 
 $G_{j\ell}$ is the fraction of all isolates in group $j$ that have locus $\ell$, pooling IPD and
-carriage. I thought about whether this is right, because $x(t)$ is a
+carriage.  $x(t)$ is a
 synthetic *carriage* population, but about 73% of the isolates behind G are IPD (4952 of 6777). If
-the accessory genome within a lineage differs between invasive and carried isolates, like
-it does for pilus islands and similar, then the $G$ entries might not reflect the
+the accessory genome within a group differs between invasive and carried isolates (which
+they can) then the $G$ entries might not reflect the
 circulating population. I decided not to worry about this. See code
 `whatabout-Gentries-ipdmix.R`. 
 
@@ -61,21 +56,21 @@ circulating population. I decided not to worry about this. See code
 carriage-only prevalences for those, the population locus frequencies move by a median
 of 0.043. That's not great because the locus frequencies are often small, but it's not
 huge. Of course, most genes aren't specifically associated with IPD or carriage, so maybe
-that's fine. 
+that's fine.
 
 Permuting the IPD/carriage labels within a lineage (keeping the sample sizes, but dropping
-any association with IPD for a locus) gives a median change in frequency of 0.031. So most of the apparent shift
-is noise in the carriage estimates, which rest on ~21 isolates per lineage and only from
-2009-2013. I decided not to change this. The correction would come from the same thin carriage data so
-its own error would probably be sizeable (on this scale anyway). 
+any association with IPD for a locus) gives a median change in frequency of 0.03. So most of the apparent shift
+is noise in the carriage estimates, which rest on about 21 isolates per group and only from
+2009-2013. I decided not to change this. The correction would come from the same  carriage data so
+its own error would probably be on this scale anyway. 
 
-However, we could consider looking in these data for IPD-associated genes, where they are
+Idea: However, we could consider looking in these data for IPD-associated genes, where they are
 in the decotur network, and so on. I saved some code to create the locus log odds ratios
 and sample numbers, for the 43 groups that have samples in both IPD and carriage. See
 `whatabout-IPDgenes.R`. I left a couple of thoughts at the bottom of that script. Would
 need a comparison to known IPD-associated (or non-associated, i guess) genes. 
 
-Still to do: check whether dropping the top logOR_ipd loci changes anything in the model
+Still to do: check whether dropping the top logOR_ipd loci (or bottom?) changes anything in the model
 (since these are the ones for which the Gnfds entries reflect the circulating population
 least well). 
 
@@ -85,7 +80,7 @@ least well).
 ## 2026-09-24 — ranking loci by |logit(post) - logit(pre)|
 
 I replaced $\delta = (f-e)^2/(1-e(1-e))$ (which previous authors used to order genes for NFDS) with logitdiff = |logit(post2011) - logit(pre2009)|,
-sorted ascending to list the most stable loci first, restricted to loci with pre-vaccine frequency
+sorted in ascending order to list the most stable loci first, restricted to loci with pre-vaccine frequency
 between 0.05 and 0.95.
 
 The $\delta$ statistic, $\delta = \frac{ (e-f)^2}{1 - e(1-e)}$, has a scale that depends  on
@@ -97,8 +92,8 @@ only ranges from 0.75 to 1 so it does not really boost intermediate frequency ge
 
 I checked this by regressing log(measure) and log(pre-vaccine frequency) over the
 loci in the model for 4 measures: $\delta$, $z_\ell = \frac{f_\ell - e_\ell}{\sqrt{\dfrac{e_\ell(1-e_\ell)}{n_{\mathrm{pre}}}
-         + \dfrac{f_\ell(1-f_\ell)}{n_{\mathrm{post}}}}}. $, logitdiff is |logit(e)  -
-		 logit(f)| and the last is hte log ratio. $e$ and $f$ are pre- and post- vaccine
+         + \dfrac{f_\ell(1-f_\ell)}{n_{\mathrm{post}}}}} $, logitdiff is |logit(e)  -
+		 logit(f)| and the last is the log ratio. $e$ and $f$ are pre- and post- vaccine
 		 frequency. 
 		 Here are the slopes: 
 
@@ -110,24 +105,28 @@ loci in the model for 4 measures: $\delta$, $z_\ell = \frac{f_\ell - e_\ell}{\sq
 $\delta$ and the log
 ratio have opposite "preferences" for the baseline or starting frequency. $\delta$ calls low-frequency genes stable because they have
 no absolute room to move, but log ratio tends to consider high-frequency genes stable because they
-have no proportional room to move. The logitdiff is the one that isn't partly measuring frequency.
+have little proportional room to move (at least, only in one direction). The logitdiff is
+least dependent on frequency (as is $z$ which has the bonus of having a statistical
+interpretation and depending on some counts, so it's a possibility). 
 
-It's also invariant if you swap presence for absence, so 0.9 to 0.95 scores the same as
-0.1 to 0.05. I'm not that committed to the symmetry point (not having a gene is just as
+The logitdiff measure is also invariant if you swap presence for absence, so a change from 0.9 to 0.95 scores the same as
+one from 0.1 to 0.05. I'm not that committed to the symmetry point (the idea that not having a gene is just as
 much a "trait that could be under NFDS" as having one). But it's a thought. $\delta$ and
 $z$ are also invariant to this switch but the log ratio one isn't. 
 
 If I choose the most stable 200 genes using $\delta$ and the logitdiff, 160 of the top 200
 agree.   The other 40 are more intermediate in frequency than your typical locus, which
-seems like the right thing to do. 
+seems good. 
 
-Locus selection for the model: the 0.05-0.95 filter is on the *pre-vaccine* window, because the model treats pre-vaccine
+Locus selection for the model: we remove genes with frequencies outsize the range $[ 0.05,
+0.95]$  in the pre-vaccine period, because the model treats pre-vaccine
 frequencies as the equilibrium. Filtering on post-vaccine
-frequency could drop  the loci that moved a lot which is unfair. 
-13 loci sit at exactly 1 in every lineage — rlmN, rnhB, prmA, pepA, thiN and friends,
-i.e. housekeeping. They appear core now even though the pangenome's
-core/accessory split calle them accessory. They are dropped from the NFDS model with 
-` in_model = FALSE`. 
+frequency could drop  loci that moved out of that window, which seems unfair (could drop
+ones that move a lot, making them more likely to get out of the range, and then use a model that assumes they won't move too much). 
+13 loci have frequency 1 in every lineage — rlmN, rnhB, prmA, pepA, thiN and friends,
+i.e. housekeeping genes. They appear core now even though the pangenome's
+core/accessory split called them accessory at some point. They are dropped from the NFDS model with 
+`in_model = FALSE`. 
 
 Model results are likely to depend on how the NFDS ranking is done. Consider removing DR
 genes, IPD-associated genes and similar from the most stable set used in the NFDS term,
@@ -138,38 +137,36 @@ this path but didn't continue much; choosing the right null is a bit fraught), a
 we might expect from drift (but this is hard because the frequencies are not changing by
 inheritance with genes moving in / out like alleles getting inherited or not, they have
 this lineage structure. Still could be interesting - what are the frequency dynamics, and
-are they different from what we'd expect under .. ?? 
+are they different from what we'd expect under .. (some alternative). 
 
 
 ---
 
 ## 2026-09-24 — uncertainty in x(t)
 
-Measured it, not propagating it. Using the point estimate.
 
-Method: resample the isolate counts within each year × age group × sample type cell
+I looked at this but didn't use it (yet) to do anything. 
+We can  resample the isolate counts within each year, age group, sample type combination
 (multinomial, conditioning on the cell total, since the number sequenced was fixed by
 design and what's uncertain is which groups they were), then re-run the whole reweighting.
-200 draws.
+There is code there that does 200 draws (not yet pushed). 
 
 Group weights turn out to be quite uncertain — median CV 0.51 across group-years holding
 more than 0.5% of the population, above 1 for the worst, which are groups resting on one
 IPD case of a low-invasiveness serotype and then amplified by 1/v. Locus frequencies are
 much better determined, since a locus frequency sums over many groups and the errors
-mostly cancel. Comparing the count-based spread to the simple sqrt(f(1-f)/n)
+mostly cancel. Comparing the count-based spread to the simple $\sqrt{f(1-f)/n}$
 approximation, they agree within about a factor of two for most loci and only diverge at
-extreme frequencies, where the formula overstates things.
+extreme frequencies. 
 
-So sqrt(f(1-f)/n) is good enough for locus-level uncertainty and I don't need the count
-draws for that. The group-level CVs are what matters if the model fits group trajectories
-— they put a floor on how well any model can fit, and therefore on how far apart two
-models can be told apart.
+The group-level uncertainties should be taking into account  for model fitting - let's not
+try to fit $x(t)$ super precisely. Have put some standard errors in. 
 
-Not captured: uncertainty in the invasiveness values (held at their shrunk point
-estimates, and probably the bigger uncertainty), in k, tauA, tauU, and the fact that a
-group absent from a year stays absent. So it's a lower bound.
+This does not use uncertainty in the invasiveness values (held at their shrunk point
+estimates, and probably the bigger uncertainty, but at least we did take that into account
+in the reweighting), in k, tauA, tauU, and the fact that a
+group absent from a year stays absent. 
 
-Still to do: get the noise floor before claiming one model fits better than another.
 Also — Nick has post-vaccine ("gamma") invasiveness values that I'm not using, and since
 this whole thing is a pre/post comparison, invasiveness changing between the periods would
 bias it directionally rather than just adding noise. Worth a sensitivity run.
@@ -185,23 +182,25 @@ the two pseudocounts, upon reflection. Instead, I used
 `p_final = (N_car + k * p_C_aug) / (N_car + k)`, with `k = 780`. 
 
 The old version was `(1-omega) p_C_aug + omega q_car_child`, which rearranges into exactly the
-posterior mean of a Dirichlet-multinomial with the IPD-derived estimate as prior mean. 
-Writing it the other way makes the
-carriage weight `N_car/(N_car + k)`, in each year. This means the weight varies with the
-sample size (which doesn't vary much anyway but this Dirichlet thing is statistically
-better because its conjugate to the multinomial etc). The interpretation of $k$ is the
-number of carriage swabs an IPD-derived estimate is worth. I don't know that either but 
+posterior mean of a Dirichlet-multinomial thing, with the IPD-derived estimate as the prior mean. 
+Writing it in the way I had before with an omega value makes the
+carriage weight `N_car/(N_car + k)`, in each year. This means, first, that this is not a
+huge change, and also it lets the weight vary with the
+sample size (which doesn't vary much here but this Dirichlet thing is statistically
+better because its conjugate to the multinomial etc).
+
+The interpretation of $k$ is the
+number of carriage swabs an IPD-derived estimate counts for, basically. I don't know that either but 
 k = 780 reproduces my earlier `omega = 0.27` for $N$ in the 300 range (290), and about
 that fraction of our data is from carriage, so... 
 
-
 I also dropped the pseudocounts. alpha was giving carriage-only groups a share of the
-*IPD-derived* estimate (weird). beta was the mirror image — giving IPD-only groups a
+IPD-derived estimate (weird). beta was the giving IPD-only groups a
 made-up carriage share, about 0.5% of `p_final` in carriage years. Both weird. Dropped. 
 
-Open: Dependence on $k$. The carriage data are two sites, different methods, small
+Note: we should consider looking at dependence on $k$. The carriage data are from two sites, different methods, small
 fraction of all carriage in the country. These are all arguments for a big k, meaning less weight on carriage.
-Eventually we could run the model at k ≈ 400, 780, 1500 and see if the fit is better,
+Eventually we could run the model at with k = 400, 780, 1500 and see if the fit is better,
 stable, or even perhaps possible at some values of k but not others. 
 
 Note: we don't use adult data. Set the relevant fraction to 0.01 just so as not to break
@@ -256,7 +255,7 @@ covering every serotype in meta_clean, with the estimates shrunk toward the over
 on the log scale.
 
 Previously, a line `filter(!is.na(v))` was silently dropping every serotype that isn't in
-Nick's tables. The big one was **15B/15C** — 131 IPD cases and 142 carriage samples; 
+Nick's tables. The big one was 15B/15C with 131 IPD cases and 142 carriage samples; 
  Nick has 15B/C. Also 11BC, 20A, 35D, 33D, 6G, 23, 24, 25F, and the
 adult table was additionally missing 10B, 18F, 19B, 39, 46. The name fixes are  in
 `cleanmetadata.R`, 
@@ -266,19 +265,19 @@ and `v_source` notes which. Non-typeables get NA and only come in through carria
 anyway. 
 
 Invasiveness estimates: Nick's child estimates span 3745-fold, and the lowest ones (19B at 1.2e-5,
-35A, 33A, 10F) all have lower CI bounds around 1e-6, meaning he saw almost no IPD from
-them. So they're very uncertain, and `r = ipd_n/v` divides by them (which is appropriate
-but can give very noisy results for low counts and low invasiveness). The result was that in
-6 of 15 years the top group in the child IPD-derived estimate was due to *single* IPD case:
-10Fother at 25% of 2001, 19Bother at 16% of 2003, 35A_199 in 2006-07, 33Aother in 2010.
-Seems a little wrong.. 
+35A, 33A, 10F) all have lower CI bounds around 1e-6, so there is  almost no IPD from
+them. When we divide by them to get the implied carriage counts we can end up with very
+noisy results. In 6 of 15 years the top group in the child IPD-derived estimate was due to
+single IPD case, which seems a little wrong.. 
 
 I used empirical Bayes on the log scale (DerSimonian-Laird random effects, SEs from the reported
 95% intervals in Nick's tables) to move each estimate toward the overall mean in proportion to how uncertain
-it is. Well-estimated
-invasiveness estimates are not much affected  (14, 6A, 19A change by less than 10%), but the near-zero ones go up about
-10-fold, and the range drops from 3745-fold to 180-fold. After this, no year's top group
-rests on a single case. 
+it is. (That sounds hard but it's just $log(v_adj)  = \mu + B_i 0(log(v_orig) - \mu)$. When $B = 0$
+the new invasiveness is the mean (here $\mu$ is the log of the raw means). When $B=1$ the
+original (raw) invasiveness estimate is kept. $B$ comes from the uncertainty in the
+original estimates. Where there was higher certainty, invasiveness estimates are not much affected  (14, 6A, 19A change by less than 10%), but the near-zero ones go up about
+10-fold, and the range is much more reasonable (factor of 180). After this, no year's top group
+comes from a single case. 
 
 Open: if Nick's estimates came out of a hierarchical model themselves then this shrinks
 them twice and over-smooths..  should check his methods. Invasiveness is per serotype so
