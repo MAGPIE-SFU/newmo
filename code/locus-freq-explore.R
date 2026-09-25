@@ -71,3 +71,69 @@ ggplot(tmp, aes(x = sqrt(delta), y = sqrt(delPRE)  )) + geom_point(alpha = 0.1)
 
 # and i want to know more about z and delta, now that i have all this other information in the locus by year data 
 
+ggplot(locus_by_year, aes(x=z, y=delta))+geom_point(alpha=0.3)
+ggplot(locus_by_year, aes(x=abs(z), y=delta, colour = pre2009))+ 
+  geom_point(alpha=0.5) + scale_x_log10()+ scale_y_log10()
+
+
+# alternatives log(f/e)  and logit(f) - logit(e) (both | | of those obvs) 
+# for less overall tendency to choose high vs low frequency genes 
+logit <- function(x) log(x/(1-x)) 
+locus_by_year <- locus_by_year %>% 
+  mutate( lograt = abs(log(pre2009/post2011)), 
+          logitr = abs(logit(pre2009)-logit(post2011) ) ) 
+
+ggplot(locus_by_year, aes(x=abs(pre2009), y=lograt))+ 
+  geom_point(alpha=0.5) + scale_x_log10()+ scale_y_log10()
+
+
+ggplot(filter(locus_by_year, in_model == TRUE) , aes(x=abs(pre2009), y=lograt))+ 
+  geom_point(alpha=0.5) + scale_x_log10()+ scale_y_log10()
+# this is still frequency dependent because of course the high-freq genes will have to be pretty stable
+# it requires a huge lineage turnover to shift them. (though they don't have the highest delta)
+# choosing the lowest lograt genes for the NFDS model will, even with the 0.95 cutoff,
+# lead us to quite a few high-frequency genes. 
+
+
+# note also: consider whether 0 or 1 are so different. should we want our measure to be 
+# symmetric under the transformation p -> 1-p, such that we think NFDS also applies to 
+# the lack of a gene? The log ratio does *not* have this property but delta, z and the logit do. 
+
+# let's take a look at the logit 
+ggplot(filter(locus_by_year, in_model == TRUE) , aes(x=abs(pre2009), y=logitr))+ 
+geom_point(alpha=0.5) + scale_x_log10()+ scale_y_log10()
+# abs(logit  difference) is looking like a winner here: choosing the most stable will give us
+# genes across a range of frequencies, not just low-frequency genes which i thikn will happen with 
+# delta and z. no aactually delta is ok here i geuss. 
+ 
+ggplot(filter(locus_by_year, in_model == TRUE) , aes(x=delta, y=logitr, color = pre2009))+ 
+  geom_point(alpha=0.5) + scale_x_log10()+ scale_y_log10()
+
+# how do the rankings actually compare? 
+m <- locus_by_year[locus_by_year$in_model, ]
+n <- 200                                      # or whatever the model uses
+length(intersect(head(m$locus[order(m$delta)],  n),
+                 head(m$locus[order(m$logitr)], n)))
+cor(m$delta, m$logitr, method = "spearman")
+
+# where they are different what are the frequencies? 
+swapped <- setdiff(head(m$locus[order(m$logitr)], 200),
+                   head(m$locus[order(m$delta)],  200))
+summary(m$pre2009[m$locus %in% swapped])
+summary(m$pre2009)
+# logitr will choose more intermediate-frequency loci than delta will. which i think is what we want. 
+# it is symmetric under the swap p to 1-p which treats absence of a locus as a trait too 
+# and its slope against pre-vaccine frequency is v small - frequency-independent. 
+# therefore it seems a better choice than delta , but not vastly 
+
+
+
+
+  # some slopes: shows that delta goes up with frequency, z and logitr are approx stable and lograt goes down. 
+ m <- locus_by_year[locus_by_year$in_model, ]
+ sapply(c("delta", "z", "logitr", "lograt"), function(v)
+   coef(lm(log(abs(m[[v]])) ~ log(m$pre2009)))[2])
+
+
+
+

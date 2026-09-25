@@ -107,14 +107,15 @@ hist(locus_by_year$delta,breaks = 50)
 ggplot(filter(locus_by_year, (pre2009 < 0.95 & pre2009 > 0.05)), aes(x=log10(pre2009)))+geom_histogram()
 ggplot(locus_by_year,aes( x=pre2009, y = delta) ) + geom_point(alpha=0.3) + scale_x_log10() +
   scale_y_log10()
-# no clear correlation overall  
-# between frequency pre-vaccination and delta. but the VERY low deltas are very low-freq genes 
+# looked into correlations  
+# between frequency pre-vaccination and delta and the other measures. 
+# see locus-freq-explore.R script. 
+# but the VERY low deltas are  low-freq genes, and there is one at frequency 1 oddly 
 
 # ---- 
 # what about not using delta? 
-#### 
 # i am not convince that i like delta. it will be low where f and e are both low. 
-# went down rabbit hole trying to find evidence for NFDS in this dataset. Failed. 
+# went down rabbit hole trying to find evidence for NFDS in this dataset. Failed for now. 
 
 # what if we think about the variance over years,
 # but we make it less dependent on the frequency? 
@@ -127,6 +128,8 @@ n_preyrs <- as.numeric(n_year[as.character(2000:2008)])
 rowvar <- function(m) { m <- as.matrix(m); rowSums((m - rowMeans(m))^2) / (ncol(m) - 1) }
 rowexp <- function(m, n) { m <- as.matrix(m); rowMeans(sweep(m * (1 - m), 2, n, "/")) }
 
+logit <- function(x) log(x/(1-x)) 
+
 locus_by_year <- locus_by_year %>%
   mutate(
     locus    = rownames(locus_by_year),          # keep gene names through mutate
@@ -138,30 +141,32 @@ locus_by_year <- locus_by_year %>%
     z = (post2011 - pre2009) /
       sqrt(pre2009 * (1 - pre2009) / n_pre + post2011 * (1 - post2011) / n_post),
     
-    # year-to-year variation against sampling noise, all 15 years
+    # year-to-year variation compared to whta is expected due to sampling noise with n-ish samples, all 15 years
     obs_var  = rowvar(across(num_range("t", 2000:2014))),
     exp_var  = rowexp(across(num_range("t", 2000:2014)), n_allyrs),
     overdisp = obs_var / exp_var,
     
-    # the same, pre-vaccine only -- the noise-model check, should sit near 1
+    # the same, pre-vaccine only -- kind of a noise model: variance compared to expected variance
     obs_pre      = rowvar(across(num_range("t", 2000:2008))),
     exp_pre      = rowexp(across(num_range("t", 2000:2008)), n_preyrs),
-    overdisp_pre = obs_pre / exp_pre
+    overdisp_pre = obs_pre / exp_pre,
+    
+    # logit comparison - new choice for how to rank the genes! 
+    logitdiff  = abs(logit(pre2009)-logit(post2011) )
   )
 
 all(rownames(locus_by_year) == colnames(Gg)) # TRUE 
-
+glimpse(locus_by_year)
 locus_by_year <- locus_by_year %>%
   mutate(in_model = pre2009 > 0.05 & pre2009 < 0.95 & !is.na(z)) %>%
-  arrange(abs(z))                    # NaN z sorts to the bottom
+  arrange(logitdiff)                    # NaN z sorts to the bottom
 
 Greord <- Gg[, locus_by_year$locus[locus_by_year$in_model]]
 
-stopifnot(identical(colnames(Gg_ordered),
+stopifnot(identical(colnames(Greord),
                     locus_by_year$locus[locus_by_year$in_model]))
 
 
-
-write_csv(locus_by_year, "data/SouthAfrica/locus_freqs_deltas_zs.csv")
+write_csv(locus_by_year, "data/SouthAfrica/locus_freqs_deltas.csv")
 
 write.csv(Greord, "data/SouthAfrica/G_cols_ordered.csv")
