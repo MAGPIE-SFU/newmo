@@ -15,11 +15,6 @@ library(openxlsx) # read.xlxs
 # (1) xt_grouped.csv has the xt information (how much of each group is there at each time)
 # (2) locus_freqs_deltas.csv has the locus frequency information for each year and the "delta stastic"
 
-# eventually maybe we should do an inverse variance weighting or something. 
-# but for now i'll use Nick's inv. estimates from his paper in a series of adjustments for age and carriage vs ipd to get synthetic carriage population
-
-nickkids = read.xlsx("data/Invasiveness/nick-inv-sts-children.xlsx")
-nickadults = read.xlsx("data/Invasiveness/nick-inv-sts-adults.xlsx")
 
 # nickstsckids = read.xlsx("../newmo_model/nick-inv-stsc-children.xlsx") # from https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1009389#sec027
 # i did not use this one - i think the estimates were from the US? 
@@ -27,10 +22,21 @@ nickadults = read.xlsx("data/Invasiveness/nick-inv-sts-adults.xlsx")
 # i did not use these.
 # but it might be good to do that . 
 
-# pseudocounts 
-alpha <- 0.05          # pseudocount in r_g = (d_g + alpha)/v_g -- need to check that we aren't adding a ton of wrongness with alpha too high
-omega <- 0.10          # carriage weight in the final blend
-beta <- 0.05           # another pseudo count, in child carriage 
+# pseudocounts and weights 
+tauA <- 0.01 # weight for adult IPD, should be v small 
+tauU <- (272/(3865+1386)) # prop of the dataset that are unknown age - small; REDO if new dataset obvs
+
+# sept 22: omega was the weight for carriage compared to IPD. I set it to 0.27 because that's the fraction of the data that's from carriage 
+# note that we have 439 adult carriage samples that aren't contributing 
+# here even though adult IPD is seen as reflective of the carriage in the population
+# should we use kids only throughout , or adults only throughout? or this weird mix? 
+# seems like carriage is directly what we want and IPD is a biased sample - up-weight carriage? 
+# setting tauA very small so adult IPD contributes little. LL's paper said other studies only measured kids. 
+# Sept 24: did some digging about better ways to do this. 
+# will use a way with a better statistical interpretation (works out very similarly) 
+k <- 780   # Dirichlet prior strength- interp is how many child carriage swabs the IPD-based
+# estimate is worth. Carriage weight in a year = N / (N + k);
+# k = 780 gives ~0.27 at N ~ 290 (matches omega is about 0.27 - one par instead of 2 and can depend on the number of carriage samples).
 
 
 ######################################################
@@ -38,7 +44,8 @@ beta <- 0.05           # another pseudo count, in child carriage
 # contributes in each year. this will eventually be x(t) for the NFDS model. 
 ######################################################
 
-meta_clean = read_csv("data/SouthAfrica/meta_clean.csv")
+meta_clean <- read_csv("data/SouthAfrica/meta_clean.csv")
+inv <- read_csv("data/Invasiveness/invasiveness_lookup.csv") # see make_invasiveness_lookup.R script
 
 yearly_counts_long <- meta_clean %>%
     count( year, age_group, collection_type,
@@ -55,32 +62,32 @@ yearly_counts <- yearly_counts_long %>%
         values_from = n,
         values_fill = 0  ) %>%  rename( ipd_n = IPD,carriage_n = carriage )
 
-# connect it to the supplementary tables from Nick's paper 
-child_v_lookup <- nickkids %>%
-    transmute(  serotype = Serotype,
-        v = invasiveness  )
+# connect it to the supplementary tables from Nick's paper via the inv data frame 
+missing <- setdiff(unique(meta_clean$serotype), inv$serotype)
+if (length(missing)) stop("No invasiveness for: ", paste(missing, collapse = ", "),
+                          " -- re-run make_invasiveness_lookup.R")
 
-adult_v_lookup <- nickadults %>%
-    transmute( serotype = Serotype,
-        v = invasiveness  )
+child_v_lookup <- inv %>% transmute(serotype, v = v_child)
+adult_v_lookup <- inv %>% transmute(serotype, v = v_adult)
+
 
 child_inv <- yearly_counts %>%
-    filter(age_group == "child") %>%
+    filter(age_group == "child", ipd_n > 0) %>%
     left_join(child_v_lookup, by = "serotype") %>%
     filter(!is.na(v)) %>%
     group_by(year) %>%
-    mutate(        r_C = (ipd_n + alpha) / v, # carriage cases you'd expect from this number of IPD
+    mutate(        r_C = (ipd_n) / v, # carriage cases you'd expect from this number of IPD
         p_C_inv = r_C / sum(r_C)    ) %>%  # proportion group g in child carriage based on this IPD sample
     ungroup() %>%
     select( year, serotype, gpsc, group,
         ipd_n, carriage_n, v, r_C, p_C_inv    )
 
 adult_inv <- yearly_counts %>%
-    filter(age_group == "adult") %>%
+    filter(age_group == "adult", ipd_n > 0) %>%
     left_join(adult_v_lookup, by = "serotype") %>%
     filter(!is.na(v)) %>%
     group_by(year) %>%
-    mutate( r_A = (ipd_n + alpha) / v, # carriage cases you'd expect from this number of IPD 
+    mutate( r_A = (ipd_n ) / v, # carriage cases you'd expect from this number of IPD; have removed alpha - not needed  
         p_A_inv = r_A / sum(r_A)    ) %>%  # proportion group g in adult carriage based on this IPD sample
     ungroup() %>%
     select( year, serotype, gpsc, group,
@@ -89,12 +96,12 @@ adult_inv <- yearly_counts %>%
 # unknowns: i treat them as if they are kids from the point of view of invasiveness. but we don't know. See notes / sanity check at the bottom of this script. 
 #  ??? might want to average 0.8*kid invasiveness + 0.2* adult invasiveness later  
 unknown_proxy <- yearly_counts %>%
-    filter(age_group == "unknown") %>%
+    filter(age_group == "unknown", ipd_n > 0) %>%
     left_join(child_v_lookup, by = "serotype") %>%
     filter(!is.na(v)) %>%
     group_by(year) %>%
     mutate(
-        r_U = (ipd_n + alpha) / v,
+        r_U = (ipd_n ) / v,
         p_U_proxy = r_U / sum(r_U)
     ) %>%
     ungroup() %>%
@@ -134,16 +141,7 @@ components_yearly <- child_inv %>%
     p_U_proxy = replace_na(p_U_proxy, 0),
     carriage_n = replace_na(carriage_n, 0)
   ) %>%
-  group_by(year) %>%
-  mutate(
-    total_carriage = sum(carriage_n),
-    q_car_child = if_else(
-      total_carriage > 0,
-      (carriage_n + beta) / sum(carriage_n + beta), # fraction of this group in the carriage data 
-      NA_real_
-    )
-  ) %>%
-  ungroup()
+   ungroup()
 
 # sanity check: do the things add to 1 where they are supposed to? 
 child_inv %>%
@@ -180,17 +178,6 @@ unknown_proxy %>%
 # suggests that tauA (the adult contribution) should be basically 0 to be in keeping with those studies 
 # since we have it, i will use it a tiny bit, i suppose. 
 # but we might want to simplify our model by removing adults entirely before model-building
-tauA <- 0.01
-tauU <- (272/(3865+1386)) # prop of the dataset that are unknown age - small 
-
-omega <- 0.27 # omega is the contribution of our carriage dataset 
-# i suppose perhaps it should be more than 0.1 (where we hvae carriage..) 
-# sept 22: setting to 0.27 because that's the fraction of the data that's from carriage 
-# note that we have 439 adult carriage samples that aren't contributing 
-# here even though adult IPD is seen as reflective of the carriage in the population
-# should we use kids only throughout , or adults only throughout? or this weird mix? 
-# seems like carriage is directly what we want and IPD is a biased sample - up-weight carriage? 
-
 
 final_yearly <- components_yearly %>%
   group_by(year) %>%
@@ -208,16 +195,16 @@ final_yearly <- components_yearly %>%
     wU = tauU_eff / tau_total,
     
     p_C_aug = wC * p_C_inv + wA * p_A_inv + wU * p_U_proxy,
-    
-    has_child_carriage = sum(carriage_n) > 0,
-    p_final = if_else(
-      has_child_carriage,
-      (1 - omega) * p_C_aug + omega * q_car_child,
-      p_C_aug
-    )
-  ) %>%
+    N_car      = sum(carriage_n),                               # child carriage swabs this year
+    omega_t    = N_car / (N_car + k),                           # weight on carriage (0 if none)
+    p_final    = (carriage_n + k * p_C_aug) / (N_car + k),      # Dirichlet posterior mean
+    p_final_sd = sqrt(p_final * (1 - p_final) / (N_car + k + 1)) # posterior SD (optional)
+      ) %>%
   ungroup()
 
+# "Child carriage counts were combined with the IPD-derived carriage estimate 
+# using a Dirichlet–multinomial model, with the IPD-derived estimate as the prior 
+# mean and prior strength k (in equivalent carriage samples)." k is defined above. 
 
 head(final_yearly)
 
@@ -234,151 +221,32 @@ ggplot(final_yearly, aes(x=p_final, fill=year))+geom_histogram() +facet_wrap(~as
 
 
 ###########################################################################
-# make x(t) and start exploring locus and ST frequencies over time 
+# make x(t) and save . 
 ###########################################################################
 
-# NOTE - sept 22 changed this file, will push to git
-# 
-# and it would be good to have an order in which to run all this to recreate with different values 
-# of the fixed parameters 
+xt <- final_yearly %>%
+  group_by(year, group) %>%
+  summarise(frac = sum(p_final), a0 = first(N_car) + k, .groups = "drop") %>%
+  complete(year, group, fill = list(frac = 0)) %>%
+  group_by(year) %>% mutate(a0 = max(a0, na.rm = TRUE)) %>% ungroup() %>%
+  mutate(frac_sd = sqrt(frac * (1 - frac) / (a0 + 1)),
+         count   = frac * 1e5) %>%
+  left_join(distinct(meta_clean, group, vaccine_type), by = "group") %>%
+  select(year, group, vaccine_type, frac, frac_sd, count) %>%
+  arrange(year, group)
 
-final_yearly = final_yearly %>% mutate( syncount = p_final*100000)
-# x(t) is now just final_yearly$syncount for year t 
+# some checks 
+xt %>% group_by(year) %>% summarise(s = sum(frac)) %>% pull(s) %>% range()   # should be 1 1
 
-xt = final_yearly %>% select(year, serotype, gpsc,group, p_final, syncount) %>%
-    rename(frac = p_final, count = syncount) 
+# (that's the smallest and largest total fraction in a year - should both be 1, all years are ok) 
+sum(is.na(xt$vaccine_type)) # nothing has no vaccine type listed, good,  should be 0
 
-# we want the row order to match our grouped G matrix, so we can set up our dynamics 
-# without having to worry about reordering the  
+xt %>% group_by(year, vaccine_type) %>% summarise(f = sum(frac), .groups = "drop") %>%
+  pivot_wider(names_from = vaccine_type, values_from = f) # VT should fall after 2009 and 2011, mostly does 
 
-# Gg = read.csv("data/SouthAfrica/Ggrouped.csv", row.names = 1, check.names = FALSE)
-
-xt <- xt %>% mutate(group = factor(group, levels = rownames(Gg))) %>% 
-    complete(year, group, fill = list(frac = 0, count = 0)) %>% 
-    arrange(year, group)
-
-# sanity check? 
-all(xt$group[1:50] == rownames(Gg)[1:50]) # TRUE 
+glimpse(xt)
 
 write_csv(xt, "data/SouthAfrica/xt_grouped.csv")
-
-
-###########################################################################
-# locus frequencies across the years, all plotted against 2000 
-###########################################################################
-
-
-years <- sort(unique(final_yearly$year))
-
-locus_by_year <- sapply(years, function(y) {
-    p_df <- final_yearly %>%
-        filter(year == y) %>%
-        select(group, p_final)
-    p_vec <- setNames(p_df$p_final, p_df$group)[rownames(Gg)]
-    p_vec[is.na(p_vec)] <- 0
-    as.numeric(t(p_vec) %*% as.matrix(Gg))
-})
-
-rownames(locus_by_year) <- colnames(Gg)
-colnames(locus_by_year) <- paste("t",years, sep="")
-locus_by_year = as.data.frame(locus_by_year)
-plot(locus_by_year$t2000, locus_by_year$t2014)
-
-# ---- PLOT - ---
-# reorg to long form so i can make a plot with frequency in the year 2000 on the x
-# axis and frequency in other years on the y axis, for 2001 to 2014 
-plotdat <- as.data.frame(locus_by_year) %>%
-    mutate(locus = rownames(locus_by_year)) %>%
-    pivot_longer(
-        cols = -locus,
-        names_to = "year",
-        values_to = "freq"
-    ) %>%
-    left_join(
-        data.frame(
-            locus = rownames(locus_by_year),
-            freq_2000 = locus_by_year[, "t2000"]
-        ),
-        by = "locus"
-    ) %>%
-    filter(year != "t2000")
-
-ggplot(plotdat, aes(x = freq_2000, y = freq)) +
-    geom_point(alpha = 0.5, size = 0.8,color="blue") +
-    geom_abline(slope = 1, intercept = 0, linetype = 2) +
-    facet_wrap(~ year) +
-    theme_bw() +
-    labs(
-        x = "Locus frequency in 2000",
-        y = "Locus frequency in year T"
-    )
-
-
-# CONCLUSION: overall good stability in the locus frequencies. 
-# in this weighting, locus frequencies are very stable until about 2013, 2014. 
-# they probably change more during vaccination than before
-# NOTE that there were post-vax different invasiveness values in Nick's paper 
-# (which i think are the gamma values in Nick's paper) ?
-# but i don't want to revisit that now.
-
-# vaccination: PCV7 in 2009, PCV13 in 2011 (See Bellman paper figure 1). 
-
-# Corander et al defined Delta as (f - e)^2 / (1 - e(1-e)) 
-# where e is the frequency before vaccination and f is the frequency after vaccination 
-# (all pre- and during vaccination samples for e, all post-vaccination samples for f). 
-
-# here, to do approximately the same, i would take the pre-2009 and post-2011 
-# mean frequencies of these 
-
-# NOTE ALSO - need to figure out what to do about filtering for only intermediate
-# frequency genes. The lowest values of delta may be for very rare genes since 
-# the top quantity is squared. That is unlikely to be what we want to choose 
-# for the NFDS model. 
-
-locus_by_year <- locus_by_year %>%
-    mutate(
-       pre2009  = rowMeans(across(num_range("t", 2000:2008))),
-       post2011 = rowMeans(across(num_range("t", 2012:2014))),
-    )
-
-plot(locus_by_year$pre2009, locus_by_year$post2011) # sensible 
-
-
-# - aside 
-# do we get the delta info from just pre-vax frequency comparison? 
-tmp <- locus_by_year %>% 
-    transmute(
-        pre2005 = rowMeans(across(num_range("t", 2000:2004))),
-        f2005.2008 = rowMeans(across(num_range("t", 2005:2008))),
-        delta = (post2011 - pre2009)^2/(1-pre2009*(1-pre2009)),
-        delPRE = (f2005.2008 - pre2005)^2/(1-pre2005*(1-pre2005))
-    )
-ggplot(tmp, aes(x = sqrt(delta), y = sqrt(delPRE)  )) + geom_point(alpha = 0.1) 
-# interesting. No, we don't get 
-# the delta information from pre-vaccine frequency comparisons. but there is something
-
-locus_by_year <- locus_by_year %>% 
-    mutate( 
-        delta = (post2011 - pre2009)^2/(1-pre2009*(1-pre2009))
-            )
-
-hist(locus_by_year$delta,breaks = 50)
-plot(locus_by_year$pre2009, locus_by_year$delta) 
-# no clear relationship 
-# between frequency pre-vaccination and delta. 
-
-# ok, let's proceed to use these deltas. 
-
-# want to order Gg's columns from lowest to highest delta 
-# so i might as well order the loci this way here too 
-locsinorder <- rownames(locus_by_year)[order(locus_by_year$delta)]
-
-locus_by_year <- locus_by_year[ order(locus_by_year$delta) , ] 
-
-write_csv(locus_by_year, "data/SouthAfrica/locus_freqs_deltas.csv")
-
-# NOTE we should remove the non-intermediate frequency genes here before building the NFDS model 
-
 
 
 ################################################################################
@@ -387,48 +255,48 @@ write_csv(locus_by_year, "data/SouthAfrica/locus_freqs_deltas.csv")
 group_var <- "serotype"
 
 comp_overall_sero <- meta_clean %>%
-    count(collection_type, age_group, .data[[group_var]], name = "n") %>%
-    group_by(collection_type, age_group) %>%
-    mutate(p = n / sum(n)) %>%
-    ungroup() %>%
-    rename(grouping = all_of(group_var))
+  count(collection_type, age_group, .data[[group_var]], name = "n") %>%
+  group_by(collection_type, age_group) %>%
+  mutate(p = n / sum(n)) %>%
+  ungroup() %>%
+  rename(grouping = all_of(group_var))
 
 comp_wide_sero <- comp_overall_sero %>%
-    select(collection_type, age_group, grouping, p) %>%
-    pivot_wider(
-        names_from = age_group,
-        values_from = p,
-        values_fill = 0
-    )
+  select(collection_type, age_group, grouping, p) %>%
+  pivot_wider(
+    names_from = age_group,
+    values_from = p,
+    values_fill = 0
+  )
 
 comp_wide_sero %>%
-    group_by(collection_type) %>%
-    summarise(
-        TV_unknown_child = 0.5 * sum(abs(unknown - child)),
-        TV_unknown_adult = 0.5 * sum(abs(unknown - adult)),
-        cor_unknown_child = cor(unknown, child),
-        cor_unknown_adult = cor(unknown, adult)
-    )
+  group_by(collection_type) %>%
+  summarise(
+    TV_unknown_child = 0.5 * sum(abs(unknown - child)),
+    TV_unknown_adult = 0.5 * sum(abs(unknown - adult)),
+    cor_unknown_child = cor(unknown, child),
+    cor_unknown_adult = cor(unknown, adult)
+  )
 ggplot(comp_wide_sero, aes(x = child, y = unknown)) +
-    geom_point(alpha = 0.7) +
-    geom_abline(slope = 1, intercept = 0, linetype = 2) +
-    scale_x_log10() +
-    scale_y_log10() +
-    facet_wrap(~collection_type) +
-    theme_bw() +
-    labs(
-        x = "Child composition",
-        y = "Unknown-age composition"
-    )
+  geom_point(alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0, linetype = 2) +
+  scale_x_log10() +
+  scale_y_log10() +
+  facet_wrap(~collection_type) +
+  theme_bw() +
+  labs(
+    x = "Child composition",
+    y = "Unknown-age composition"
+  )
 ggplot(comp_wide_sero, aes(x = adult, y = unknown)) +
-    geom_point(alpha = 0.7) +
-    geom_abline(slope = 1, intercept = 0, linetype = 2) +
-    scale_x_log10() +
-    scale_y_log10() +
-    facet_wrap(~collection_type) +
-    theme_bw() +
-    labs(
-        x = "Adult composition",
-        y = "Unknown-age composition"
-    )
+  geom_point(alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0, linetype = 2) +
+  scale_x_log10() +
+  scale_y_log10() +
+  facet_wrap(~collection_type) +
+  theme_bw() +
+  labs(
+    x = "Adult composition",
+    y = "Unknown-age composition"
+  )
 # the unknowns look more like kids than adults in their ST composition. 

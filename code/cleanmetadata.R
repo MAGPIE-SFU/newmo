@@ -2,144 +2,113 @@ library(dplyr)
 library(ggplot2)
 library(tidyr)
 library(readr)
-library(lubridate) # may not be needed 
+library(lubridate) # may not be needed
 
 ###########
-# --- readme  
+# --- readme
 ###########
 
+# this script refines the metadata and creates the group column for the South Africa data.
+# it also groups rare things in a way I hope is sensible. 
 
-# this script refines the metadata and creates the sc-st group column for the South Africa data 
+# outputs:
+#   data/SouthAfrica/meta_clean.csv  one row per isolate; serotype and gpsc are the real
+#                                    values, group is the (coarsened) unit used for x(t),
+#                                    vaccine_type is PCV7 / PCV13 / NVT
 
 
 ###########
-# ----- read the data do a bit of cleaning, checking, merge some serotypes etc 
+# ----- read the metadata csv file and harmonise serotype names
 ###########
 
-G <- as.matrix(read.csv("data/SouthAfrica/Ggrouped.csv", row.names=1))
-
-meta <- read_csv("data/SouthAfrica/metadata.csv") # all of these are in the same order, though 
+meta <- read_csv("data/SouthAfrica/metadata.csv") 
 
 meta$serotype <- meta$In_Silico_Serotype
-meta <- meta %>%
-    mutate(serotype = recode(serotype,
-                             "11B" = "11BC",
-                             "11C" = "11BC",
-                             "10X" = "10B",
-                             "23B1" = "23",
-                             "33A/33F" = "33F"  ))
 
+meta <- meta %>%
+  mutate(serotype = recode(serotype,
+                           "11C"     = "11B",    # Nick has 11B only; group 11B/11C under that name
+                           "10X"     = "10B",
+                           "23B1"    = "23B",    # 23B1 is a 23B variant
+                           "33A/33F" = "33F",
+                           "15B/15C" = "15B/C",  # Nick's spelling
+                           "20A"     = "20",     # 20 was split into 20A/20B after Nick's data
+                           "20B"     = "20",
+                           "35D"     = "35B"     # 35D isolates were typed as 35B until recently
+  ))
 glimpse(meta)
 
+
 ###########
-# ------- create meta_clean, with group information, removing rare groups 
+# ------- ages, sample type, year; South Africa 
 ###########
 
 child_cutoff <- 6      # 5 and under will be kids, consistent with previous work
 
-# what are the sc-st combinations and how many isolates were there ever? 
-group_totals <- meta %>%
-    mutate(
-        year = Col_Year,
-        gpsc = new_GPSC
-    ) %>%
-    filter(Country == "South Africa") %>%
-    count(serotype, gpsc, name = "n_total")
-sum(group_totals$n_total<=10) # there are 253 groups with <= 10 observations ever 
-# 
-sum(group_totals$n_total[group_totals$n_total<=10]) # and they comprise about 1/10 of the data .
-# it would be better to include them somehow .. merging some perhaps by their accessory genomes
-
-
-common_groups <- group_totals %>%
-    filter(n_total >= 10) %>%
-    select(serotype, gpsc)
-
-# FIX FIX ! PLEASE -- unknown Age_Year may be a known age given in months
-#meta_clean <- meta %>%
-#    mutate(
-#        year = Col_Year,
-#        gpsc = new_GPSC,
-#        age_group = case_when(
-#            is.na(Age_Year) ~ "unknown",
-#            Age_Year < child_cutoff ~ "child",
-#            TRUE ~ "adult"
-#        ),
-#        collection_type = if_else(Source == "NP", "carriage", "IPD")
-#    ) %>%
-#    filter(Country == "South Africa") %>%
-#    left_join(
-#        common_groups %>% mutate(keep_group = TRUE),
-#        by = c("serotype", "gpsc")
-#    ) %>%
-#    mutate(
-#        gpsc = if_else(is.na(keep_group), "other", as.character(gpsc)),
-#        group = paste(serotype, gpsc, sep = "_")
-#    ) %>%
-#    select(
-#        Sample_accession, year, serotype, gpsc, group,
-#        Age_Year, age_group, collection_type, Source
-#    )
-
-
-
-## fixing the age year thing from above -- basically, age is recorded in number of years or number of days sometimes, those can be converted to year. there are still some missing 
+## fixing the age year thing -- basically, age is recorded in number of years or number of days sometimes, those can be converted to year. there are still some missing
 
 meta_clean <- meta %>%
+    filter(Country == "South Africa") %>%
     mutate(
         # Convert "." and other non-numeric values to NA
-        Age_Year_num = parse_number(
-            na_if(as.character(Age_Year), ".")
-        ),
-        Age_Month_num = parse_number(
-            na_if(as.character(Age_Month), ".")
-        ),
-        Age_Day_num = parse_number(
-            na_if(as.character(Age_Day), ".")
-        ),
+        Age_Year_num  = parse_number(na_if(as.character(Age_Year),  ".")),
+        Age_Month_num = parse_number(na_if(as.character(Age_Month), ".")),
+        Age_Day_num   = parse_number(na_if(as.character(Age_Day),   ".")),
 
         # Prioritize years, then months, then days
-        age_years = coalesce(
-            Age_Year_num,
-            Age_Month_num / 12,
-            Age_Day_num / 365.25
-        ),
+        age_years = coalesce(Age_Year_num, Age_Month_num / 12, Age_Day_num / 365.25),
 
         year = Col_Year,
-        gpsc = new_GPSC,
+        gpsc = as.character(new_GPSC),
 
         age_group = case_when(
-            is.na(age_years)       ~ "unknown",
+            is.na(age_years)         ~ "unknown",
             age_years < child_cutoff ~ "child",
-            TRUE                   ~ "adult"
+            TRUE                     ~ "adult"
         ),
 
-        collection_type = if_else(
-            Source == "NP",
-            "carriage",
-            "IPD"
-        )
-    ) %>%
-    filter(Country == "South Africa") %>%
-    left_join(
-        common_groups %>%
-            mutate(keep_group = TRUE),
-        by = c("serotype", "gpsc")
-    ) %>%
-    mutate(
-        gpsc = if_else(
-            is.na(keep_group),
-            "other",
-            as.character(gpsc)
-        ),
-        group = paste(serotype, gpsc, sep = "_")
-    ) %>%
+        collection_type = if_else(Source == "NP", "carriage", "IPD")
+    )
+
+
+###########
+# ------- vaccine type and grouping
+###########
+# Rule (raw isolate counts over the whole South Africa dataset, all years and sample types):
+#   * a serotype-GPSC pair keeps its own group if it has >= min_gpsc_n isolates,
+#     otherwise it becomes <serotype>_other
+#   * non-vaccine serotypes with < min_serotype_n isolates in total are pooled into one
+#     group, "rare_NVT". Vaccine serotypes are never pooled.
+# serotype and gpsc keep their real values, so invasiveness is still applied per serotype
+# in script 2; only `group` is coarsened.
+# (previous rule: serotype-GPSC pairs with >= 10 isolates, others -> <serotype>_other,
+#  and gpsc itself was overwritten with "other" but this is better - 80+, but not 140+, groups to model)
+# with fewer groups that have 0 counts in some of the years - which could create problems for the modellign later 
+
+
+min_gpsc_n     <- 20   # isolates needed for a serotype-GPSC pair to be its own group
+min_serotype_n <- 40   # NVT serotypes with fewer isolates than this go to "rare_NVT"
+
+pcv7_types  <- c("4", "6B", "9V", "14", "18C", "19F", "23F")
+pcv13_extra <- c("1", "3", "5", "6A", "7F", "19A")   # the 6 serotypes PCV13 added to PCV7
+
+meta_clean <- meta_clean %>%
+    mutate(vaccine_type = case_when(serotype %in% pcv7_types  ~ "PCV7",
+                                    serotype %in% pcv13_extra ~ "PCV13",
+                                    TRUE                      ~ "NVT")) %>%
+    add_count(serotype, gpsc, name = "n_sero_gpsc") %>%
+    add_count(serotype,       name = "n_sero") %>%
+    mutate(group = case_when(
+        vaccine_type == "NVT" & n_sero < min_serotype_n ~ "rare_NVT",
+        is.na(gpsc) | n_sero_gpsc < min_gpsc_n          ~ paste(serotype, "other", sep = "_"),
+        TRUE                                            ~ paste(serotype, gpsc,    sep = "_"))) %>%
     select(
         Sample_accession,
         year,
         serotype,
         gpsc,
         group,
+        vaccine_type,
         Age_Year,
         Age_Month,
         Age_Day,
@@ -152,54 +121,39 @@ meta_clean <- meta %>%
         Source
     )
 
-all(rownames(G) == meta_clean$Sample_accession) # TRUE good 
 
-# check how many ages of each type. there are still NAs (272 with no age info at all)
+
+# every group belongs to exactly one vaccine type (so VT / NVT can always be recovered)
+stopifnot(all(count(distinct(meta_clean, group, vaccine_type), group)$n == 1))
+
+message(n_distinct(meta_clean$group), " groups; ",
+        sum(meta_clean$group == "rare_NVT"), " isolates in rare_NVT (",
+        n_distinct(meta_clean$serotype[meta_clean$group == "rare_NVT"]), " serotypes); ",
+        sum(grepl("_other$", meta_clean$group)), " isolates in <serotype>_other groups")
+
+
+###########
+# ------- checks
+###########
+
+# how many ages of each type. there are still NAs (272 with no age info at all)
 meta_clean %>%
     summarise(
-        year_only = sum(
-            !is.na(Age_Year_num) &
-            is.na(Age_Month_num) &
-            is.na(Age_Day_num)
-        ),
-
-        month_only = sum(
-            is.na(Age_Year_num) &
-            !is.na(Age_Month_num) &
-            is.na(Age_Day_num)
-        ),
-
-        day_only = sum(
-            is.na(Age_Year_num) &
-            is.na(Age_Month_num) &
-            !is.na(Age_Day_num)
-        ),
-
-        multiple = sum(
-            rowSums(
-                cbind(
-                    !is.na(Age_Year_num),
-                    !is.na(Age_Month_num),
-                    !is.na(Age_Day_num)
-                )
-            ) > 1
-        ),
-
-        all_missing = sum(
-            rowSums(
-                cbind(
-                    !is.na(Age_Year_num),
-                    !is.na(Age_Month_num),
-                    !is.na(Age_Day_num)
-                )
-            ) == 0
-        )
+        year_only   = sum(!is.na(Age_Year_num) &  is.na(Age_Month_num) &  is.na(Age_Day_num)),
+        month_only  = sum( is.na(Age_Year_num) & !is.na(Age_Month_num) &  is.na(Age_Day_num)),
+        day_only    = sum( is.na(Age_Year_num) &  is.na(Age_Month_num) & !is.na(Age_Day_num)),
+        multiple    = sum(rowSums(cbind(!is.na(Age_Year_num), !is.na(Age_Month_num), !is.na(Age_Day_num))) >  1),
+        all_missing = sum(rowSums(cbind(!is.na(Age_Year_num), !is.na(Age_Month_num), !is.na(Age_Day_num))) == 0)
     )
 
+# isolates by vaccine type and sample type
+meta_clean %>% count(vaccine_type, collection_type) %>%
+    pivot_wider(names_from = collection_type, values_from = n)
 
 
- write_csv(meta_clean, "data/SouthAfrica/meta_clean.csv") 
-#
+###########
+# ------- save
+###########
 
-
+write_csv(meta_clean, "data/SouthAfrica/meta_clean.csv")
 
