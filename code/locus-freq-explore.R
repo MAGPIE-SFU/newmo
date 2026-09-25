@@ -16,7 +16,7 @@
 # ---- PLOT - ---
 # reorg to long form so i can make a plot with frequency in the year 2000 on the x
 # axis and frequency in other years on the y axis, for 2001 to 2014 
-plotdat <- as.data.frame(locus_by_year) %>%
+plotdat <- as.data.frame(locus_by_year[, 1:15] ) %>%
   mutate(locus = rownames(locus_by_year)) %>%
   pivot_longer(
     cols = -locus,
@@ -69,4 +69,5 @@ ggplot(tmp, aes(x = sqrt(delta), y = sqrt(delPRE)  )) + geom_point(alpha = 0.1)
 
 
 
+# and i want to know more about z and delta, now that i have all this other information in the locus by year data 
 
