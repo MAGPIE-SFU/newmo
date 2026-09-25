@@ -48,7 +48,9 @@ groupcounts <- table(group_ids)[rownames(G_sum)]
 # We want Gg[j,l] to be the mean prevalence of each locus; values in [0,1]
 Gg <- G_sum / as.numeric(groupcounts)
 
-
+grp_order <- xt$group[xt$year == min(xt$year)]     # group order as xt has it
+Gg <- Gg[grp_order, , drop = FALSE]
+stopifnot(identical(rownames(Gg), grp_order))
 # a spot check: 
 # hist(Gg[sample(1:nrow(Gg), 1), ])
 
@@ -169,4 +171,12 @@ stopifnot(identical(colnames(Greord),
 
 write_csv(locus_by_year, "data/SouthAfrica/locus_freqs_deltas.csv")
 
-write.csv(Greord, "data/SouthAfrica/G_cols_ordered.csv")
+write.csv(Greord, "data/SouthAfrica/Gnfds.csv") # note the name; this is a G FOR NFDS
+# why is it different from some other G? 
+# (1) it only has intermediate frequency genes (0.05, 0.95) 
+# (2) these frequencies are computed from the synthetic carriage sample xt 
+# (3) G's columns are in order of decreasing stability: the first K are the ones to use in NFDS
+# (4) G's rows line up with the rows of xt. each row is a ST-SC combination and G's entries are 
+# the fraction of the group that has that column's locus
+
+# a "general" G is a presence-absence matrix in general (rows could be isolates, groups, etc) 
