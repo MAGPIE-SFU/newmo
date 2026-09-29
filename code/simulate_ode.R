@@ -19,7 +19,7 @@ samodel <- readRDS("data/SouthAfrica/samodel.rds") # this is the samodel; has G,
 # pcv 13 (1, 3, 4, 5, 6A, 6B, 7F, 9V, 14, 18C, 19A, 19F, and 23F) 
 # note pcv7 is  c("4","6A","6B","9V","14","18C","19F","23F") 
 tmax   <- 6 # years 
-tspan  <- seq(0, tmax * 12, by = 12) # time steps are monthly 
+tspan  <- seq(0, tmax * 12, by = 12) # time steps are monthly # why monthly if we have aggregated data by year? 
 
 simulate <- function(samodel, modelpars, tspan ) {
     # preliminary to running a simulation, but depends on model parameters: 
