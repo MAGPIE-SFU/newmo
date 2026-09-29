@@ -18,10 +18,12 @@ samodel <- readRDS("data/SouthAfrica/samodel.rds") # this is the samodel; has G,
 
 # pcv 13 (1, 3, 4, 5, 6A, 6B, 7F, 9V, 14, 18C, 19A, 19F, and 23F) 
 # note pcv7 is  c("4","6A","6B","9V","14","18C","19F","23F") 
-tmax   <- 6 # years 
-tspan  <- seq(0, tmax * 12, by = 12) # time steps are monthly # why monthly if we have aggregated data by year? 
+nyears   <- 6 # years 
+# tspan  <- seq(0, tmax * 12, by = 12) # time steps are monthly 12 months
+ # but to compare to the data don't i want an average over the 12 months? yes, yes i do! 
+# changing that now 
 
-simulate <- function(samodel, modelpars, tspan ) {
+simulate <- function(samodel, modelpars, nyears, stepspy = 24 ) {
     # preliminary to running a simulation, but depends on model parameters: 
     
     # create logged versions to translate to continuous time
@@ -55,11 +57,11 @@ simulate <- function(samodel, modelpars, tspan ) {
         list(as.numeric(dx))
         })
     }
-    
+    tfine <- seq(0, nyears * 12, length.out = nyears * stepspy + 1)
     # now run the simulation 
     out <- ode(
         y = as.numeric(samodel$x0),
-        times = tspan,
+        times = tfine,
         func = diffxt,
         parms = modelpars,
         method = "lsoda",
@@ -67,15 +69,26 @@ simulate <- function(samodel, modelpars, tspan ) {
         rtol = 1e-5
     ) 
     # out's first column is time. Each row gives the strain numbers at that time. Weird. 
+    X <- out[, -1, drop = FALSE] 
+    
+    # average over each year
+    avg <- sapply(seq_len(tmax), function(k) {
+      idx <- ((k - 1) * stepspy + 1):(k * stepspy + 1) # rows for year k 
+      XX <- X[idx, , drop = FALSE] # all strains, but only year k 
+      n <- nrow(XX) 
+      colSums(XX[-1, , drop = FALSE] + XX[-n, , drop = FALSE]) / (2 * (n - 1)) # trapezoid rule
+      # which is (x_1/2 + x_2 + … + x_{n−1} + x_n/2) / (n−1) where the endpoints are shared with the other year
+    })
     
     # collect the results in a convenient shape
-    outdf <- as.data.frame(t(out[, -1, drop = FALSE]))
-    colnames(outdf) <- paste("month", out[, "time"] , sep=".")       # columns = time points
-    rownames(outdf) <- rownames(samodel$G)          # rows = strain names
+     
+    outdf <- as.data.frame(matrix(avg, ncol = nyears))
+    rownames(outdf) <- rownames(samodel$G)             # rows = strains
+    colnames(outdf) <- paste("year", seq_len(nyears), sep = ".")   # year k = months 12(k-1) to 12k
     return(outdf)
 }
 
-# mysim = simulate(samodel, modelpars, tspan)
+ mysim = simulate(samodel, modelpars, nyears)
 #
 # # modified dataframe saved to csv, path sensitive...
 # library(tibble)
