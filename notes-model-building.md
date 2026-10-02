@@ -41,8 +41,13 @@ equilibrium locus frequencies and for context the logit frequency difference (se
 | `groupG` | $x(t)$, `pa_matrix_final.csv`, `meta_clean.csv` | `locus_freqs_deltas.csv`, `Gnfds` |
 
 ---
+## 2026-10-02: rare NVT groups
+See the model testing notes. We need rare NVT to be able to rise. Need to change the way I make the groups. 
+Also, should I not be making the groups based at least a little on how many carriage cases I might have expected from the IPD counts? Not just on the raw number of isolates? Sigh. 
 
-## 2026-09-25 — IPD vs carriage in G
+Going to at least use only pre-vaccine counts to create the rare NVT groups. 
+
+## 2026-09-25: IPD vs carriage in G
 
 $G_{j\ell}$ is the fraction of all isolates in group $j$ that have locus $\ell$, pooling IPD and
 carriage.  $x(t)$ is a
@@ -77,7 +82,7 @@ least well).
 
 ---
 
-## 2026-09-24 — ranking loci by |logit(post) - logit(pre)|
+## 2026-09-24: ranking loci by |logit(post) - logit(pre)|
 
 I replaced $\delta = (f-e)^2/(1-e(1-e))$ (which previous authors used to order genes for NFDS) with logitdiff = |logit(post2011) - logit(pre2009)|,
 sorted in ascending order to list the most stable loci first, restricted to loci with pre-vaccine frequency
@@ -97,10 +102,12 @@ loci in the model for 4 measures: $\delta$, $z_\ell = \frac{f_\ell - e_\ell}{\sq
 		 frequency. 
 		 Here are the slopes: 
 
+```
     delta       +0.65
     |z|         +0.11
     logitdiff   -0.08
     |log(f/e)|  -0.72
+```
 
 $\delta$ and the log
 ratio have opposite "preferences" for the baseline or starting frequency. $\delta$ calls low-frequency genes stable because they have
@@ -118,7 +125,7 @@ If I choose the most stable 200 genes using $\delta$ and the logitdiff, 160 of t
 agree.   The other 40 are more intermediate in frequency than your typical locus, which
 seems good. 
 
-Locus selection for the model: we remove genes with frequencies outsize the range $[ 0.05,
+Locus selection for the model: we remove genes with frequencies outsize the range $[0.05,
 0.95]$  in the pre-vaccine period, because the model treats pre-vaccine
 frequencies as the equilibrium. Filtering on post-vaccine
 frequency could drop  loci that moved out of that window, which seems unfair (could drop
@@ -272,22 +279,22 @@ single IPD case, which seems a little wrong..
 
 I used empirical Bayes on the log scale (DerSimonian-Laird random effects, SEs from the reported
 95% intervals in Nick's tables) to move each estimate toward the overall mean in proportion to how uncertain
-it is. (That sounds hard but it's just $log(v_adj)  = \mu + B_i 0(log(v_orig) - \mu)$. When $B = 0$
+it is. (That sounds hard but it's just $\log(v_{adj})  = \mu + B_i (\log(v_{orig}) - \mu)$. When $B = 0$
 the new invasiveness is the mean (here $\mu$ is the log of the raw means). When $B=1$ the
 original (raw) invasiveness estimate is kept. $B$ comes from the uncertainty in the
-original estimates. Where there was higher certainty, invasiveness estimates are not much affected  (14, 6A, 19A change by less than 10%), but the near-zero ones go up about
-10-fold, and the range is much more reasonable (factor of 180). After this, no year's top group
+invasiveness estimates. Where there is higher certainty, invasiveness estimates are not much affected  (14, 6A, 19A change by less than 10%), but the near-zero ones go up about
+10-fold, and the range is much more reasonable (though still a factor of 180). After this, no year's top group
 comes from a single case. 
 
 Open: if Nick's estimates came out of a hierarchical model themselves then this shrinks
-them twice and over-smooths..  should check his methods. Invasiveness is per serotype so
-every GPSC within a serotype shares a value. I believe Nick also has post-vaccine
+them twice and over-smooths..  should check his methods but .. probably even better to include his post-vaccine invasiveness numbers?
+Invasiveness is per serotype so every GPSC within a serotype gets the same inv value. I believe Nick also has post-vaccine
 invasiveness estimates, which we could apply to the post-vaccine years (would that make
 the locus frequencies stabilize more? Perhaps! Maybe this is a priority). 
 
 South Africa's HIV prevalence over this period could affect the invasiveness. 
-And uncertainty in v isn't propagated anywhere, which is probably the largest uncertainty
-in x(t). We could draw new vs from Nick's intervals, thereby resampling $x(t)$, and
+And uncertainty in $v$ isn't propagated anywhere, and it is probably the largest contributor to uncertainty
+in $x(t)$. We could draw new vs from Nick's intervals, thereby resampling $x(t)$, and
 then.. I guess we would potentially have a new NFDS model each time? Anyway I did put
-standard errors in the new reweighted $x(t)$ file so that's something we could think about
+standard errors in the new reweighted $x(t)$ file (but they aren't based on the unc in $v$) so that's something we could think about
 (don't penalize the model for a mismatch if the standard error is large, for example) . 
