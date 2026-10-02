@@ -1,10 +1,33 @@
-# Notes
+# Notes on model testing 
 
 Here are some notes (from CC) about simulating and testing the NFDS model. 
 
-## 2026-09-29 (and immediately thereafter)
+## 2026-10-02: proposed changes to the model
 
-I decided today that the ode solver should give us not the values of the group frequencies
+The `rareNVT` group is a problem. It's defined as those ST-SC combinations that had fewer than 40 observations. That sounds reasonable. I defined them as a group, `rare_NVT`. But consider this: suppose I try the model without NFDS, so setting $\sigma$ to 0. Now, each non-vaccine group should rise basically in proportion to its pre-vaccine frequency among NVTs. That is, if group $i$'s portion of the pre-vaccine NVT population is $f_i = n_i / \sum_{ j \in NVT} n_j$ where $j$ is the group and $n_j$ are the numbers of group $j$ in our synthetic carriage population, then without NFDS, we would expect $i$ to also make a fraction $f_i$ of the post-vaccine population. 
+The rare NVT group had about 7.5% of the total carriage population pre-vaccine. The NVT strains together were about 33% of the pre-vaccine population. So without NFDS, we would expect the 7.5% to become 7.5/33 or about 23%. That is what happens with $\sigma=0$ but of course, *by definition* the rare NVT group can't rise in the data because the strain is conditioned to stay rare. Now, of course, we will have NFDS in our model, so the no-NFDS thought experiment isn't the same as the simulations we will have. But even with NFDS I was seeing large rises in rareNVTs which will never be possible in the data, and I was not seeing rises in some key NVTs. 
+
+
+*Solution*" This is a setup issue - I will re-create the whole model and $x(t)$ and so on with a different definition of rare NVTs, using only pre-vaccine data to decide. This will mean we'll have more than the current 87 groups, but I think it's worth it. 
+
+
+The NVT strains that do rise (in the data) may rise only very slowly in the model if migration is very low and they start at low levels in the initial conditions. We might want to start strains that have near-0 frequencies pre-vaccine at a somewhat higher (than 0) starting point, and/or change the migration dynamics. 
+
+Currently, if the migration is too high, it pulls the system towards a more uniform distribution of strains. Should we have vaccine strains not migrating in as much (since the population is immune to them, they may not establish, as well as failing to reproduce)? Should we have rare strains not migrating in as much as more common strains? (such that the equilibrium dynamics of the model are really the pre-vaccine frequencies? with constant migration they are not quite. But previous models used constant migration). 
+
+Next steps after these changes: 
+
+- make a quantitative fit assessment (e.g. a likelihood or loss function) so that we can fit the model.  Our loss function should probably reflect the fact that our data are proportions, and should probably not end up hugely over-focused on only the most common few strains. 
+- consider whether we really need 4 different parameters that are all about how much NFDS there is. More parameters: harder fitting. 
+- fit the model parameters
+- is there evidence that the fits under NFDS are better than without NFDS? (if there were one NFDS parameter, is there statistical evidence that it differs from 0?) 
+
+Ideally we might also propagate uncertainty better into $x(t)$ than we do now - we have something derived from the numbers of samples but not from the uncertainty in invasiveness, which is considerable. 
+
+
+## 2026-09-29: plotters and baseline parameters 
+
+I decided that the ode solver should give us not the values of the group frequencies
 (or counts, if we are using a population of $N$) but instead, the average for the given
 year. Since our synthetic carriage population $x(t)$ is the average for each year, this
 seems fair to the model. I changed this in the function `simulate` in `simulate_ode.R`. 
@@ -53,12 +76,6 @@ Note that there are *four* distinct parameters that all essentially increase or 
 only two parameters: a fraction of genes and a strength. We could keep `wlow` at 0 (I think that is what Leonie did) or some low number, or even have a third parameter for the relative high vs low numbers or something like that. 
 Fitting fewer parameters will be easier than fitting more. 
 
-# Next steps 
-
-- Figure out what to do with the rare NVT group. Ideas include: Set its G entries to 0 so it does not get an NFDS effect. But which model elements would this mean recomputing? Definitely the x(t) (would need to be renormalized?), perhaps also the locus frequencies?
-- Set the ODE up to not allow migration of vaccine strains post-vaccination, as above
-- Make a quantitative fit assessment (e.g. a likelihood or loss function) so that we can fit the model
-- Fit the model parameters 
 
 
 
