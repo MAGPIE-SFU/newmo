@@ -1,6 +1,10 @@
 # cc simulation notes 
 library(deSolve)
 library(readr)
+
+
+source("code/plot_functions.R") 
+
 # model parameters 
  modelpars <-list()
  modelpars$v <- 0.065 # there is a reference to 0.1 in my notes, too..
@@ -13,10 +17,33 @@ library(readr)
 #
  modelpars$K=sum(samodel$x0) # ok but that's 1.. 
 
- 
- 
- mysim = simulate(samodel, modelpars, nyears)
+mp2 = modelpars; mp2$wlow = 0.04; mp2$sigma = 0.1 
+# note that all 3 of sigma, portion and whigh (and wlow) give a strength of NFDS - should probably simplify 
+# more wlow (0.07 only change) : 19A and 35B are worse, but rareNVT a bit better , 15A is worse (than baseline above) 
+# more wlow (0.04) and lower sigma (0.1) 
 
+ mysim = simulate(samodel, modelpars, nyears)
+sim2 = simulate(samodel, mp2, nyears)
+
+sims = list(baseline = mysim, morewlow = sim2) 
+ # -- check out these plots! see plot_functions.R 
+ vt_nvt_plot(vax_start=2010, prevax_years = 2000:2009,
+              samodel, xt, sims) # ha this works 
+ # changing the fraction under NFDS doesn't change the vt totals; goo. 
+ # well, it does it you put it all the way up to 0.5 with a 0.2 whigh, and the fit is not as good 
+ 
+ top_group_plot(vax_start=2010, prevax_years = 2000:2009,
+ n_groups=12, samodel, xt, sims)
+ 
+ top_sero_plot(vax_start=2010, prevax_years = 2000:2009,
+                n_serotypes=18, samodel, xt, sims)
+ 
+ # at baseline we have too much 19A and rare NVT, and not enough 16F, 23A , 35B. 35B is very common in the data, so it's a bit problem 
+ # huge nfds does not fix these things and worsens the VT to NVT match eventually though you need a lot of it 
+ 
+ 
+ # -- some other checks 
+ 
  
  # is x0 actually an equilib of the model with v = 0 ? 
  mp0 <- modelpars; mp0$v <- 0; mp0$migr = 0.00001
