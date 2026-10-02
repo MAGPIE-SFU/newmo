@@ -3,7 +3,7 @@
 
 
 Gnfds <- as.matrix(read.csv("data/SouthAfrica/Gnfds.csv", row.names=1))
-meta <- read_csv("data/SouthAfrica/meta_clean.csv", show_col_types = FALSE)
+meta <- read_csv("data/SouthAfrica/meta_clean_groups.csv", show_col_types = FALSE)
 
 locus_by_year <- read.csv("data/SouthAfrica/locus_freqs_deltas.csv", check.names = FALSE)
 rownames(locus_by_year) <- locus_by_year$locus      # only if something downstream wants them

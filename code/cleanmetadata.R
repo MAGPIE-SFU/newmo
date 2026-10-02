@@ -8,8 +8,8 @@ library(lubridate) # may not be needed
 # --- readme
 ###########
 
-# this script refines the metadata and creates the group column for the South Africa data.
-# it also groups rare things in a way I hope is sensible. 
+# this script refines the metadata and NO LONGER creates the group column for the South Africa data.
+# it also groups rare things in a way I hope is sensible. (it wasn't, but for subtle reasons kind of) 
 
 # outputs:
 #   data/SouthAfrica/meta_clean.csv  one row per isolate; serotype and gpsc are the real
@@ -86,8 +86,8 @@ meta_clean <- meta %>%
 # with fewer groups that have 0 counts in some of the years - which could create problems for the modellign later 
 
 
-min_gpsc_n     <- 20   # isolates needed for a serotype-GPSC pair to be its own group
-min_serotype_n <- 40   # NVT serotypes with fewer isolates than this go to "rare_NVT"
+# min_gpsc_n     <- 20   # isolates needed for a serotype-GPSC pair to be its own group
+# min_serotype_n <- 40   # NVT serotypes with fewer isolates than this go to "rare_NVT"
 
 pcv7_types  <- c("4", "6B", "9V", "14", "18C", "19F", "23F")
 pcv13_extra <- c("1", "3", "5", "6A", "7F", "19A")   # the 6 serotypes PCV13 added to PCV7
@@ -98,16 +98,12 @@ meta_clean <- meta_clean %>%
                                     TRUE                      ~ "NVT")) %>%
     add_count(serotype, gpsc, name = "n_sero_gpsc") %>%
     add_count(serotype,       name = "n_sero") %>%
-    mutate(group = case_when(
-        vaccine_type == "NVT" & n_sero < min_serotype_n ~ "rare_NVT",
-        is.na(gpsc) | n_sero_gpsc < min_gpsc_n          ~ paste(serotype, "other", sep = "_"),
-        TRUE                                            ~ paste(serotype, gpsc,    sep = "_"))) %>%
     select(
         Sample_accession,
         year,
         serotype,
         gpsc,
-        group,
+#        group,
         vaccine_type,
         Age_Year,
         Age_Month,
@@ -124,12 +120,12 @@ meta_clean <- meta_clean %>%
 
 
 # every group belongs to exactly one vaccine type (so VT / NVT can always be recovered)
-stopifnot(all(count(distinct(meta_clean, group, vaccine_type), group)$n == 1))
+# stopifnot(all(count(distinct(meta_clean, group, vaccine_type), group)$n == 1))
 
-message(n_distinct(meta_clean$group), " groups; ",
-        sum(meta_clean$group == "rare_NVT"), " isolates in rare_NVT (",
-        n_distinct(meta_clean$serotype[meta_clean$group == "rare_NVT"]), " serotypes); ",
-        sum(grepl("_other$", meta_clean$group)), " isolates in <serotype>_other groups")
+# message(n_distinct(meta_clean$group), " groups; ",
+  #      sum(meta_clean$group == "rare_NVT"), " isolates in rare_NVT (",
+  #      n_distinct(meta_clean$serotype[meta_clean$group == "rare_NVT"]), " serotypes); ",
+  #     sum(grepl("_other$", meta_clean$group)), " isolates in <serotype>_other groups")
 
 
 ###########

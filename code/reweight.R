@@ -49,7 +49,7 @@ inv <- read_csv("data/Invasiveness/invasiveness_lookup.csv") # see make_invasive
 
 yearly_counts_long <- meta_clean %>%
     count( year, age_group, collection_type,
-        serotype, gpsc, group,  name = "n" )
+        serotype, gpsc,   name = "n" )
 
 hist(filter(yearly_counts_long, year==2007)$n,breaks = 50) # in a given year most are 1 (!)
 # which probably means i need to figure out which types to remove
@@ -79,7 +79,7 @@ child_inv <- yearly_counts %>%
     mutate(        r_C = (ipd_n) / v, # carriage cases you'd expect from this number of IPD
         p_C_inv = r_C / sum(r_C)    ) %>%  # proportion group g in child carriage based on this IPD sample
     ungroup() %>%
-    select( year, serotype, gpsc, group,
+    select( year, serotype, gpsc,
         ipd_n, carriage_n, v, r_C, p_C_inv    )
 
 adult_inv <- yearly_counts %>%
@@ -90,7 +90,7 @@ adult_inv <- yearly_counts %>%
     mutate( r_A = (ipd_n ) / v, # carriage cases you'd expect from this number of IPD; have removed alpha - not needed  
         p_A_inv = r_A / sum(r_A)    ) %>%  # proportion group g in adult carriage based on this IPD sample
     ungroup() %>%
-    select( year, serotype, gpsc, group,
+    select( year, serotype, gpsc, 
         ipd_n, carriage_n, v, r_A, p_A_inv    )
 
 # unknowns: i treat them as if they are kids from the point of view of invasiveness. but we don't know. See notes / sanity check at the bottom of this script. 
@@ -105,7 +105,7 @@ unknown_proxy <- yearly_counts %>%
         p_U_proxy = r_U / sum(r_U)
     ) %>%
     ungroup() %>%
-    select(year, serotype, gpsc, group,
+    select(year, serotype, gpsc, 
         ipd_n, carriage_n, v, r_U, p_U_proxy)
 
 # i want to also include the carriage data we do have, such as it is.. 
@@ -116,24 +116,24 @@ unknown_proxy <- yearly_counts %>%
 # 
 child_carriage_counts <- yearly_counts %>%
   filter(age_group == "child") %>%
-  select(year, serotype, gpsc, group, carriage_n)
+  select(year, serotype, gpsc,  carriage_n)
 
 # this is the data frame that is going to be turned into my final sythn population: 
 components_yearly <- child_inv %>%
-  select(year, serotype, gpsc, group, p_C_inv) %>%
+  select(year, serotype, gpsc,  p_C_inv) %>%
   full_join(
     adult_inv %>%
-      select(year, serotype, gpsc, group, p_A_inv),
-    by = c("year", "serotype", "gpsc", "group")
+      select(year, serotype, gpsc,  p_A_inv),
+    by = c("year", "serotype", "gpsc")
   ) %>%
   full_join(
     unknown_proxy %>%
-      select(year, serotype, gpsc, group, p_U_proxy),
-    by = c("year", "serotype", "gpsc", "group")
+      select(year, serotype, gpsc,  p_U_proxy),
+    by = c("year", "serotype", "gpsc")
   ) %>%
   full_join(
     child_carriage_counts,
-    by = c("year", "serotype", "gpsc", "group")
+    by = c("year", "serotype", "gpsc")
   ) %>%
   mutate(
     p_C_inv = replace_na(p_C_inv, 0),
@@ -215,10 +215,67 @@ final_yearly %>%
         sum_p_final = sum(p_final)  ) # yes they all sum to 1. 
 
 
-ggplot(final_yearly, aes(x=p_final, fill=year))+geom_histogram() +facet_wrap(~as.factor(year))+xlim(c(0, 0.1))
+ggplot(final_yearly, aes(x=p_final, fill=year))+geom_histogram() +facet_wrap(~as.factor(year))+xlim(c(0, 0.01))
+
+# now we define groups. Before, I was using a cutoff for how many isolates there were. But what if there 
+# were isolates of a low-inv type? also i don't want rareNVT to be conditioned on being rare after vaccination
+# because hte NFDS model will not be able to fit that - see notes on the github from Oct 2 (CC). 
 
 
+prevax_years   <- 2000:2009
+pcv7_types  <- c("4", "6B", "9V", "14", "18C", "19F", "23F")
+pcv13_extra <- c("1", "3", "5", "6A", "7F", "19A")
+min_sero_frac  <- 0.001   # NVT serotypes below this share of pre-vaccine synthetic carriage -> rare_NVT
+min_sg_frac    <- 0.005   # serotype-GPSC pairs below this share -> serotype_other
 
+pre_yrs <- intersect(prevax_years, unique(final_yearly$year))
+
+# 1. pre-vaccine synthetic carriage share of each serotype-GPSC pair (mean over pre-vaccine years)
+pre_sg <- final_yearly %>%
+  filter(year %in% pre_yrs) %>%
+  group_by(year, serotype, gpsc) %>%
+  summarise(p = sum(p_final), .groups = "drop") %>%
+  complete(year = pre_yrs, nesting(serotype, gpsc), fill = list(p = 0)) %>%
+  group_by(serotype, gpsc) %>%
+  summarise(p_pre_sg = mean(p), .groups = "drop") %>%
+  group_by(serotype) %>%
+  mutate(p_pre_sero = sum(p_pre_sg)) %>%
+  ungroup()
+
+# 2. a group for every serotype-GPSC pair seen at any time
+sero_tab <- distinct(pre_sg, serotype, p_pre_sero)
+sg_tab   <- select(pre_sg, serotype, gpsc, p_pre_sg)
+
+group_lookup <- bind_rows(distinct(meta_clean, serotype, gpsc),
+                          distinct(final_yearly, serotype, gpsc)) %>%
+  distinct() %>%
+  left_join(sero_tab, by = "serotype") %>%
+  left_join(sg_tab,   by = c("serotype", "gpsc")) %>%
+  mutate(across(c(p_pre_sero, p_pre_sg), ~ coalesce(.x, 0)),      # not seen pre-vaccine -> 0
+         vaccine_type = case_when(serotype %in% pcv7_types  ~ "PCV7",
+                                  serotype %in% pcv13_extra ~ "PCV13",
+                                  TRUE                      ~ "NVT"),
+         group = case_when(
+           vaccine_type == "NVT" & p_pre_sero < min_sero_frac ~ "rare_NVT",
+           is.na(gpsc) | p_pre_sg < min_sg_frac             ~ paste(serotype, "other", sep = "_"),
+           TRUE                                             ~ paste(serotype, gpsc, sep = "_")))
+
+# 3. apply the new groups, then build xt exactly as before
+final_yearly <- final_yearly %>%
+#   select(-group) %>%
+  left_join(select(group_lookup, serotype, gpsc, group), by = c("serotype", "gpsc"))
+meta_clean <- meta_clean %>%
+ # select(-any_of("group")) %>%
+  left_join(select(group_lookup, serotype, gpsc, group), by = c("serotype", "gpsc"))
+
+stopifnot(!any(is.na(final_yearly$group)), !any(is.na(meta_clean$group)))
+
+
+# save the group lookup information becuase it's not in metadata clean any more 
+write_csv(group_lookup,"data/SouthAfrica/grouplookup.csv") 
+
+# and beacuse i'm lazy right now and i don't want to rewrite the other code that depends on the groups in meta_clean
+write_csv(meta_clean, "data/SouthAfrica/meta_clean_groups.csv") 
 
 ###########################################################################
 # make x(t) and save . 

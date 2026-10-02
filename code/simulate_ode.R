@@ -18,7 +18,7 @@ samodel <- readRDS("data/SouthAfrica/samodel.rds") # this is the samodel; has G,
 
 # pcv 13 (1, 3, 4, 5, 6A, 6B, 7F, 9V, 14, 18C, 19A, 19F, and 23F) 
 # note pcv7 is  c("4","6A","6B","9V","14","18C","19F","23F") 
-nyears   <- 6 # years 
+# nyears   <- 6 # years 
 # tspan  <- seq(0, tmax * 12, by = 12) # time steps are monthly 12 months
  # but to compare to the data don't i want an average over the 12 months? yes, yes i do! 
 # changing that now 
@@ -80,7 +80,7 @@ simulate <- function(samodel, modelpars, nyears, stepspy = 24 ) {
       # which is (x_1/2 + x_2 + … + x_{n−1} + x_n/2) / (n−1) where the endpoints are shared with the other year
     })
     
-    # collect the results in a convenient shape
+    # collect the results in a convenient shape (sort of. though we reshape it again for plotting so..??)
      
     outdf <- as.data.frame(matrix(avg, ncol = nyears))
     rownames(outdf) <- rownames(samodel$G)             # rows = strains
@@ -88,7 +88,7 @@ simulate <- function(samodel, modelpars, nyears, stepspy = 24 ) {
     return(outdf)
 }
 
- mysim = simulate(samodel, modelpars, nyears)
+#  mysim = simulate(samodel, modelpars, nyears)
 #
 # # modified dataframe saved to csv, path sensitive...
 # library(tibble)
