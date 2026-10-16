@@ -1,9 +1,12 @@
 # cc simulation notes 
 library(deSolve)
 library(readr)
-
+library(tibble)
+library(dplyr)
 
 source("code/plot_functions.R") 
+source("code/simulate_ode.R")
+samodel = readRDS("data/SouthAfrica/samodel.rds")
 
 # model parameters 
  modelpars <-list()
@@ -16,7 +19,7 @@ source("code/plot_functions.R")
  modelpars$wlow = 0.0023 # from MA model too; could be 0 (Leonie)
 #
  modelpars$K=sum(samodel$x0) # ok but that's 1.. 
-
+nyears = 6 
 mp2 = modelpars; mp2$sigma = 0; 
 # note that all 3 of sigma, portion and whigh (and wlow) give a strength of NFDS - should probably simplify 
 # more wlow (0.07 only change) : 19A and 35B are worse, but rareNVT a bit better , 15A is worse (than baseline above) 

@@ -72,7 +72,7 @@ simulate <- function(samodel, modelpars, nyears, stepspy = 24 ) {
     X <- out[, -1, drop = FALSE] 
     
     # average over each year
-    avg <- sapply(seq_len(tmax), function(k) {
+    avg <- sapply(seq_len(nyears), function(k) {
       idx <- ((k - 1) * stepspy + 1):(k * stepspy + 1) # rows for year k 
       XX <- X[idx, , drop = FALSE] # all strains, but only year k 
       n <- nrow(XX) 
