@@ -1,3 +1,17 @@
+# temporary -- what are the ingredients we will need? 
+
+- loss function, plus ability to determine the origin of the loss and quality of model fit (which group, which ST)
+- fitting using the loss function and/or the plots
+- uncertainty in $x(t)$ (extrapolated child carriage population)
+- exploration of the model performance under different choices of: gene ordering; weighting choices in making $x(t)$; migration choices (?); grouping
+- what's up with 35B?
+- method to project the invasiveness of our modelled population
+- comparison of the performance of other vaccines: instead of PCV13 at the time; used "now" (ie following PCV13).
+- approach to choose possible other vaccines (using the invasiveness information in Nick's tables)
+- use the post-vax invasiveness numbers from Nick's analysis
+- uncertainty in the fits
+- predictive power: what if we do not fit to all the time points and/or all the group information? 
+
 # Notes on model testing 
 
 Here are some notes (from CC) about simulating and testing the NFDS model. 
