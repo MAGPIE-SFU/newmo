@@ -1,16 +1,28 @@
 # temporary -- what are the ingredients we will need?
 
+## stage 1 
+- what's up with 35B? (and what to do about it) (note, this will change x(t) and therefore the fits) 
 - loss function, plus ability to determine the origin of the loss and quality of model fit (which group, which ST)
 - fitting using the loss function and/or the plots
+  - perhaps we want to simplify the model parameters; there are 4 whose effects are "more or less of the NFDS effect" 
 - uncertainty in $x(t)$ (extrapolated child carriage population)
-- exploration of the model performance under different choices of: gene ordering; weighting choices in making $x(t)$; migration choices (?); grouping
-- what's up with 35B?
-- method to project the invasiveness of our modelled population
-- comparison of the performance of other vaccines: instead of PCV13 at the time; used "now" (ie following PCV13).
-- approach to choose possible other vaccines (using the invasiveness information in Nick's tables)
-- use the post-vax invasiveness numbers from Nick's analysis
 - uncertainty in the fits
+- plots like the ones I have but without the VTs and with colour for the simulations 
+- version of the model and/or simulator with different options, i.e. gene orderings (this could be parameter) 
+
+## stage 2
+- exploration of the model performance under different choices of: gene ordering; weighting choices in making $x(t)$; migration choices (?); grouping
+- method to project the invasiveness of our modelled population
+- approach to choose possible other vaccines (using the invasiveness information in Nick's tables)
+- comparison of the performance of other vaccines: instead of PCV13 at the time; used "now" (ie following PCV13).
+- use the post-vax invasiveness numbers from Nick's analysis (alternative for a different x(t)) 
 - predictive power: what if we do not fit to all the time points and/or all the group information?
+
+- methods section for the bioinformatics
+- methods section for the reweighting
+- introduction?
+- look for papers that have cited this dataset; what have they said?
+- other post-vaccine carriage serotype distributions, etc - surrounding literature
 
 # Notes on model testing
 
