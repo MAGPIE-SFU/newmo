@@ -278,31 +278,26 @@ write_csv(group_lookup,"data/SouthAfrica/grouplookup.csv")
 write_csv(meta_clean, "data/SouthAfrica/meta_clean_groups.csv") 
 
 ###########################################################################
-# make x(t) and save . 
+# make x(t) and save . but keep st in xt 
 ###########################################################################
+group_sero <- group_lookup %>%
+  group_by(group) %>%
+  summarise(serotype     = if (n_distinct(serotype) == 1) first(serotype) else first(group),
+            vaccine_type = first(vaccine_type),
+            .groups = "drop")
+
+# NOTE the line that sets frac_sd could eventually have better sds 
 
 xt <- final_yearly %>%
-  group_by(year, group, serotype) %>%
-  summarise(
-    frac = sum(p_final),
-    a0 = first(N_car) + k,
-    .groups = "drop"
-  ) %>%
-  complete(year, nesting(group, serotype), fill = list(frac = 0)) %>%
-  group_by(year) %>%
-  mutate(a0 = max(a0, na.rm = TRUE)) %>%
-  ungroup() %>%
-  mutate(
-    frac_sd = sqrt(frac * (1 - frac) / (a0 + 1)),
-    count = frac * 1e5
-  ) %>%
-  left_join(
-    distinct(meta_clean, group, vaccine_type),
-    by = "group"
-  ) %>%
+  group_by(year, group) %>%
+  summarise(frac = sum(p_final), a0 = first(N_car) + k, .groups = "drop") %>%
+  complete(year, group, fill = list(frac = 0)) %>%
+  group_by(year) %>% mutate(a0 = max(a0, na.rm = TRUE)) %>% ungroup() %>%
+  mutate(frac_sd = sqrt(frac * (1 - frac) / (a0 + 1)),
+         count   = frac * 1e5) %>%
+  left_join(group_sero, by = "group") %>%
   select(year, group, serotype, vaccine_type, frac, frac_sd, count) %>%
   arrange(year, group)
-
 # some checks 
 xt %>% group_by(year) %>% summarise(s = sum(frac)) %>% pull(s) %>% range()   # should be 1 1
 
