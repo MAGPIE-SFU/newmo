@@ -7,10 +7,10 @@ library(openxlsx)
 ###########
 # --- readme  
 #
-# Input:  data/SouthAfrica/meta_clean.csv            
+# Input:  data/SouthAfrica/processed-inputs/meta_clean.csv            
 #         data/Invasiveness/nick-inv-sts-children.xlsx
 #         data/Invasiveness/nick-inv-sts-adults.xlsx
-# Output: data/Invasiveness/invasiveness_lookup.csv
+# Output: data/SouthAfrica/processed-inputs/invasiveness_lookup.csv
 #         one row per serotype in meta_clean, with child and adult invasiveness.
 #
 # Two things:
@@ -45,7 +45,7 @@ library(openxlsx)
 
 
 
-meta_clean <- read_csv("data/SouthAfrica/meta_clean.csv", show_col_types = FALSE)
+meta_clean <- read_csv("data/SouthAfrica/processed-inputs/meta_clean.csv", show_col_types = FALSE)
 nickkids   <- read.xlsx("data/Invasiveness/nick-inv-sts-children.xlsx")
 nickadults <- read.xlsx("data/Invasiveness/nick-inv-sts-adults.xlsx")
 
@@ -108,7 +108,7 @@ invasiveness_lookup <- child %>%
   left_join(adult %>% rename(v_adult = v, v_adult_raw = v_raw, v_adult_source = v_source),
             by = "serotype")
 
-write_csv(invasiveness_lookup, "data/Invasiveness/invasiveness_lookup.csv")
+write_csv(invasiveness_lookup, "data/SouthAfrica/processed-inputs/invasiveness_lookup.csv")
 
 # what was not an exact match (worth a look after each run)
 invasiveness_lookup %>%

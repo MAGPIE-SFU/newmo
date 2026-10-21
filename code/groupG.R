@@ -25,10 +25,10 @@ library(readr)
 library(dplyr)
 library(tibble)
 
-# G <- as.matrix(read.csv("data/SouthAfrica/gene_matrix.csv",row.names=1) )
-G <- as.matrix(read.csv("data/SouthAfrica/pa_matrix_final.csv",row.names=1) )
-meta_clean <- read_csv("data/SouthAfrica/meta_clean_groups.csv", show_col_types = FALSE)
-xt <- read_csv("data/SouthAfrica/xt_grouped.csv", show_col_types = FALSE) 
+
+G <- as.matrix(read.csv("data/SouthAfrica/raw-inputs/pa_matrix_final.csv",row.names=1) )
+meta_clean <- read_csv("data/SouthAfrica/processed-inputs/meta_clean_groups.csv", show_col_types = FALSE)
+xt <- read_csv("data/SouthAfrica/processed-inputs/xt_grouped.csv", show_col_types = FALSE) 
 
 
 # reorder rows of G 
@@ -169,9 +169,9 @@ stopifnot(identical(colnames(Greord),
                     locus_by_year$locus[locus_by_year$in_model]))
 
 
-write_csv(locus_by_year, "data/SouthAfrica/locus_freqs_deltas.csv")
+write_csv(locus_by_year, "data/SouthAfrica/processed-inputs/locus_freqs_deltas.csv")
 
-write.csv(Greord, "data/SouthAfrica/Gnfds.csv") # note the name; this is a G FOR NFDS
+write.csv(Greord, "data/SouthAfrica/processed-inputs/Gnfds.csv") # note the name; this is a G FOR NFDS
 # why is it different from some other G? 
 # (1) it only has intermediate frequency genes (0.05, 0.95) 
 # (2) these frequencies are computed from the synthetic carriage sample xt 

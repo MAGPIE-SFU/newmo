@@ -44,7 +44,7 @@ k <- 100   # Dirichlet prior strength- interp is how many child carriage swabs t
 # contributes in each year. this will eventually be x(t) for the NFDS model. 
 ######################################################
 
-meta_clean <- read_csv("data/SouthAfrica/meta_clean.csv")
+meta_clean <- read_csv("data/SouthAfrica/processed-inputs/meta_clean.csv")
 inv <- read_csv("data/Invasiveness/invasiveness_lookup.csv") # see make_invasiveness_lookup.R script
 
 yearly_counts_long <- meta_clean %>%
@@ -272,10 +272,10 @@ stopifnot(!any(is.na(final_yearly$group)), !any(is.na(meta_clean$group)))
 
 
 # save the group lookup information becuase it's not in metadata clean any more 
-write_csv(group_lookup,"data/SouthAfrica/grouplookup.csv") 
+write_csv(group_lookup,"data/SouthAfrica/processed-inputs/grouplookup.csv") 
 
 # and beacuse i'm lazy right now and i don't want to rewrite the other code that depends on the groups in meta_clean
-write_csv(meta_clean, "data/SouthAfrica/meta_clean_groups.csv") 
+write_csv(meta_clean, "data/SouthAfrica/processed-inputs/meta_clean_groups.csv") 
 
 ###########################################################################
 # make x(t) and save . but keep st in xt 
@@ -309,7 +309,7 @@ xt %>% group_by(year, vaccine_type) %>% summarise(f = sum(frac), .groups = "drop
 
 glimpse(xt)
 
-write_csv(xt, "data/SouthAfrica/xt_grouped.csv")
+write_csv(xt, "data/SouthAfrica/processed-inputs/xt_grouped.csv")
 
 
 ################################################################################

@@ -21,7 +21,7 @@ library(lubridate) # may not be needed
 # ----- read the metadata csv file and harmonise serotype names
 ###########
 
-meta <- read_csv("data/SouthAfrica/metadata.csv") 
+meta <- read_csv("data/SouthAfrica/raw-inputs/metadata.csv") 
 
 meta$serotype <- meta$In_Silico_Serotype
 
@@ -151,6 +151,8 @@ meta_clean %>% count(vaccine_type, collection_type) %>%
 # ------- save
 ###########
 
-write_csv(meta_clean, "data/SouthAfrica/meta_clean.csv")
+write_csv(meta_clean, "data/SouthAfrica/processed-inputs/meta_clean.csv")
+# note that a _grouped version of this is saved in the reweighting script
+# because that's where we finalize the groups (based on the prevalences)
 
 

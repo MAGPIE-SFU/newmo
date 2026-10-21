@@ -2,13 +2,13 @@
 # NFDS model structure (a list) for the south africa dataset
 
 
-Gnfds <- as.matrix(read.csv("data/SouthAfrica/Gnfds.csv", row.names=1))
-meta <- read_csv("data/SouthAfrica/meta_clean_groups.csv", show_col_types = FALSE)
+Gnfds <- as.matrix(read.csv("data/SouthAfrica/processed-inputs/Gnfds.csv", row.names=1))
+meta <- read_csv("data/SouthAfrica/processed-inputs/meta_clean_groups.csv", show_col_types = FALSE)
 
-locus_by_year <- read.csv("data/SouthAfrica/locus_freqs_deltas.csv", check.names = FALSE)
+locus_by_year <- read.csv("data/SouthAfrica/processed-inputs/locus_freqs_deltas.csv", check.names = FALSE)
 rownames(locus_by_year) <- locus_by_year$locus      # only if something downstream wants them
 
-xt <- read_csv("data/SouthAfrica/xt_grouped.csv", show_col_types = FALSE)
+xt <- read_csv("data/SouthAfrica/processed-inputs/xt_grouped.csv", show_col_types = FALSE)
 
 x0 <- xt %>%
   filter(year <= 2008) %>%
