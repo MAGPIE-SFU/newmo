@@ -77,14 +77,18 @@ This modification just explicitly sets $\tau_A$ or $\tau_U$ to 0 when those resp
 The rest of the algebra in this subsection is just adjusting the weights so that the weighted average is still reasonable.
 
 First, re-define the adult and unknown weights to explicitly account for zeros:
-$$\tau_A^*=\begin{cases} \tau_A\text{,~~}\sum_{s,g}p_{s,g}^A(t)>0 \\ 0\text{,~~~~otherwise}\end{cases}$$
+```math
+\tau_A^*=\begin{cases} \tau_A\text{,~~}\sum_{s,g}p_{s,g}^A(t)>0 \\ 0\text{,~~~~otherwise}\end{cases}
+```
 and similarly for $\tau_U^*$. We then take $\tau_{\text{total}}=1-(\tau_A-\tau_A^*) - (\tau_U-\tau_U^*)$.
 And then the weights are rescaled:
-\begin{align*}
+```math
+\begin{aligned}
 w_C &= (1-\tau_A-\tau_U)/\tau_\text{total}\\
 w_A &= \tau_A^*/\tau_\text{total}\\
 w_U &= \tau_U^*/\tau_\text{total}
-\end{align*}
+\end{aligned}
+```
 
 So the zero-adjusted prior mean is:
 $$\tilde p_{s,g}(t) = w_Cp_{s,g}^C(t) + w_Ap_{s,g}^A(t) + w_Up_{s,g}^U(t)$$
@@ -98,7 +102,8 @@ The posterior mean is then:
 $$\hat p_{s,g}(t) = \omega(t)\frac{n_{s,g}(t)}{N(t)}+(1-\omega(t))\tilde p_{s,g}(t).$$
 
 And the current estimate of the standard deviation of $\hat p_{s,g}(t)$ is
-$$SD(\hat p_{s,g}(t)) = \sqrt{\hat p_{s,g}(t)(1-\hat p_{s,g}(t))/(N(t)+k+1)}$$
+
+$$SD(\hat p_{s,g}(t)) = \sqrt{\frac{\hat p_{s,g}(t)(1-\hat p_{s,g}(t))}{(N(t)+k+1)}}$$
 
 
 The lookup table for variables here and in the code is:
