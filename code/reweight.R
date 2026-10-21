@@ -23,7 +23,7 @@ library(openxlsx) # read.xlxs
 # but it might be good to do that . 
 
 # pseudocounts and weights 
-tauA <- 0.01 # weight for adult IPD, should be v small 
+tauA <- 0 # weight for adult IPD, should be v small 
 tauU <- (272/(3865+1386)) # prop of the dataset that are unknown age - small; REDO if new dataset obvs
 
 # sept 22: omega was the weight for carriage compared to IPD. I set it to 0.27 because that's the fraction of the data that's from carriage 
@@ -34,7 +34,7 @@ tauU <- (272/(3865+1386)) # prop of the dataset that are unknown age - small; RE
 # setting tauA very small so adult IPD contributes little. LL's paper said other studies only measured kids. 
 # Sept 24: did some digging about better ways to do this. 
 # will use a way with a better statistical interpretation (works out very similarly) 
-k <- 780   # Dirichlet prior strength- interp is how many child carriage swabs the IPD-based
+k <- 100   # Dirichlet prior strength- interp is how many child carriage swabs the IPD-based
 # estimate is worth. Carriage weight in a year = N / (N + k);
 # k = 780 gives ~0.27 at N ~ 290 (matches omega is about 0.27 - one par instead of 2 and can depend on the number of carriage samples).
 
