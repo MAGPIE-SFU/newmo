@@ -282,14 +282,25 @@ write_csv(meta_clean, "data/SouthAfrica/meta_clean_groups.csv")
 ###########################################################################
 
 xt <- final_yearly %>%
-  group_by(year, group) %>%
-  summarise(frac = sum(p_final), a0 = first(N_car) + k, .groups = "drop") %>%
-  complete(year, group, fill = list(frac = 0)) %>%
-  group_by(year) %>% mutate(a0 = max(a0, na.rm = TRUE)) %>% ungroup() %>%
-  mutate(frac_sd = sqrt(frac * (1 - frac) / (a0 + 1)),
-         count   = frac * 1e5) %>%
-  left_join(distinct(meta_clean, group, vaccine_type), by = "group") %>%
-  select(year, group, vaccine_type, frac, frac_sd, count) %>%
+  group_by(year, group, serotype) %>%
+  summarise(
+    frac = sum(p_final),
+    a0 = first(N_car) + k,
+    .groups = "drop"
+  ) %>%
+  complete(year, nesting(group, serotype), fill = list(frac = 0)) %>%
+  group_by(year) %>%
+  mutate(a0 = max(a0, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(
+    frac_sd = sqrt(frac * (1 - frac) / (a0 + 1)),
+    count = frac * 1e5
+  ) %>%
+  left_join(
+    distinct(meta_clean, group, vaccine_type),
+    by = "group"
+  ) %>%
+  select(year, group, serotype, vaccine_type, frac, frac_sd, count) %>%
   arrange(year, group)
 
 # some checks 

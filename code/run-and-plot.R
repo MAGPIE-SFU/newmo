@@ -2,13 +2,14 @@ library(deSolve)
 library(readr)
 library(tibble)
 library(dplyr)
+library(tidyr)
 
 source("code/plot_functions.R") 
 source("code/simulate_ode.R")
 
 # load information 
 samodel = readRDS("data/SouthAfrica/samodel.rds")
-xt <- read_csv("data/SouthAfrica/xt_grouped.csv", show_col_types = FALSE)
+xt <- read_csv("data/SouthAfrica/xt_grouped.csv", show_col_types = FALSE) # this does not have serotype info so it doesnt work with the plotters
 
 # set model parameters
 modelpars <-list()

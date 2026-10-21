@@ -153,3 +153,4 @@ meta_clean %>% count(vaccine_type, collection_type) %>%
 
 write_csv(meta_clean, "data/SouthAfrica/meta_clean.csv")
 
+
