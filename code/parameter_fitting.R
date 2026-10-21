@@ -7,6 +7,7 @@ library(readr)
 library(dplyr)
 library(tibble)
 library(tidyr)
+library(psych)
 
 source("code/simulate_ode.R")   # provides simulate()
 
@@ -16,7 +17,7 @@ source("code/simulate_ode.R")   # provides simulate()
 
 # Order is load-bearing: optim() passes par as an unnamed vector,
 # so this is what puts the names back.
-PAR_NAMES <- c("v", "sigma", "migr", "portion", "whigh", "wlow")
+PAR_NAMES <- c("v", "sigma", "migr", "portion", "whigh", "delta")
 
 DEFAULT_PARS <- list(
     v       = 0.065,
@@ -24,7 +25,8 @@ DEFAULT_PARS <- list(
     migr    = 0.00001,
     portion = 0.3,
     whigh   = 0.1363,
-    wlow    = 0.0023
+    # wlow    = 0.0023
+    delta   = 0.134 # whigh - wlow
 )
 
 FIXED_PARS <- list(
@@ -89,6 +91,16 @@ run_model <- function(model_pars = list(),
 
     pars <- DEFAULT_PARS
     pars[names(model_pars)] <- model_pars
+
+    if ("delta" %in% names(pars) && !"wlow" %in% names(pars)) {
+      pars$wlow <- max(0, pars$whigh - pars$delta)
+    }
+
+    if ("delta" %in% names(pars)) {
+      pars$wlow <- max(0, pars$whigh - pars$delta)
+      pars$delta <- NULL
+    }
+
     pars <- c(pars, FIXED_PARS, list(K = sum(samodel$x0)))
 
     simulate(samodel, pars, nyears)
@@ -108,6 +120,27 @@ loss_functions <- list(
     },
     weighted_SSE = function(sim, data) {
         sum((1 / XT_SD_MATRIX^2) * (sim - data)^2)
+    },
+    # This does not work becuase division by 0...
+    # kl_distance = function (sim, data) {
+    #   return(sum((sim - data) * log(sim/data)))
+    # },
+    # This does not work because we have 0s as the data_gm and run into problems [division by 0]
+    # log_ratio_transform = function(sim, data) {
+    #     sim_gm  <- apply(sim, 2, psych::geometric.mean)
+    #     data_gm <- apply(data, 2, psych::geometric.mean)
+
+    #     sqrt(sum(
+    #         (log(sim / sim_gm) - log(data / data_gm))^2
+    #     ))
+    # }
+    weighted_composition_distance = function(sim, data) {
+        weights <- 1 / XT_SD_MATRIX^2
+
+        sim_norm  <- sweep(sim,  2, colSums(sim),  "/")
+        data_norm <- sweep(data, 2, colSums(data), "/")
+
+        sqrt(sum(weights * (sim_norm - data_norm)^2))
     }
 )
 
@@ -134,6 +167,7 @@ make_loss <- function(data, loss_fn, sa_model_path = SA_MODEL_PATH,
 #  DEBUG START
 # ------------------------------------------------------------
 sim <- run_model(as.list(unlist(DEFAULT_PARS)[PAR_NAMES]))
+data <- XT_MATRIX
 
 for (name in names(loss_functions)) {
     loss <- loss_functions[[name]](sim, XT_MATRIX)
@@ -148,8 +182,8 @@ for (name in names(loss_functions)) {
 # ------------------------------------------------------------
 
 initial <- unlist(DEFAULT_PARS)[PAR_NAMES]
-lower   <- c(v = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0, wlow = 0)
-upper   <- c(v = 1, sigma = 1, migr = 2, portion = 1, whigh = 1, wlow = 1)
+lower   <- c(v = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0.002, delta = 0.001)
+upper   <- c(v = 1, sigma = 1, migr = 2, portion = 1, whigh = 1, delta = 0.998)
 
 fits <- lapply(loss_functions, function(loss_fn) {
     optim(
@@ -160,3 +194,23 @@ fits <- lapply(loss_functions, function(loss_fn) {
         upper  = upper
     )
 })
+
+
+# Compare the fitted parameters
+results <- data.frame(
+    loss       = names(fits),
+    value      = sapply(fits, `[[`, "value"),
+    convergence = sapply(fits, `[[`, "convergence")
+)
+
+print(results)
+
+parameters <- as.data.frame(
+    do.call(rbind, lapply(fits, `[[`, "par"))
+)
+
+parameters$loss <- names(fits)
+
+print(parameters)
+
+saveRDS(fits, "data/SouthAfrica/parameter_fitting_results.rds")
