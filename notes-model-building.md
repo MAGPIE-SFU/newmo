@@ -210,7 +210,7 @@ This all happens in the `reweight.R` file.
 
 I replaced the fixed $\omega = 0.27$ weight for carriage compared to IPD, and I dropped
 the two pseudocounts, upon reflection. Instead, I used
-`p_final = (N_car + k * p_C_aug) / (N_car + k)`, with `k = 780`.
+`p_final = (N_car + k * p_C_aug) / (N_car + k)`, with `k = 100`.
 
 The old version was `(1-omega) p_C_aug + omega q_car_child`, which rearranges into exactly the
 posterior mean of a Dirichlet-multinomial thing, with the IPD-derived estimate as the prior mean.
