@@ -37,7 +37,7 @@ SA_MODEL_PATH <- "data/SouthAfrica/samodel.rds"
 NYEARS        <- 6
 
 # Imputed input data to fit against
-xt <- read_csv("data/SouthAfrica/xt_grouped.csv", show_col_types = FALSE)
+xt <- read_csv("data/SouthAfrica/processed-inputs/xt_grouped.csv", show_col_types = FALSE)
 # Make a nice matrix from xt values:
 XT_MATRIX <- xt %>%
     select(group, year, frac) %>%
@@ -135,13 +135,28 @@ loss_functions <- list(
     #     ))
     # }
     weighted_composition_distance = function(sim, data) {
-        weights <- 1 / XT_SD_MATRIX^2
+    gamma <- 1
+    weights <- 1 / XT_SD_MATRIX^2
 
-        sim_norm  <- sweep(sim,  2, colSums(sim),  "/")
-        data_norm <- sweep(data, 2, colSums(data), "/")
+    total <- 0
 
-        sqrt(sum(weights * (sim_norm - data_norm)^2))
+    for (j in seq_len(ncol(sim))) {
+        x1 <- data[, j]^gamma
+        x2 <- sim[, j]^gamma
+
+        y1 <- x1 / sum(x1)
+        y2 <- x2 / sum(x2)
+
+        d_sq <- (y1 - y2)^2
+        c_vec <- y1 + y2
+
+        idx <- d_sq != 0
+        d_sq[idx] <- d_sq[idx] / c_vec[idx]
+
+        total <- total + sum(weights[, j] * d_sq)
     }
+       (1 / gamma) * sqrt(2 * nrow(sim)) * sqrt(total)
+  }
 )
 
 compare <- function(sim, data, loss_fn) {
@@ -166,13 +181,13 @@ make_loss <- function(data, loss_fn, sa_model_path = SA_MODEL_PATH,
 # ------------------------------------------------------------
 #  DEBUG START
 # ------------------------------------------------------------
-# sim <- run_model(as.list(unlist(DEFAULT_PARS)[PAR_NAMES]))
-# data <- XT_MATRIX
+sim <- run_model(as.list(unlist(DEFAULT_PARS)[PAR_NAMES]))
+data <- XT_MATRIX
 
-# for (name in names(loss_functions)) {
-#     loss <- loss_functions[[name]](sim, XT_MATRIX)
-#     cat(name, ":", loss, "\n")
-# }
+for (name in names(loss_functions)) {
+    loss <- loss_functions[[name]](sim, XT_MATRIX)
+    cat(name, ":", loss, "\n")
+}
 # ------------------------------------------------------------
 #  DEBUG END
 # ------------------------------------------------------------
