@@ -61,3 +61,4 @@ sims = list(baseline = mysim, noNFDS = sim2)
  fx0 <- as.numeric(t(samodel$G) %*% samodel$x0) / sum(samodel$x0)
  summary(fx0 - samodel$el)          # should be ~0 everywhere if x0 is an equilibrium
  
+ 

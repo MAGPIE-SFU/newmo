@@ -13,12 +13,11 @@ library(openxlsx)
 # Output: data/Invasiveness/invasiveness_lookup.csv
 #         one row per serotype in meta_clean, with child and adult invasiveness.
 #
-# Two things happen here:
+# Two things:
 # (1) Shrinkage. Nick's estimates are pulled toward the overall mean on the log
-#     scale, more strongly the wider their 95% CI (empirical Bayes /
-#     DerSimonian-Laird random-effects). Precisely estimated serotypes barely
-#     change; serotypes with near-zero IPD in Nick's data (e.g. 19B, 35A, 33A)
-#     move up ~10-fold, so a single IPD case can no longer dominate a year.
+#     scale, more strongly the wider their 95% CI (this is some kind of empirical Bayes /
+#     DerSimonian-Laird random-effects thingy). Precisely estimated serotypes have their inv unchanged; serotypes with near-zero IPD in Nick's data (e.g. 19B, 35A, 33A)
+#     move up to ~10-fold, so a single IPD case can no longer be a high portion of the carriage pop in a year.
 
 # Description: "Serotype invasiveness estimates were stabilised by empirical Bayes
 # shrinkage on the log scale, using a DerSimonian–Laird random-effects model 
@@ -74,7 +73,7 @@ shrink_invasiveness <- function(tab) {
 }
 
 # ---------------------------------------------------------------------------
-# (2) One value per serotype, with fallbacks
+# (2) invasiveness vals for the serotypes
 # ---------------------------------------------------------------------------
 serogroup_of <- function(s) sub("^([0-9]+).*$", "\\1", s)   # "33D" -> "33" , ie  gets the 'serogroup'
 
