@@ -80,7 +80,7 @@ First, re-define the adult and unknown weights to explicitly account for zeros:
 ```math
 \tau_A^*=\begin{cases} \tau_A\text{,~~}\sum_{s,g}p_{s,g}^A(t)>0 \\ 0\text{,~~~~otherwise}\end{cases}
 ```
-and similarly for $\tau_U^*$. We then take $\tau_{\text{total}}=1-(\tau_A-\tau_A^*) - (\tau_U-\tau_U^*)$.
+and similarly for $\tau_U^*$. We then take $`\tau_{\text{total}}=1-(\tau_A-\tau_A^*) - (\tau_U-\tau_U^*)`$.
 And then the weights are rescaled:
 ```math
 \begin{aligned}
