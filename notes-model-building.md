@@ -39,6 +39,18 @@ equilibrium locus frequencies and for context the logit frequency difference (se
 | `make_invasiveness_lookup.R` | `meta_clean.csv`, Nick's two xlsx tables | `invasiveness_lookup.csv` |
 | `reweight.R` | `meta_clean.csv`, `invasiveness_lookup.csv` | $x(t)$ (`xt_grouped.csv`) |
 | `groupG` | $x(t)$, `pa_matrix_final.csv`, `meta_clean.csv` | `locus_freqs_deltas.csv`, `Gnfds` |
+| `create_SA_nfdsmodel.R` | Gnfds, metadata, locus freqs, xt | `samodel.rds`|
+
+---
+## 2026-10-20: serotype distribution questions
+I have been experimenting with the model and looking at the serotype distributions in the extrapolated carriage population. Why is 35B supposedly giving over 20% of the carriage? This doesn't seem right and isn't consistent with other observations. Skosana et al https://www.scielo.org.za/scielo.php?script=sci_arttext&pid=S0256-95742021000200014 don't report such a skewed distribution. The 35B portion happens because 35B has a low invasiveness, so the IPD cases we have get pushed to large numbers in the extrapolated carriage population. We may want to decrease the parameter $k$ in the reweighting script. Claude gave me a bit of background about what the ESS is for our IPD samples. 
+
+Each isolate $i$ carries weight $w_i = 1/v_{s(i)}$. We estimate a group’s share as $\hat p = \sum_{i \in g} w_i /\sum_i w_i$. Writing $W = \sum_i w_i$ and treating each isolate as independently in group $g$ with probability $p$:
+
+$$\text{Var}(\hat p) = \frac{1}{W^2}\sum_i w_i^2 \text{Var}\bigl(\mathbb{1}[i \in g]\bigr) = p(1-p)\frac{\sum_i w_i^2}{\left(\sum_i w_i\right)^2} = \frac{p(1-p)}{\text{ESS}}$$
+
+with $\mathrm{ESS} = (\sum w_i)^2 / \sum w_i^2$ (because the ESS is the number of independent samples you would need to get the observed variance). These ESS values turn out to be around 100 (183 in 2009 for the IPD samples and 90 by 2013). This suggests $k$ of more like 100 than my earlier 780 (which was based on getting the carriage data to be about 0.27 of the total - but in carriage years I guess it should be more). 
+Anyway that won't help with 35B being 20% of the extrapolated carriage population in 2014, because there's no carriage data in 2014. For that, we might want to think about resampling $x(t)$ using resampled invasiveness values, fiddling some of the invasiveness values (e.g. by digging through Nick's paper some more), or smoothing the invasiveness values more such that we match the effective number of serotypes in typical post-vaccine carriage studies. 
 
 ---
 ## 2026-10-02: rare NVT groups
