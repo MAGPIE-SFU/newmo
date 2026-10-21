@@ -166,13 +166,13 @@ make_loss <- function(data, loss_fn, sa_model_path = SA_MODEL_PATH,
 # ------------------------------------------------------------
 #  DEBUG START
 # ------------------------------------------------------------
-sim <- run_model(as.list(unlist(DEFAULT_PARS)[PAR_NAMES]))
-data <- XT_MATRIX
+# sim <- run_model(as.list(unlist(DEFAULT_PARS)[PAR_NAMES]))
+# data <- XT_MATRIX
 
-for (name in names(loss_functions)) {
-    loss <- loss_functions[[name]](sim, XT_MATRIX)
-    cat(name, ":", loss, "\n")
-}
+# for (name in names(loss_functions)) {
+#     loss <- loss_functions[[name]](sim, XT_MATRIX)
+#     cat(name, ":", loss, "\n")
+# }
 # ------------------------------------------------------------
 #  DEBUG END
 # ------------------------------------------------------------
