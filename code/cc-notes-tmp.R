@@ -8,6 +8,8 @@ source("code/plot_functions.R")
 source("code/simulate_ode.R")
 samodel = readRDS("data/SouthAfrica/samodel.rds")
 
+xt <- read_csv("data/SouthAfrica/xt_grouped.csv", show_col_types = FALSE)
+
 # model parameters 
  modelpars <-list()
  modelpars$v <- 0.065 # there is a reference to 0.1 in my notes, too..
