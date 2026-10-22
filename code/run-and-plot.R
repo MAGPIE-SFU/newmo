@@ -32,7 +32,7 @@ simulations <- setNames(
         modelpars <- parameter_generator(
             how_numerical = method,
             vaccine_type = "PCV13",
-            how_gene_order = "default"
+            how_gene_order = "sdmove"
         )
 
         simulate(samodel, modelpars, nyears)
@@ -43,7 +43,7 @@ simulations <- setNames(
 
 # plot the top groups
 top_group_plot(vax_start=2010, prevax_years = 2000:2009,
-               n_groups=18, samodel, xt, simulations,
+               n_groups=20, samodel, xt, simulations,drop_vt = FALSE,
               vaccine=PCV13_VACCINE)
 
 # plot the top serotypes

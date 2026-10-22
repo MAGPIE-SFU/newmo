@@ -14,11 +14,12 @@ simulate <- function(samodel, modelpars, nyears, stepspy = 24 ) {
     rr  <- -log(1 - vt)
 
     # create weight vector w (one value for each locus)
-    w <- rep(1, length(samodel$el))
+    if (is.null(modelpars[["gene_order"]])) modelpars$gene_order = seq_len(length(samodel$el))
+    
+    w <- rep(modelpars$wlow, length(samodel$el)) 
     tmpind <- round(modelpars$portion*length(samodel$el))
-    w[1:tmpind] <- modelpars$whigh
-    w[(tmpind+1):length(w)] <- modelpars$wlow
-
+    w[modelpars$gene_order[1:tmpind]] <- modelpars$whigh 
+   
     # create matrix multiples to simplify pi calculation
     modelpars$Gwe <- samodel$G %*% (w * samodel$el) # this is sum_l Gil wl el , the first part of pi
                                         # called "weighteddev" in earlier models
