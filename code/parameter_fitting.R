@@ -50,7 +50,44 @@ XT_MATRIX <- xt %>%
     ) %>%
     column_to_rownames("group") %>%
     as.matrix()
-XT_MATRIX <- XT_MATRIX[, seq_len(NYEARS), drop = FALSE]
+XT_MATRIX <- XT_MATRIX[, (ncol(XT_MATRIX) - NYEARS + 1):ncol(XT_MATRIX), drop = FALSE]
+
+# ------------------------------------
+# DEBUG START
+# ------------------------------------
+# library(ggplot2)
+# library(dplyr)
+# library(tidyr)
+# library(tibble)
+
+# # Convert XT_MATRIX back to long format
+# xt_matrix_long <- as.data.frame(XT_MATRIX) %>%
+#     rownames_to_column("group") %>%
+#     pivot_longer(
+#         cols = -group,
+#         names_to = "year",
+#         values_to = "frac"
+#     ) %>%
+#     mutate(year = as.numeric(sub("year\\.", "", year)))
+
+# # Plot original xt values and overlay XT_MATRIX values
+# ggplot(xt, aes(x = year, y = frac)) +
+#     geom_line(linewidth = 0.7, alpha = 0.7) +
+#     geom_point(
+#         data = xt_matrix_long,
+#         aes(x = year, y = frac),
+#         size = 2
+#     ) +
+#     facet_wrap(~ group, scales = "free_y") +
+#     labs(
+#         x = "Year",
+#         y = "XT value"
+#     ) +
+#     theme_minimal()
+# ------------------------------------
+#  DEBUG END
+# ------------------------------------
+
 
 # Building the matrix of weights for the weighted SSE
 XT_SD_MATRIX <- xt %>%
@@ -196,9 +233,9 @@ for (name in names(loss_functions)) {
 # ------------------------------------------------------------
 
 initial <- unlist(DEFAULT_PARS)[PAR_NAMES]
-stopifnot(!anyNA(initial), identical(names(initial), names(lower)))
 lower <- c(v = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0.002, wfrac = 0)
 upper <- c(v = 1,     sigma = 100, migr = 200, portion = 1, whigh = 1,     wfrac = 1)
+stopifnot(!anyNA(initial), identical(names(initial), names(lower)))
 
 initial_raw <- unlist(DEFAULT_PARS)[PAR_NAMES]  # values achieved my CC magic
 
@@ -278,6 +315,16 @@ saveRDS(fits, "data/SouthAfrica/parameter_fitting_results.rds")
 # ------------------------------------------------
 # 3. Plot the 12 most abundant serotypes
 # ------------------------------------------------
+
+options(warn = 1)   # print warnings as they happen
+corner <- as.list(c(v = 0.001, sigma = 1, migr = 0, portion = 0.3, whigh = 1, wfrac = 1))
+sim_c <- run_model(corner)
+
+dim(sim_c); dim(sim); dim(XT_MATRIX)
+rbind(corner = summary(as.vector(sim_c)),
+      initial = summary(as.vector(sim)),
+      data = summary(as.vector(XT_MATRIX)))
+
 
 X <- as.matrix(XT_MATRIX)
 big <- order(rowMeans(X), decreasing = TRUE)[1:min(12, nrow(X))]
