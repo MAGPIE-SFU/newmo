@@ -20,6 +20,7 @@ source("code/simulate_ode.R")   # provides simulate()
 # so this is what puts the names back.
 PAR_NAMES <- c("v", "sigma", "migr", "portion", "whigh", "wfrac")
 
+# These are CC_Magic values that will also be saved at the end.
 DEFAULT_PARS <- list(
     v       = 0.065,
     sigma   = 0.13,
@@ -308,7 +309,16 @@ parameters$loss <- names(fits)
 parameters <- rbind(parameters,
                     data.frame(as.list(initial_raw), loss = "CC_MAGIC"))
 
+# Convert wfrac to wlow for the saved parameter sets
+if ("wfrac" %in% names(parameters)) {
+    parameters$wlow <- parameters$whigh * parameters$wfrac
+    parameters$wfrac <- NULL
+}
+
+saveRDS(parameters, "data/SouthAfrica/fitted_parameters.rds")
+
 print(parameters, row.names=FALSE)
 
-saveRDS(fits, "data/SouthAfrica/parameter_fitting_results.rds")
+# This should be looked at but currently not necessary to save it...
+# saveRDS(fits, "data/SouthAfrica/parameter_fitting_results.rds")
 saveRDS(parameters, "data/SouthAfrica/fitted_parameters.rds")
