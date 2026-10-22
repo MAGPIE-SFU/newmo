@@ -65,7 +65,7 @@ parameter_generator <- function(
         modelpars$gene_order <-  switch(
             how_gene_order,
             delta      = order_by("delta"),
-            sdmove     = order_by("sdmove"), # used to be z; number of sds that the freq mvoed, under a simple model for the sd
+            z     = order_by("z"), # used to be z; number of sds that the freq mvoed, under a simple model for the sd
             lograt  = order_by("lograt"),
             logitdiff = order_by("logitdiff"),
             stop("Unknown gene-order method: ", how_gene_order)

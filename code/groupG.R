@@ -28,7 +28,7 @@ library(tibble)
 
 G <- as.matrix(read.csv("data/SouthAfrica/raw-inputs/pa_matrix_final.csv",row.names=1) )
 meta_clean <- read_csv("data/SouthAfrica/processed-inputs/meta_clean_groups.csv", show_col_types = FALSE)
-xt <- read_csv("data/SouthAfrica/processed-inputs/xt_grouped.csv", show_col_types = FALSE) 
+xt <- read_csv("data/SouthAfrica/processed-inputs/xt_grouped_uncertainty.csv", show_col_types = FALSE) 
 
 
 # reorder rows of G 
@@ -140,7 +140,7 @@ locus_by_year <- locus_by_year %>%
     delta    = (post2011 - pre2009)^2 / (1 - pre2009 * (1 - pre2009)),
     
     # standardised pre-to-post change: how many standard errors the locus moved
-    sdmoved = (post2011 - pre2009) /
+    z = (post2011 - pre2009) /
       sqrt(pre2009 * (1 - pre2009) / n_pre + post2011 * (1 - post2011) / n_post),
     
     # year-to-year variation compared to whta is expected due to sampling noise with n-ish samples, all 15 years
