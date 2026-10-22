@@ -19,7 +19,8 @@ source(here::here("code", "simulate_ode.R"))
 PAR_NAMES <- c("v", "sigma", "migr", "portion", "whigh", "wfrac")
 
 DEFAULT_PARS <- list(
-    v       = 0.065,
+    v1       = 0.065,
+    v2       = 0.065,
     sigma   = 0.13,
     migr    = 0.00001,
     portion = 0.3,
@@ -216,8 +217,8 @@ for (name in names(loss_functions)) {
 # ------------------------------------------------------------
 
 initial <- unlist(DEFAULT_PARS)[PAR_NAMES]
-lower <- c(v = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0.002, wfrac = 0)
-upper <- c(v = 1,     sigma = 100, migr = 200, portion = 1, whigh = 1,     wfrac = 1)
+lower <- c(v1 = 0.001, v2 = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0.002, wfrac = 0)
+upper <- c(v1 = 1, v2 = 1, sigma = 100, migr = 200, portion = 1, whigh = 1,     wfrac = 1)
 stopifnot(!anyNA(initial), identical(names(initial), names(lower)))
 
 initial_raw <- unlist(DEFAULT_PARS)[PAR_NAMES]  # values achieved by CC magic

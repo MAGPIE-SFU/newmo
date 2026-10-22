@@ -4,8 +4,11 @@ sys.source(here::here("code", "common.R"), envir = common)
 
 parameter_generator <- function(
     how_numerical = "CC_MAGIC",
-    vaccine_type = "PCV13",
-    how_gene_order = "default"
+    vaccine_type1 = "PCV7",
+    vaccine_type2 = "PCV13",
+    how_gene_order = "default",
+    v1 = Null,
+    v2 = Null
 ) {
     # Read optimizer output
     parameters <- readRDS(common$FITTED_PARAMETERS_PATH)
@@ -21,24 +24,51 @@ parameter_generator <- function(
         parameters[idx, setdiff(names(parameters), "loss"), drop = FALSE]
     )
 
-    # Vaccine type
-    if (identical(vaccine_type, "PCV13")) {
-        modelpars$vaccine <- common$VACCINE_TYPES[["PCV13"]]
-    } else if (identical(vaccine_type, "PCV7")) {
-        modelpars$vaccine <- common$VACCINE_TYPES[["PCV7"]]
-    } else if (
-        is.character(vaccine_type) &&
-        length(vaccine_type) > 0 &&
-        !anyNA(vaccine_type)
-    ) {
-        modelpars$vaccine <- vaccine_type
-    } else {
+    # ------------------------------------------------
+    # Vaccine related input
+    # ------------------------------------------------
+
+    # ------------------------------------------------------------------
+    # HARD-CODED SWITCH POINT -- edit these three lines when it moves.
+    # t runs in MONTHS (tfine <- seq(0, nyears * 12, ...)), so the switch
+    # must be expressed as months since the start of the simulation, not
+    # as a calendar year.
+    # ------------------------------------------------------------------
+    SIM_START_YEAR <- 2000
+    SWITCH_YEAR    <- 2011
+    SWITCH_MONTH   <- 5                       # May 2011: PCV7 -> PCV13
+    t_switch <- (SWITCH_YEAR - SIM_START_YEAR) * 12 + (SWITCH_MONTH - 1)
+
+    modelpars$t_switch <- t_switch
+
+    # Each argument may be either a name looked up in common$VACCINE_TYPES
+    # or a raw character vector of strain labels.
+    resolve_vaccine <- function(spec, arg_name) {
+        if (is.character(spec) && length(spec) == 1L && !is.na(spec) &&
+            spec %in% names(common$VACCINE_TYPES)) {
+            return(common$VACCINE_TYPES[[spec]])
+        }
+        if (is.character(spec) && length(spec) > 0L && !anyNA(spec)) {
+            return(spec)
+        }
         stop(
-            "vaccine_type must be 'PCV13', 'PCV7', ",
-            "or a non-empty character vector"
+            arg_name, " must name a vaccine in common$VACCINE_TYPES or be ",
+            "a non-empty character vector of strain labels"
         )
     }
 
+    modelpars$vaccine1 <- resolve_vaccine(vaccine_type1, "vaccine_type1")
+    modelpars$vaccine2 <- resolve_vaccine(vaccine_type2, "vaccine_type2")
+
+    # ---- coverage before / after the switch ---------------------------
+    # Both eras inherit the fitted 'v' unless explicitly overridden.
+    v_fitted     <- modelpars$v
+    modelpars$v1 <- if (is.null(v1)) v_fitted else v1
+    modelpars$v2 <- if (is.null(v2)) v_fitted else v2
+
+    # ------------------------------------------------
+    # Gene-order parameterization
+    # ------------------------------------------------
     locus_by_year <- read_csv(common$LOCUS_FILE_PATH, show_col_types = FALSE)
     locus_by_year <- filter(locus_by_year, in_model) # note we rely on the order of the loci
     # being the same as in the model's G matrix, or we load the samodel here.
@@ -53,7 +83,7 @@ parameter_generator <- function(
         order(v, decreasing = decreasing)
     }
 
-    # Gene-order parameterization
+
     if (identical(how_gene_order, "default")) {
         modelpars$gene_order <- NULL
     } else if (
