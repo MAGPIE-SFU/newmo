@@ -9,17 +9,13 @@ simulate <- function(samodel, modelpars, nyears, stepspy = 24 ) {
     # create logged versions to translate to continuous time
     rho <- log(1 + modelpars$sigma)
 
-    # create vt: 0 or parameter v, one value for each strain (row of G)
-    vt <-  modelpars$v * (samodel$st %in% modelpars$vaccine)
-    rr  <- -log(1 - vt)
-
     # create weight vector w (one value for each locus)
     if (is.null(modelpars[["gene_order"]])) modelpars$gene_order = seq_len(length(samodel$el))
-    
-    w <- rep(modelpars$wlow, length(samodel$el)) 
+
+    w <- rep(modelpars$wlow, length(samodel$el))
     tmpind <- round(modelpars$portion*length(samodel$el))
-    w[modelpars$gene_order[1:tmpind]] <- modelpars$whigh 
-   
+    w[modelpars$gene_order[1:tmpind]] <- modelpars$whigh
+
     # create matrix multiples to simplify pi calculation
     modelpars$Gwe <- samodel$G %*% (w * samodel$el) # this is sum_l Gil wl el , the first part of pi
                                         # called "weighteddev" in earlier models
@@ -28,6 +24,13 @@ simulate <- function(samodel, modelpars, nyears, stepspy = 24 ) {
 
     # define the differential equation
     diffxt <- function(t, x, modelpars) {
+        # create vt: 0 or parameter v, one value for each strain (row of G)
+
+        # time dependent vaccines...
+        #   PCV7 2011 May and then PCV13 switch
+        vt <-  modelpars$v * (samodel$st %in% modelpars$vaccine)  # todo change vaccine by time
+        rr  <- -log(1 - vt)
+
         with(modelpars, {
             totalx <- sum(x)
         dx <- x * (

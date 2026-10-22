@@ -18,18 +18,17 @@ VACCINE_TYPES <- list(
     )
 )
 
-# Cached model loader
-get_samodel <- local({
-    cache <- NULL
-
-    function(path = SA_MODEL_PATH) {
-        if (is.null(cache)) cache <<- readRDS(path)
-        cache
-    }
-})
-
 FITTED_PARAMETERS_PATH <- here::here(
     "data", "SouthAfrica", "fitted_parameters.rds"
 )
 
+LOCUS_FILE_PATH <- here::here(
+    "data", "SouthAfrica", "processed-inputs", "locus_freqs_deltas.csv"
+)
 
+FITTING_METHODS <- c(
+    "CC_MAGIC",
+    "weighted_composition_distance",
+    "SSE",
+    "weighted_SSE"
+)

@@ -108,7 +108,7 @@ XT_SD_MATRIX <- XT_SD_MATRIX + min_nonzero / 2
 # thousands of deserialisations over a full fit.
 get_samodel <- local({
     cache <- NULL
-    function(path = SA_MODEL_PATH) {
+    function(path = common$SA_MODEL_PATH) {
         if (is.null(cache)) cache <<- readRDS(path)
         cache
     }
@@ -119,7 +119,7 @@ get_samodel <- local({
 # ------------------------------------------------------------
 
 run_model <- function(model_pars = list(),
-                      sa_model_path = SA_MODEL_PATH,
+                      sa_model_path = common$SA_MODEL_PATH,
                       nyears = NYEARS) {
 
   samodel <- get_samodel(sa_model_path)
@@ -220,7 +220,7 @@ lower <- c(v = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0.002, wfrac = 0
 upper <- c(v = 1,     sigma = 100, migr = 200, portion = 1, whigh = 1,     wfrac = 1)
 stopifnot(!anyNA(initial), identical(names(initial), names(lower)))
 
-initial_raw <- unlist(DEFAULT_PARS)[PAR_NAMES]  # values achieved my CC magic
+initial_raw <- unlist(DEFAULT_PARS)[PAR_NAMES]  # values achieved by CC magic
 
 initial <- pmin(pmax(initial, lower + 1e-6), upper - 1e-6)
 

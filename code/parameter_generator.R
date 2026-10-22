@@ -1,11 +1,14 @@
+common <- new.env()
+sys.source(here::here("code", "common.R"), envir = common)
+
+
 parameter_generator <- function(
     how_numerical = "CC_MAGIC",
     vaccine_type = "PCV13",
-    how_gene_order = "default",
-    locus_file = "data/SouthAfrica/processed-inputs/locus_freqs_deltas.csv"
+    how_gene_order = "default"
 ) {
     # Read optimizer output
-    parameters <- readRDS("data/SouthAfrica/fitted_parameters.rds")
+    parameters <- readRDS(common$FITTED_PARAMETERS_PATH)
 
     # Select parameter set
     idx <- match(how_numerical, parameters$loss)
@@ -20,14 +23,9 @@ parameter_generator <- function(
 
     # Vaccine type
     if (identical(vaccine_type, "PCV13")) {
-        modelpars$vaccine <- c(
-            "1", "3", "4", "5", "6A", "6B", "7F",
-            "9V", "14", "18C", "19A", "19F", "23F"
-        )
+        modelpars$vaccine <- common$VACCINE_TYPES[["PCV13"]]
     } else if (identical(vaccine_type, "PCV7")) {
-        modelpars$vaccine <- c(
-            "4", "6B", "9V", "14", "18C", "19F", "23F"
-        )
+        modelpars$vaccine <- common$VACCINE_TYPES[["PCV7"]]
     } else if (
         is.character(vaccine_type) &&
         length(vaccine_type) > 0 &&
@@ -40,11 +38,11 @@ parameter_generator <- function(
             "or a non-empty character vector"
         )
     }
-    
-    locus_by_year <- read_csv(locus_file, show_col_types = FALSE)
+
+    locus_by_year <- read_csv(common$LOCUS_FILE_PATH, show_col_types = FALSE)
     locus_by_year <- filter(locus_by_year, in_model) # note we rely on the order of the loci
-    # being the same as in the model's G matrix, or we load the samodel here. 
-    # this is checked in the file that creates the SA nfds model (that the locus order is correct) 
+    # being the same as in the model's G matrix, or we load the samodel here.
+    # this is checked in the file that creates the SA nfds model (that the locus order is correct)
 
     order_by <- function(col, decreasing = FALSE) {
         if (is.null(locus_by_year))
@@ -54,7 +52,7 @@ parameter_generator <- function(
         v <- locus_by_year[[col]]
         order(v, decreasing = decreasing)
     }
-    
+
     # Gene-order parameterization
     if (identical(how_gene_order, "default")) {
         modelpars$gene_order <- NULL

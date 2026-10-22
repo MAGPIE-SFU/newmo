@@ -9,26 +9,20 @@ source("code/plot_functions.R")
 source("code/simulate_ode.R")
 source("code/parameter_generator.R")
 
-PCV13_VACCINE <- c("1", "3", "4", "5", "6A", "6B", "7F", "9V", "14", "18C", "19A", "19F", "23F")
+common <- new.env()
+sys.source(here::here("code", "common.R"), envir = common)
 
 # Load information
-samodel <- readRDS("data/SouthAfrica/samodel.rds")
+samodel <- readRDS(common$SA_MODEL_PATH)
 xt <- read_csv(
-    "data/SouthAfrica/processed-inputs/xt_grouped.csv",
+    common$XT_PATH,
     show_col_types = FALSE
-)
-
-numerical_methods <- c(
-    "CC_MAGIC",
-    "weighted_composition_distance",
-    "SSE",
-    "weighted_SSE"
 )
 
 nyears <- 6
 
 simulations <- setNames(
-    lapply(numerical_methods, function(method) {
+    lapply(common$FITTING_METHODS, function(method) {
         modelpars <- parameter_generator(
             how_numerical = method,
             vaccine_type = "PCV13",
@@ -37,15 +31,15 @@ simulations <- setNames(
 
         simulate(samodel, modelpars, nyears)
     }),
-    numerical_methods
+    common$FITTING_METHODS
 )
 
 
 # plot the top groups
 top_group_plot(vax_start=2010, prevax_years = 2000:2009,
                n_groups=20, samodel, xt, simulations,drop_vt = FALSE,
-              vaccine=PCV13_VACCINE)
+              vaccine=common$VACCINE_TYPES[["PCV13"]])
 
 # plot the top serotypes
 top_sero_plot(vax_start=2010, prevax_years = 2000:2009,
-              n_serotypes=18, samodel, xt, simulations, vaccine=PCV13_VACCINE)
+              n_serotypes=18, samodel, xt, simulations, vaccine=common$VACCINE_TYPES[["PCV13"]])
