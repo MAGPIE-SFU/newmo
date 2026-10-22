@@ -427,3 +427,94 @@ ggplot(comp_wide_sero, aes(x = adult, y = unknown)) +
     y = "Unknown-age composition"
   )
 # the unknowns look more like kids than adults in their ST composition. 
+
+### make a plot of the estimated carriage composition with the new uncertinaty
+# Select 20 most common groups
+top_groups <- xt_agg %>%
+  group_by(group) %>%
+  summarise(mean_frac = mean(frac), .groups = "drop") %>%
+  slice_max(mean_frac, n = 20, with_ties = FALSE) %>%
+  pull(group)
+
+# Calculate pre-vaccine mean for each group
+prevax_means <- xt_agg %>%
+  filter(year < 2010) %>%
+  group_by(group) %>%
+  summarise(
+    prevax_mean = mean(frac),
+    .groups = "drop"
+  )
+
+# Prepare plotting data
+plot_data <- xt_agg %>%
+  filter(group %in% top_groups) %>%
+  left_join(prevax_means, by = "group") %>%
+  mutate(
+    lower = pmax(0, frac - 1.96 * frac_sd),
+    upper = pmin(1, frac + 1.96 * frac_sd),
+    group = factor(group, levels = top_groups)
+  )
+
+# Plot
+p <- ggplot(plot_data, aes(x = year, y = frac)) +
+
+  geom_errorbar(
+    aes(ymin = lower, ymax = upper),
+    width = 0,
+    colour = "grey65",
+    linewidth = 0.5
+  ) +
+
+  geom_line(
+    colour = "grey70",
+    linewidth = 0.4
+  ) +
+
+  geom_point(
+    colour = "black",
+    size = 1.6
+  ) +
+
+  geom_hline(
+    aes(yintercept = prevax_mean),
+    linetype = "dashed",
+    colour = "grey35",
+    linewidth = 0.5
+  ) +
+
+  geom_vline(
+    xintercept = 2010,
+    linetype = "dotted",
+    linewidth = 0.5
+  ) +
+
+  facet_wrap(~ group, scales = "free_y", ncol = 5) +
+
+  scale_x_continuous(
+    breaks = seq(2000, 2020, 5)
+  ) +
+
+  labs(
+    title = "The 18 most common ST-SC groups",
+    subtitle = "Estimated carriage composition with 95% uncertainty intervals",
+    x = NULL,
+    y = "Frequency",
+    caption = "Points: estimated carriage frequency. Grey bars: approximate 95% intervals. Dashed: pre-vaccine mean."
+  ) +
+
+  theme_grey(base_size = 11) +
+
+  theme(
+    strip.text = element_text(
+      colour = "royalblue",
+      face = "bold",
+      size = 10
+    ),
+    strip.background = element_rect(fill = "grey85"),
+    panel.grid.minor = element_blank(),
+    axis.text.x = element_text(size = 8),
+    axis.text.y = element_text(size = 8),
+    plot.title = element_text(face = "bold")
+  )
+
+p
