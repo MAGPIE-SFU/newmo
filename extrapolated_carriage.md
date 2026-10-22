@@ -99,6 +99,7 @@ $$\tilde p_{s,g}(t) = w_Cp_{s,g}^C(t) + w_Ap_{s,g}^A(t) + w_Up_{s,g}^U(t)$$
 This posterior distribution is Dirichlet, so it has a closed form for the posterior mean.
 From the observed carriage data we have the number of carriage samples for each serotype/group/year combination, $n_{s,g}(t)$, and the total number of carriage samples in a particular year, $N_(t)$. This gives us the fraction $\omega(t)=\frac{N(t)}{N(t)+k}$, which can be interpreted as a kind of evidence weight.
 The posterior mean is then:
+
 $$\hat p_{s,g}(t) = \omega(t)\frac{n_{s,g}(t)}{N(t)}+(1-\omega(t))\tilde p_{s,g}(t).$$
 
 And the current estimate of the standard deviation of $\hat p_{s,g}(t)$ is
@@ -117,3 +118,47 @@ The lookup table for variables here and in the code is:
 | $N(t)$ | `N_car` |
 | $\hat p_{s,g}(t)$ | `p_final` |
 | $SD(\hat p_{s,g}(t))$ | `p_final_sd` |
+
+
+## Model summary
+
+Vectors of counts and probabilities are compressed into vector notation, so for example $\vec n(t)$ contains $G$ elements $n_{s,g}(t)$. $G$ is the total number of serotype/group combinations.
+
+The likelihood is:
+$$\vec n(t)|\vec q(t) \sim \text{Multinomial}(\vec q(t))$$
+
+The prior distribution is:
+```math
+\begin{aligned}
+q(t) &\sim \text{Dirichlet}(\vec a(t)) \\
+a_{s,g}(t) &= k\tilde p_{s,g}+\nu,
+\end{aligned}
+```
+where $\nu$ is a pseudocount.
+
+The posterior distribution is:
+```math
+\begin{aligned}
+p_{s,g}(t) | \vec n(t) &\sim \text{Dirichlet}(\vec\alpha(t)) \\
+\alpha_{s,g}(t) &= a_{s,g}(t) + n_{s,g}(t) \\
+\mathbb E[\alpha_{s,g}(t)] &= \frac{k\tilde p_{s,g}(t)+n_{s,g}(t)}{k+N(t)+G\nu} = \hat p_{s,g}(t) \\
+\mathbb Var[\alpha_{s,g}(t)] &= \frac{\hat p_{s,g}(t)(1-\hat p_{s,g}(t))}{k+N(t)+G\nu+1} \\
+N(t) &= \sum_{s,g}n_{s,g}(t)
+\end{aligned}
+```
+
+## Incorporating uncertainty about the invasiveness parameters
+
+From Nick's paper we have point estimates and 95\% HPD intervals for the invasiveness parameters. These parameters are defined for the positive real numbers and the point estimates and intervals are defined on this scale. We begin with a distribution on $v_s$:
+
+$$v_s \sim \text{logNormal}(\mu_s,\sigma_s),$$
+where $\mu$ and $\sigma$ are the mean and standard deviation of $\log(v_s)$. To compute these from the interval we first compute an approximate standard error, based a normal approximation to the posterior [in Nick's paper]. This is $SE_s=w_s/(2z_{0.975}), where $w_s$ is the width of the HPD interval. We use $\hat v_s$ to denote the point estimate from Nick's paper. 
+The parameters for our simulation are then
+```math
+\begin{aligned}
+\mu_s &= \log\left(\frac{\hat v_s^2}{\sqrt{\hat v_s^2+SE_s^2}}\right) \\
+\sigma_s^2 &= \log\left(1+\frac{SE_s^2}{\hat v_s^2}\right)
+\end{aligned}
+```
+
+We then simulate $n_\text{reps}$ draws of $v_s(t)$ to generate a Monte Carlo sample $\{\hat p_{s,g}^{(i)}(t)\}$ and from that sample we can use the Monte Carlo estimates for the mean and variance of $\hat p_{s,g}(t)$ with respect to the invasiveness uncertainty using the laws of total expectation and variance.
