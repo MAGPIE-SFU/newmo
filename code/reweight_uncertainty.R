@@ -345,7 +345,7 @@ group_sero <- group_lookup %>%
 xt <- lapply(final_yearly, function(x) {
   x %>%
     group_by(year, group) %>%
-    summarise(frac_mean = sum(p_final), a0 = first(N_car) + k, .groups = "drop") %>%
+    summarise(frac_mean = sum(p_final), a0 = first(N_car) + k + PSEUDOCOUNT * n(), .groups = "drop") %>%
     complete(year, group, fill = list(frac_mean = 0)) %>%
     group_by(year) %>% mutate(a0 = max(a0, na.rm = TRUE)) %>% ungroup() %>%
     mutate(frac_var = frac_mean * (1 - frac_mean) / (a0 + 1),
