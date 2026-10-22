@@ -170,6 +170,13 @@ Greord <- Gg[, locus_by_year$locus[locus_by_year$in_model]]
 stopifnot(identical(colnames(Greord),
                     locus_by_year$locus[locus_by_year$in_model]))
 
+# --- adding some extra info to locus_by_year for pre-vaccine gene orderings 
+# to see if they work in the model 
+pre_cols <- paste0("t", 2000:2008)
+locus_by_year <- locus_by_year %>%
+    rowwise() %>%
+    mutate(varlogitpre = var(logit(c_across(all_of(pre_cols))))) %>% 
+    ungroup()
 
 write_csv(locus_by_year, "data/SouthAfrica/processed-inputs/locus_freqs_deltas.csv")
 

@@ -32,7 +32,7 @@ simulations <- setNames(
         modelpars <- parameter_generator(
             how_numerical = method,
             vaccine_type = "PCV13",
-            how_gene_order = "sdmove"
+            how_gene_order = "default"
         )
 
         simulate(samodel, modelpars, nyears)

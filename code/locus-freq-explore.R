@@ -156,6 +156,14 @@ summary(m$pre2009)
  sapply(c("delta", "z", "logitr", "lograt"), function(v)
    coef(lm(log(abs(m[[v]])) ~ log(m$pre2009)))[2])
 
-
-
-
+# --- now i want to explore whether i can get a good NFDS result out of pre-vaccine stability measures 
+ 
+ # so let's compute these measures over the 9 years of pre-vaccine data 
+ # i can compute the variance over time for each gene and use that 
+ # and that should be the variance in the logitdiff 
+ # but i can compute the variance in the other things too : delta, z, whatever . 
+ 
+ # already have some stuff in here like varianc in the frequency 
+ ggplot(locus_by_year, aes(x=pre2009, y=vardifflogpre))+geom_point(alpha=0.5) + 
+      scale_x_log10()+ scale_y_log10()
+# no good - the extremes are just high and low 
