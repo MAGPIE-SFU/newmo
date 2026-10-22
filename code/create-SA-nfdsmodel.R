@@ -8,7 +8,7 @@ meta <- read_csv("data/SouthAfrica/processed-inputs/meta_clean_groups.csv", show
 locus_by_year <- read.csv("data/SouthAfrica/processed-inputs/locus_freqs_deltas.csv", check.names = FALSE)
 rownames(locus_by_year) <- locus_by_year$locus      # only if something downstream wants them
 
-xt <- read_csv("data/SouthAfrica/processed-inputs/xt_grouped.csv", show_col_types = FALSE)
+xt <- read_csv("data/SouthAfrica/processed-inputs/xt_grouped_uncertainty.csv", show_col_types = FALSE)
 
 x0 <- xt %>%
   filter(year <= 2008) %>%
