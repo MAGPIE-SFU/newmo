@@ -275,30 +275,53 @@ print(parameters, row.names=FALSE)
 
 saveRDS(fits, "data/SouthAfrica/parameter_fitting_results.rds")
 
-# some plots for figuring out the landscape
+# ------------------------------------------------
+# 3. Plot the 12 most abundant serotypes
+# ------------------------------------------------
 
 X <- as.matrix(XT_MATRIX)
+big <- order(rowMeans(X), decreasing = TRUE)[1:min(12, nrow(X))]
 
-# 1. How much does the data change over time?
-round(colSums(X), 3)                                  # column sums (are they proportions summing to ~1?)
-round(sapply(2:6, function(j) sum((X[, j] - X[, 1])^2)), 4)   # change relative to year 1
+op <- par(mfrow = c(5, 3), mar = c(3, 3, 2, 1))
 
-# 2. Trivial baselines through your own loss
-loss_sse <- loss_functions[["SSE"]]
-static_y1   <- X; static_y1[]   <- X[, 1]             # every year = year 1
-static_mean <- X; static_mean[] <- rowMeans(X)        # every year = time-average
-c(corner      = loss_sse(sim_c, XT_MATRIX),
-  CC_MAGIC    = loss_sse(sim,   XT_MATRIX),
-  static_y1   = loss_sse(static_y1,   XT_MATRIX),
-  static_mean = loss_sse(static_mean, XT_MATRIX))
-
-# 3. Readable plot: serotypes over time, time on the x-axis
-big <- order(rowMeans(X), decreasing = TRUE)[1:12]    # 12 most abundant serotypes
-op <- par(mfrow = c(4, 3), mar = c(2, 2, 2, 1))
 for (i in big) {
-  plot(X[i, ], type = "b", lwd = 2, main = rownames(X)[i],
-       ylim = range(X[i, ], sim[i, ], sim_c[i, ]))
-  lines(sim[i, ],   col = "blue", type = "b")
-  lines(sim_c[i, ], col = "red",  type = "b")
+  yr <- seq_len(ncol(X))
+  offset <- 0.08
+
+  ylim <- range(X[i, ], sim[i, ], sim_c[i, ], finite = TRUE)
+
+  plot(yr, X[i, ], type = "n",
+       main = rownames(X)[i],
+       xlab = "Time index", ylab = "Abundance",
+       ylim = ylim,
+       xlim = c(0.7, ncol(X) + 0.3),
+       cex.main = 0.8)
+
+  # Observed data
+  lines(yr - offset, X[i, ], col = "black", lwd = 2)
+  points(yr - offset, X[i, ], col = "black", pch = 16)
+
+  # Simulated data
+  lines(yr, sim[i, ], col = "blue", lwd = 2, lty = 2)
+  points(yr, sim[i, ], col = "blue", pch = 17, cex = 1.1)
+
+  # Alternative simulation
+  lines(yr + offset, sim_c[i, ], col = "red", lwd = 2, lty = 3)
+  points(yr + offset, sim_c[i, ], col = "red", pch = 15, cex = 1.1)
 }
+
+# Empty panel for the shared legend
+# Empty panel for a cleaner shared legend
+plot.new()
+legend("center",
+       legend = c("Observed data", "sim", "sim_c"),
+       col = c("black", "blue", "red"),
+       lty = c(1, 2, 3),
+       pch = c(16, 17, 15),
+       lwd = 2,
+       horiz = FALSE,
+       bty = "n",
+       cex = 1.1,
+       x.intersp = 1.2,
+       seg.len = 2)
 par(op)
