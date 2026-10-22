@@ -1,10 +1,10 @@
 # functional versions of the plots currently in a script (compare_sim_data.R)
 
 # helper: sum frequencies within a grouping variable (e.g. vt or serotype)
-agg <- function(df, by, xt) {
+agg <- function(df, by, xt, vaccine) {
   ginfo <- xt |>
     distinct(group, serotype) |>
-    mutate(vt = if_else(serotype %in% modelpars$vaccine, "VT", "NVT"))
+    mutate(vt = if_else(serotype %in% vaccine, "VT", "NVT"))
 
     df |>
     left_join(ginfo, by = "group") |>
@@ -62,7 +62,7 @@ stack_sims <- function(sims, samodel, vax_start) {
 
 # plot VTs and NVTs total, model and data together (where data means our synth carriage sample)
 vt_nvt_plot <- function(vax_start=2010, prevax_years = 2000:2009,
-                        samodel, xt, sims) {
+                        samodel, xt, sims, vaccine) {
   sim_long <- stack_sims(sims, samodel, vax_start)
 #  sim_long <- make_sim_long(sims, samodel, vax_start)
   # group info: serotype, and VT/NVT using the SAME vaccine list as the model
@@ -78,7 +78,7 @@ vt_nvt_plot <- function(vax_start=2010, prevax_years = 2000:2009,
 
   # the plot
   p_vt <- ggplot() +
-    compare_layers(agg(data_long, "vt",xt), agg(sim_long, "vt",xt), agg(x0_df, "vt", xt), "vt", vax_start = vax_start,
+    compare_layers(agg(data_long, "vt", xt, vaccine), agg(sim_long, "vt", xt, vaccine), agg(x0_df, "vt", xt, vaccine), "vt", vax_start = vax_start,
                    prevax_years = prevax_years) +
     ggtitle("Vaccine-type vs non-vaccine-type frequency")
   return(p_vt)
@@ -88,13 +88,13 @@ vt_nvt_plot <- function(vax_start=2010, prevax_years = 2000:2009,
 # here's a plot of the top groups
 # n_groups is the number of top ST-SC groups to show
 top_group_plot <- function(vax_start=2010, prevax_years = 2000:2009,
-                           n_groups=12, samodel, xt, sims) {
+                           n_groups=12, samodel, xt, sims, vaccine) {
   # make sim long - this has data, fraction and year (for the groups)
  # sim_long <- make_sim_long(sims, samodel, vax_start)
   sim_long <- stack_sims(sims, samodel, vax_start)  # pull out the grouping info (ginfo)
   ginfo <- xt |>
     distinct(group, serotype) |>
-    mutate(vt = if_else(serotype %in% modelpars$vaccine, "VT", "NVT"))
+    mutate(vt = if_else(serotype %in% vaccine, "VT", "NVT"))
 
   # data long, same thing but with frac_sd as well, from the xt information
    data_long <- xt |> select(group, year, frac, frac_sd)
@@ -126,14 +126,14 @@ top_group_plot <- function(vax_start=2010, prevax_years = 2000:2009,
 
 
 top_sero_plot <- function(vax_start=2010, prevax_years = 2000:2009,
-                          n_serotypes=12, samodel, xt, sims ) {
+                          n_serotypes=12, samodel, xt, sims, vaccine) {
   # make sim long - this has data, fraction and year (for the groups)
 #   sim_long <- make_sim_long(sims, samodel, vax_start)
   sim_long <- stack_sims(sims, samodel, vax_start)
   # data long, same thing but with frac_sd as well, from the xt information
   data_long <- xt |> select(group, year, frac, frac_sd)
   x0_df <- tibble(group = rownames(samodel$G), frac = as.numeric(samodel$x0) / sum(samodel$x0))
-  d_st <- agg(data_long, c("serotype", "vt"), xt)
+  d_st <- agg(data_long, c("serotype", "vt"), xt, vaccine)
   top_st <- d_st |>
     group_by(serotype) |>
     summarise(m = mean(frac)) |>
@@ -142,8 +142,8 @@ top_sero_plot <- function(vax_start=2010, prevax_years = 2000:2009,
 
   p_sero <- ggplot() +
     compare_layers(d_st |> filter(serotype %in% top_st),
-                   agg(sim_long, c("serotype", "vt"), xt) |> filter(serotype %in% top_st),
-                   agg(x0_df, c("serotype", "vt"), xt) |> filter(serotype %in% top_st),
+                   agg(sim_long, c("serotype", "vt"), xt, vaccine) |> filter(serotype %in% top_st),
+                   agg(x0_df, c("serotype", "vt"), xt, vaccine) |> filter(serotype %in% top_st),
                    "vt", vax_start = vax_start,
                    prevax_years = prevax_years) +
     facet_wrap(~ serotype, scales = "free_y") +
