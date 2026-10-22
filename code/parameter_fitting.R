@@ -8,6 +8,7 @@ library(dplyr)
 library(tibble)
 library(tidyr)
 library(psych)
+library(dfoptim)
 
 source("code/simulate_ode.R")   # provides simulate()
 
@@ -17,7 +18,7 @@ source("code/simulate_ode.R")   # provides simulate()
 
 # Order is load-bearing: optim() passes par as an unnamed vector,
 # so this is what puts the names back.
-PAR_NAMES <- c("v", "sigma", "migr", "portion", "whigh", "delta")
+PAR_NAMES <- c("v", "sigma", "migr", "portion", "whigh", "wfrac")
 
 DEFAULT_PARS <- list(
     v       = 0.065,
@@ -25,8 +26,9 @@ DEFAULT_PARS <- list(
     migr    = 0.00001,
     portion = 0.3,
     whigh   = 0.1363,
+    wfrac = 0.0023 / 0.1363
     # wlow    = 0.0023
-    delta   = 0.134 # whigh - wlow
+    # delta   = 0.134 # whigh - wlow
 )
 
 FIXED_PARS <- list(
@@ -87,23 +89,20 @@ run_model <- function(model_pars = list(),
                       sa_model_path = SA_MODEL_PATH,
                       nyears = NYEARS) {
 
-    samodel <- get_samodel(sa_model_path)
+  samodel <- get_samodel(sa_model_path)
 
-    pars <- DEFAULT_PARS
-    pars[names(model_pars)] <- model_pars
+  pars <- DEFAULT_PARS
+  pars[names(model_pars)] <- model_pars
 
-    if ("delta" %in% names(pars) && !"wlow" %in% names(pars)) {
-      pars$wlow <- max(0, pars$whigh - pars$delta)
-    }
+  # wfrac = wlow / whigh, so wlow <= whigh always holds (no clamp, no dead zone).
+  if ("wfrac" %in% names(pars)) {
+    pars$wlow  <- pars$whigh * pars$wfrac
+    pars$wfrac <- NULL
+  }
 
-    if ("delta" %in% names(pars)) {
-      pars$wlow <- max(0, pars$whigh - pars$delta)
-      pars$delta <- NULL
-    }
+  pars <- c(pars, FIXED_PARS, list(K = sum(samodel$x0)))
 
-    pars <- c(pars, FIXED_PARS, list(K = sum(samodel$x0)))
-
-    simulate(samodel, pars, nyears)
+  simulate(samodel, pars, nyears)
 }
 
 # ------------------------------------------------------------
@@ -197,35 +196,109 @@ for (name in names(loss_functions)) {
 # ------------------------------------------------------------
 
 initial <- unlist(DEFAULT_PARS)[PAR_NAMES]
-lower   <- c(v = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0.002, delta = 0.001)
-upper   <- c(v = 1, sigma = 1, migr = 2, portion = 1, whigh = 1, delta = 0.998)
+stopifnot(!anyNA(initial), identical(names(initial), names(lower)))
+lower <- c(v = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0.002, wfrac = 0)
+upper <- c(v = 1,     sigma = 100, migr = 200, portion = 1, whigh = 1,     wfrac = 1)
+
+initial_raw <- unlist(DEFAULT_PARS)[PAR_NAMES]  # values achieved my CC magic
+
+initial <- pmin(pmax(initial, lower + 1e-6), upper - 1e-6)
+
+set.seed(1337)
+
+# "L-BFGS-B", "nlminb", "nmkb", "hjkb", "multistart"
+method <- "nlminb"
 
 fits <- lapply(loss_functions, function(loss_fn) {
-    optim(
-        par    = initial,
-        fn     = make_loss(XT_MATRIX, loss_fn),
-        method = "L-BFGS-B",
-        lower  = lower,
-        upper  = upper
-    )
+  fn <- make_loss(XT_MATRIX, loss_fn)
+
+  switch(method,
+    "L-BFGS-B" = optim(initial, fn, method = "L-BFGS-B", lower = lower, upper = upper),
+
+    "nlminb" = {
+      r <- nlminb(initial, fn, lower = lower, upper = upper)
+      list(par = r$par, value = r$objective, convergence = r$convergence, message = r$message)
+    },
+
+    "nmkb" = {
+      r <- dfoptim::nmkb(initial, fn, lower = lower, upper = upper,
+                         control = list(maxfeval = 5000))
+      list(par = r$par, value = r$value, convergence = r$convergence)
+    },
+
+    "hjkb" = {
+      r <- dfoptim::hjkb(initial, fn, lower = lower, upper = upper,
+                         control = list(maxfeval = 5000))
+      list(par = r$par, value = r$value, convergence = r$convergence)
+    },
+
+    # global-ish: nlminb from 20 random starts inside the bounds, keep the best
+    "multistart" = {
+      starts <- c(list(initial),
+                  lapply(1:19, function(i) {
+                    s <- lower + runif(length(lower)) * (upper - lower)
+                    pmin(pmax(s, lower + 1e-6), upper - 1e-6)
+                  }))
+      runs <- lapply(starts, function(s) nlminb(s, fn, lower = lower, upper = upper))
+      r <- runs[[which.min(sapply(runs, `[[`, "objective"))]]
+      list(par = r$par, value = r$objective, convergence = r$convergence)
+    }
+  )
 })
 
+# computing loss for CC magic values
+initial_values <- sapply(loss_functions, function(loss_fn) {
+  make_loss(XT_MATRIX, loss_fn)(initial_raw)
+})
 
 # Compare the fitted parameters
 results <- data.frame(
-    loss       = names(fits),
-    value      = sapply(fits, `[[`, "value"),
-    convergence = sapply(fits, `[[`, "convergence")
+  loss        = names(fits),
+  initial     = initial_values[names(fits)],
+  fitted      = sapply(fits, `[[`, "value"),
+  convergence = sapply(fits, `[[`, "convergence")
 )
+results$improvement <- results$initial - results$fitted
+results$pct_change  <- 100 * results$improvement / abs(results$initial)
 
-print(results)
+print(results, row.names = FALSE)
 
 parameters <- as.data.frame(
     do.call(rbind, lapply(fits, `[[`, "par"))
 )
 
 parameters$loss <- names(fits)
+parameters <- rbind(parameters,
+                    data.frame(as.list(initial_raw), loss = "CC_MAGIC"))
 
-print(parameters)
+print(parameters, row.names=FALSE)
 
 saveRDS(fits, "data/SouthAfrica/parameter_fitting_results.rds")
+
+# some plots for figuring out the landscape
+
+X <- as.matrix(XT_MATRIX)
+
+# 1. How much does the data change over time?
+round(colSums(X), 3)                                  # column sums (are they proportions summing to ~1?)
+round(sapply(2:6, function(j) sum((X[, j] - X[, 1])^2)), 4)   # change relative to year 1
+
+# 2. Trivial baselines through your own loss
+loss_sse <- loss_functions[["SSE"]]
+static_y1   <- X; static_y1[]   <- X[, 1]             # every year = year 1
+static_mean <- X; static_mean[] <- rowMeans(X)        # every year = time-average
+c(corner      = loss_sse(sim_c, XT_MATRIX),
+  CC_MAGIC    = loss_sse(sim,   XT_MATRIX),
+  static_y1   = loss_sse(static_y1,   XT_MATRIX),
+  static_mean = loss_sse(static_mean, XT_MATRIX))
+
+# 3. Readable plot: serotypes over time, time on the x-axis
+big <- order(rowMeans(X), decreasing = TRUE)[1:12]    # 12 most abundant serotypes
+op <- par(mfrow = c(4, 3), mar = c(2, 2, 2, 1))
+for (i in big) {
+  plot(X[i, ], type = "b", lwd = 2, main = rownames(X)[i],
+       ylim = range(X[i, ], sim[i, ], sim_c[i, ]))
+  lines(sim[i, ],   col = "blue", type = "b")
+  lines(sim_c[i, ], col = "red",  type = "b")
+}
+par(op)
