@@ -10,37 +10,32 @@ library(tidyr)
 library(psych)
 library(dfoptim)
 
-source("code/simulate_ode.R")   # provides simulate()
+common <- new.env()
+sys.source(here::here("code", "common.R"), envir = common)
 
-# ------------------------------------------------------------
-# 1. Parameter bookkeeping
-# ------------------------------------------------------------
+source(here::here("code", "simulate_ode.R"))
 
-# Order is load-bearing: optim() passes par as an unnamed vector,
-# so this is what puts the names back.
+# Parameter bookkeeping
 PAR_NAMES <- c("v", "sigma", "migr", "portion", "whigh", "wfrac")
 
-# These are CC_Magic values that will also be saved at the end.
 DEFAULT_PARS <- list(
     v       = 0.065,
     sigma   = 0.13,
     migr    = 0.00001,
     portion = 0.3,
     whigh   = 0.1363,
-    wfrac = 0.0023 / 0.1363
-    # wlow    = 0.0023
-    # delta   = 0.134 # whigh - wlow
+    wfrac   = 0.0023 / 0.1363
 )
 
 FIXED_PARS <- list(
-    vaccine = c("1","3","4","5","6A","6B","7F","9V","14","18C","19A","19F","23F")
+    vaccine = common$VACCINE_TYPES[["PCV13"]]
 )
 
-SA_MODEL_PATH <- "data/SouthAfrica/samodel.rds"
-NYEARS        <- 6
+NYEARS <- 6
 
-# Imputed input data to fit against
-xt <- read_csv("data/SouthAfrica/processed-inputs/xt_grouped.csv", show_col_types = FALSE)
+# Input data
+xt <- readr::read_csv(common$XT_PATH, show_col_types = FALSE)
+
 # Make a nice matrix from xt values:
 XT_MATRIX <- xt %>%
     select(group, year, frac) %>%
@@ -158,19 +153,6 @@ loss_functions <- list(
     weighted_SSE = function(sim, data) {
         sum((1 / XT_SD_MATRIX^2) * (sim - data)^2)
     },
-    # This does not work becuase division by 0...
-    # kl_distance = function (sim, data) {
-    #   return(sum((sim - data) * log(sim/data)))
-    # },
-    # This does not work because we have 0s as the data_gm and run into problems [division by 0]
-    # log_ratio_transform = function(sim, data) {
-    #     sim_gm  <- apply(sim, 2, psych::geometric.mean)
-    #     data_gm <- apply(data, 2, psych::geometric.mean)
-
-    #     sqrt(sum(
-    #         (log(sim / sim_gm) - log(data / data_gm))^2
-    #     ))
-    # }
     weighted_composition_distance = function(sim, data) {
     gamma <- 1
     weights <- 1 / XT_SD_MATRIX^2
@@ -315,10 +297,9 @@ if ("wfrac" %in% names(parameters)) {
     parameters$wfrac <- NULL
 }
 
-saveRDS(parameters, "data/SouthAfrica/fitted_parameters.rds")
-
 print(parameters, row.names=FALSE)
 
 # This should be looked at but currently not necessary to save it...
 # saveRDS(fits, "data/SouthAfrica/parameter_fitting_results.rds")
-saveRDS(parameters, "data/SouthAfrica/fitted_parameters.rds")
+
+saveRDS(parameters, common$FITTED_PARAMETERS_PATH)
