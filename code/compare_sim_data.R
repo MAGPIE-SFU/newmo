@@ -3,7 +3,25 @@ library(tidyr)
 library(tibble)
 library(ggplot2)
 
-# this script assumes that you have samodel which has its x0, you have the simulation (here called mysim), etc 
+# this script assumes that you have samodel which has its x0, you have the simulation (here called mysim), etc
+
+# LB Code to get the values read in to make the plots...
+# mysim <- sim
+# samodel <- get_samodel(sa_model_path)
+
+# modelpars <- as.list(unlist(DEFAULT_PARS)[PAR_NAMES])
+
+# pars <- DEFAULT_PARS
+# pars[names(modelpars)] <- modelpars
+
+#   # wfrac = wlow / whigh, so wlow <= whigh always holds (no clamp, no dead zone).
+# if ("wfrac" %in% names(pars)) {
+#     pars$wlow  <- pars$whigh * pars$wfrac
+#     pars$wfrac <- NULL
+#   }
+
+# pars <- c(pars, FIXED_PARS, list(K = sum(samodel$x0)))
+
 
 # ---- plot settings - only for vis, this doesn't affect the simulation  -------------------------------------------------------------
 vax_start    <- 2010          # sim year.1 = 2009, ..., year.6 = 2014
