@@ -23,9 +23,10 @@ xt$serotype <- ifelse(xt$group == "rare_NVT", "rare_NVT",
 
 all(rownames(Gnfds) == xt$group) # TRUE good 
 all(colnames(Gnfds) == rownames(locus_by_year$locus[locus_by_year$in_model])) # not sure why this matters
-# but i guess if you want to make an NFDS model with loci selected on another 
-# criterion (z, or logratio, or delta, or whatever) then you can see the relevant info for the 
-# relevant columns right in locus_by_year 
+# this matters in the parameter generator now: otherwise that file needs to load the model
+#  if you want use loci selected on another 
+# criterion (z, or logratio, or delta, or whatever) then you can see that in the 
+# parameter generator now 
 
 samodel <- list(G =Gnfds,
                 st = xt$serotype[xt$year == 2008], # serotype for each strain (ie each row of G)

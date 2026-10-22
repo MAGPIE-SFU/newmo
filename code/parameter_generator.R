@@ -1,7 +1,8 @@
 parameter_generator <- function(
     how_numerical = "CC_MAGIC",
     vaccine_type = "PCV13",
-    how_gene_order = "default"
+    how_gene_order = "default",
+    locus_file = "data/SouthAfrica/processed-inputs/locus_freqs_deltas.csv"
 ) {
     # Read optimizer output
     parameters <- readRDS("data/SouthAfrica/fitted_parameters.rds")
@@ -39,7 +40,21 @@ parameter_generator <- function(
             "or a non-empty character vector"
         )
     }
+    
+    locus_by_year <- read_csv(locus_file, show_col_types = FALSE)
+    locus_by_year <- filter(locus_by_year, in_model) # note we rely on the order of the loci
+    # being the same as in the model's G matrix, or we load the samodel here. 
+    # this is checked in the file that creates the SA nfds model (that the locus order is correct) 
 
+    order_by <- function(col, decreasing = FALSE) {
+        if (is.null(locus_by_year))
+            stop("need locus_by_year information")
+        if (!col %in% names(locus_by_year))
+            stop("locus_by_year has no column '", col, "'")
+        v <- locus_by_year[[col]]
+        order(v, decreasing = decreasing)
+    }
+    
     # Gene-order parameterization
     if (identical(how_gene_order, "default")) {
         modelpars$gene_order <- NULL
@@ -47,12 +62,12 @@ parameter_generator <- function(
         is.character(how_gene_order) &&
         length(how_gene_order) == 1
     ) {
-        switch(
+        modelpars$gene_order <-  switch(
             how_gene_order,
-            logit_diff = stop("logit_diff is not implemented yet"),
-            delta = stop("delta is not implemented yet"),
-            zett = stop("zett is not implemented yet"),
-            log_ratio = stop("log_ratio is not implemented yet"),
+            delta      = order_by("delta"),
+            z          = order_by("z"),
+            lograt  = order_by("lograt"),
+            logitdiff = order_by("logitdiff"),
             stop("Unknown gene-order method: ", how_gene_order)
         )
     } else if (

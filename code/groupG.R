@@ -140,7 +140,7 @@ locus_by_year <- locus_by_year %>%
     delta    = (post2011 - pre2009)^2 / (1 - pre2009 * (1 - pre2009)),
     
     # standardised pre-to-post change: how many standard errors the locus moved
-    z = (post2011 - pre2009) /
+    sdmoved = (post2011 - pre2009) /
       sqrt(pre2009 * (1 - pre2009) / n_pre + post2011 * (1 - post2011) / n_post),
     
     # year-to-year variation compared to whta is expected due to sampling noise with n-ish samples, all 15 years
@@ -154,7 +154,9 @@ locus_by_year <- locus_by_year %>%
     overdisp_pre = obs_pre / exp_pre,
     
     # logit comparison - new choice for how to rank the genes! 
-    logitdiff  = abs(logit(pre2009)-logit(post2011) )
+    logitdiff  = abs(logit(pre2009)-logit(post2011)) ,
+    # log ratio - another choice, similar to logitdiff but not quite 
+    lograt = abs(log(pre2009/post2011)) 
   )
 
 all(rownames(locus_by_year) == colnames(Gg)) # TRUE 
