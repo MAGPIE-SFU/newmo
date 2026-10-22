@@ -27,19 +27,7 @@ parameter_generator <- function(
     # ------------------------------------------------
     # Vaccine related input
     # ------------------------------------------------
-
-    # ------------------------------------------------------------------
-    # HARD-CODED SWITCH POINT -- edit these three lines when it moves.
-    # t runs in MONTHS (tfine <- seq(0, nyears * 12, ...)), so the switch
-    # must be expressed as months since the start of the simulation, not
-    # as a calendar year.
-    # ------------------------------------------------------------------
-    SIM_START_YEAR <- 2000
-    SWITCH_YEAR    <- 2011
-    SWITCH_MONTH   <- 5                       # May 2011: PCV7 -> PCV13
-    t_switch <- (SWITCH_YEAR - SIM_START_YEAR) * 12 + (SWITCH_MONTH - 1)
-
-    modelpars$t_switch <- t_switch
+    modelpars$t_switch <- common$T_SWITCH
 
     # Each argument may be either a name looked up in common$VACCINE_TYPES
     # or a raw character vector of strain labels.

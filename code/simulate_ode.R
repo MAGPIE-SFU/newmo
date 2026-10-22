@@ -26,8 +26,8 @@ simulate <- function(samodel, modelpars, nyears, stepspy = 24 ) {
     diffxt <- function(t, x, modelpars) {
         # create vt: 0 or parameter v, one value for each strain (row of G)
 
-        # time dependent vaccines, where we switch from vaccine1 to vaccine2 at point t_switch
-        vt <- if (t < modelpars$t_switch) {
+        # time dependent vaccines, where we switch from vaccine1 to vaccine2 at point tswitch
+        vt <- if (t < modelpars$tswitch) {
             modelpars$v1 * (samodel$st %in% modelpars$vaccine1)
         } else {
             modelpars$v2 * (samodel$st %in% modelpars$vaccine2)

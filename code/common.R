@@ -32,3 +32,12 @@ FITTING_METHODS <- c(
     "SSE",
     "weighted_SSE"
 )
+
+# Time point for the model with two vaccines
+# 2 years between vaccine, PCV7 in 2009 and PCV13 in 2011
+NYEARS         <- 6
+UNITS_PER_YEAR <- 12
+
+# Hard switch:
+SWITCH_YEARS_AFTER_START <- 2
+T_SWITCH <- SWITCH_YEARS_AFTER_START * UNITS_PER_YEAR
