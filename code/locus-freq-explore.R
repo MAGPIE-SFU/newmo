@@ -8,6 +8,13 @@
 # - the choice of k in the Dirichlet thing in reweighting 
 
 
+# read in some of the necessary stuff 
+xt <- read_csv("data/SouthAfrica/processed-inputs/xt_grouped.csv", show_col_types = FALSE) 
+G <- as.matrix(read.csv("data/SouthAfrica/processed-inputs/Gnfds.csv", row.names = 1))
+locus_by_year <- read_csv("data/SouthAfrica/processed-inputs/locus_freqs_deltas.csv")
+
+rownames(locus_by_year) = locus_by_year$locus
+
 ###########################################################################
 # locus frequencies across the years, all plotted against 2000 
 ###########################################################################
@@ -19,7 +26,7 @@
 plotdat <- as.data.frame(locus_by_year[, 1:15] ) %>%
   mutate(locus = rownames(locus_by_year)) %>%
   pivot_longer(
-    cols = -locus,
+    cols = 1:15,
     names_to = "year",
     values_to = "freq"
   ) %>%
@@ -31,8 +38,10 @@ plotdat <- as.data.frame(locus_by_year[, 1:15] ) %>%
     by = "locus"
   ) %>%
   filter(year != "t2000")
+glimpse(plotdat)
 
-ggplot(plotdat, aes(x = freq_2000, y = freq)) +
+
+ggplot(plotdat, aes(x = t2000, y = freq)) +
   geom_point(alpha = 0.5, size = 0.8,color="blue") +
   geom_abline(slope = 1, intercept = 0, linetype = 2) +
   facet_wrap(~ year) +
@@ -65,7 +74,11 @@ tmp <- locus_by_year %>%
   )
 ggplot(tmp, aes(x = sqrt(delta), y = sqrt(delPRE)  )) + geom_point(alpha = 0.1) 
 # interesting. No, we don't get 
-# the delta information from pre-vaccine frequency comparisons. but there is something
+# the delta information from pre-vaccine frequency comparisons.
+# but there is something
+# i wonder if we get any of the others like z or logitdiff 
+
+
 
 
 
@@ -80,19 +93,25 @@ ggplot(locus_by_year, aes(x=abs(z), y=delta, colour = pre2009))+
 # for less overall tendency to choose high vs low frequency genes 
 logit <- function(x) log(x/(1-x)) 
 locus_by_year <- locus_by_year %>% 
-  mutate( lograt = abs(log(pre2009/post2011)), 
-          logitr = abs(logit(pre2009)-logit(post2011) ) ) 
+  mutate( lograt = abs(log(pre2009/post2011)) ) 
 
-ggplot(locus_by_year, aes(x=abs(pre2009), y=lograt))+ 
+ggplot(filter(locus_by_year, in_model), aes(x=abs(pre2009), y=lograt, color = logitdiff))+ 
   geom_point(alpha=0.5) + scale_x_log10()+ scale_y_log10()
+# log ratio is good too 
 
-
-ggplot(filter(locus_by_year, in_model == TRUE) , aes(x=abs(pre2009), y=lograt))+ 
+ggplot(filter(locus_by_year, in_model == TRUE) , aes(x=abs(pre2009), y=logitdiff))+ 
   geom_point(alpha=0.5) + scale_x_log10()+ scale_y_log10()
 # this is still frequency dependent because of course the high-freq genes will have to be pretty stable
 # it requires a huge lineage turnover to shift them. (though they don't have the highest delta)
 # choosing the lowest lograt genes for the NFDS model will, even with the 0.95 cutoff,
 # lead us to quite a few high-frequency genes. 
+
+ggplot(filter(locus_by_year, in_model == TRUE), 
+       aes(x=logitdiff, y = lograt, color = pre2009)) + 
+    geom_point(alpha=0.5) + scale_x_log10()+ scale_y_log10()
+
+# wow, there is a population of genes for which the log ratio and logitdiff do not agree
+# and these are the higher-frequency genes 
 
 
 # note also: consider whether 0 or 1 are so different. should we want our measure to be 
