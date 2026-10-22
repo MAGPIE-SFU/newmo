@@ -6,9 +6,7 @@ parameter_generator <- function(
     how_numerical = "CC_MAGIC",
     vaccine_type1 = "PCV7",
     vaccine_type2 = "PCV13",
-    how_gene_order = "default",
-    v1 = Null,
-    v2 = Null
+    how_gene_order = "default"
 ) {
     # Read optimizer output
     parameters <- readRDS(common$FITTED_PARAMETERS_PATH)
@@ -47,12 +45,6 @@ parameter_generator <- function(
 
     modelpars$vaccine1 <- resolve_vaccine(vaccine_type1, "vaccine_type1")
     modelpars$vaccine2 <- resolve_vaccine(vaccine_type2, "vaccine_type2")
-
-    # ---- coverage before / after the switch ---------------------------
-    # Both eras inherit the fitted 'v' unless explicitly overridden.
-    v_fitted     <- modelpars$v
-    modelpars$v1 <- if (is.null(v1)) v_fitted else v1
-    modelpars$v2 <- if (is.null(v2)) v_fitted else v2
 
     # ------------------------------------------------
     # Gene-order parameterization

@@ -16,17 +16,17 @@ sys.source(here::here("code", "common.R"), envir = common)
 source(here::here("code", "simulate_ode.R"))
 
 # Parameter bookkeeping
-PAR_NAMES <- c("v1", "v2", "sigma", "migr", "portion", "whigh", "wfrac", "tswitch")
+PAR_NAMES <- c("v1", "sigma", "migr", "portion", "whigh", "wfrac")
 
 DEFAULT_PARS <- list(
     v1       = 0.065,
-    v2       = 0.065,
+    # v2       = 0.065,
     sigma   = 0.13,
     migr    = 0.00001,
     portion = 0.3,
     whigh   = 0.1363,
-    wfrac   = 0.0023 / 0.1363,
-    tswitch = common$T_SWITCH
+    wfrac   = 0.0023 / 0.1363
+    # tswitch = common$T_SWITCH
 )
 
 FIXED_PARS <- list(
@@ -134,6 +134,8 @@ run_model <- function(model_pars = list(),
     pars$wlow  <- pars$whigh * pars$wfrac
     pars$wfrac <- NULL
   }
+  pars$v2 <- pars$v1
+  pars$tswitch <- common$T_SWITCH
 
   pars <- c(pars, FIXED_PARS, list(K = sum(samodel$x0)))
 
@@ -188,7 +190,7 @@ compare <- function(sim, data, loss_fn) {
 # Loss factory
 # ------------------------------------------------------------
 
-make_loss <- function(data, loss_fn, sa_model_path = SA_MODEL_PATH,
+make_loss <- function(data, loss_fn, sa_model_path = common$SA_MODEL_PATH,
                       nyears = NYEARS) {
     force(data)
 
@@ -202,13 +204,13 @@ make_loss <- function(data, loss_fn, sa_model_path = SA_MODEL_PATH,
 # ------------------------------------------------------------
 #  DEBUG START
 # ------------------------------------------------------------
-sim <- run_model(as.list(unlist(DEFAULT_PARS)[PAR_NAMES]))
-data <- XT_MATRIX
+# sim <- run_model(as.list(unlist(DEFAULT_PARS)[PAR_NAMES]))
+# data <- XT_MATRIX
 
-for (name in names(loss_functions)) {
-    loss <- loss_functions[[name]](sim, XT_MATRIX)
-    cat(name, ":", loss, "\n")
-}
+# for (name in names(loss_functions)) {
+#     loss <- loss_functions[[name]](sim, XT_MATRIX)
+#     cat(name, ":", loss, "\n")
+# }
 # ------------------------------------------------------------
 #  DEBUG END
 # ------------------------------------------------------------
@@ -218,8 +220,8 @@ for (name in names(loss_functions)) {
 # ------------------------------------------------------------
 
 initial <- unlist(DEFAULT_PARS)[PAR_NAMES]
-lower <- c(v1 = 0.001, v2 = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0.002, wfrac = 0, tswitch=common$T_SWITCH)
-upper <- c(v1 = 1, v2 = 1, sigma = 100, migr = 200, portion = 1, whigh = 1,     wfrac = 1, tswitch=common$T_SWITCH)
+lower <- c(v1 = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0.002, wfrac = 0)
+upper <- c(v1 = 1, sigma = 100, migr = 200, portion = 1, whigh = 1,     wfrac = 1)
 stopifnot(!anyNA(initial), identical(names(initial), names(lower)))
 
 initial_raw <- unlist(DEFAULT_PARS)[PAR_NAMES]  # values achieved by CC magic
@@ -229,7 +231,7 @@ initial <- pmin(pmax(initial, lower + 1e-6), upper - 1e-6)
 set.seed(1337)
 
 # "L-BFGS-B", "nlminb", "nmkb", "hjkb", "multistart"
-method <- "nlminb"
+method <- "multistart"
 
 fits <- lapply(loss_functions, function(loss_fn) {
   fn <- make_loss(XT_MATRIX, loss_fn)
@@ -254,10 +256,10 @@ fits <- lapply(loss_functions, function(loss_fn) {
       list(par = r$par, value = r$value, convergence = r$convergence)
     },
 
-    # global-ish: nlminb from 20 random starts inside the bounds, keep the best
+    # global-ish: nlminb from several (was 20, now changed to 5...) random starts inside the bounds, keep the best
     "multistart" = {
       starts <- c(list(initial),
-                  lapply(1:19, function(i) {
+                  lapply(1:5, function(i) {
                     s <- lower + runif(length(lower)) * (upper - lower)
                     pmin(pmax(s, lower + 1e-6), upper - 1e-6)
                   }))
@@ -289,9 +291,10 @@ parameters <- as.data.frame(
     do.call(rbind, lapply(fits, `[[`, "par"))
 )
 
-parameters$loss <- names(fits)
-parameters <- rbind(parameters,
-                    data.frame(as.list(initial_raw), loss = "CC_MAGIC"))
+# not needed i think
+# parameters$loss <- names(fits)
+# parameters <- rbind(parameters,
+#                     data.frame(as.list(initial_raw), loss = "CC_MAGIC"))
 
 # Convert wfrac to wlow for the saved parameter sets
 if ("wfrac" %in% names(parameters)) {

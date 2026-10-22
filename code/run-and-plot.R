@@ -19,13 +19,14 @@ xt <- read_csv(
     show_col_types = FALSE
 )
 
-nyears <- 6
+nyears <- common$NYEARS
 
 simulations <- setNames(
     lapply(common$FITTING_METHODS, function(method) {
         modelpars <- parameter_generator(
             how_numerical = method,
-            vaccine_type = "PCV13",
+            vaccine_type1 = "PCV7",
+            vaccine_type2 = "PCV13",
             how_gene_order = "default"
         )
 
@@ -37,7 +38,7 @@ simulations <- setNames(
 
 # plot the top groups
 top_group_plot(vax_start=2010, prevax_years = 2000:2009,
-               n_groups=20, samodel, xt, simulations,drop_vt = FALSE,
+               n_groups=20, samodel, xt, simulations, drop_vt = FALSE,
               vaccine=common$VACCINE_TYPES[["PCV13"]])
 
 # plot the top serotypes
