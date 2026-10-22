@@ -113,6 +113,9 @@ ggplot(filter(locus_by_year, in_model == TRUE),
 # wow, there is a population of genes for which the log ratio and logitdiff do not agree
 # and these are the higher-frequency genes 
 
+ggplot(filter(locus_by_year, in_model == TRUE), 
+       aes(x=delta, y = z, color = pre2009)) + 
+    geom_point(alpha=0.5) + scale_x_log10()+ scale_y_log10()
 
 # note also: consider whether 0 or 1 are so different. should we want our measure to be 
 # symmetric under the transformation p -> 1-p, such that we think NFDS also applies to 
