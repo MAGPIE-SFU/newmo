@@ -103,6 +103,14 @@ min_nonzero <- min(XT_SD_MATRIX[XT_SD_MATRIX > 0])
 XT_SD_MATRIX[XT_SD_MATRIX == 0] <- min_nonzero / 2
 
 # ------------------------------------------------------------
+# Remove Rare type bits from the matrix
+# ------------------------------------------------------------
+XT_MATRIX <- XT_MATRIX[rownames(XT_MATRIX) != "rare_NVT", , drop = FALSE]
+XT_SD_MATRIX <- XT_SD_MATRIX[rownames(XT_SD_MATRIX) != "rare_NVT", , drop = FALSE]
+
+
+
+# ------------------------------------------------------------
 # 2. Model object cache
 # ------------------------------------------------------------
 
