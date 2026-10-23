@@ -355,7 +355,7 @@ summary_table <- summary_table[
 ]
 row.names(summary_table) <- NULL
 
-print(summary_table, row.names = FALSE)
+# print(summary_table, row.names = FALSE)
 
 # Combined parameter table
 parameter_table <- do.call(rbind, parameter_rows)
@@ -364,7 +364,7 @@ parameter_table <- parameter_table[
   , c("loss", "method", setdiff(names(parameter_table), c("loss", "method")))
 ]
 
-print(parameter_table, row.names = FALSE)
+# print(parameter_table, row.names = FALSE)
 
 # Save combined outputs and the full optimizer results
 saveRDS(summary_table, file.path(output_dir, "fit_summary.rds"))

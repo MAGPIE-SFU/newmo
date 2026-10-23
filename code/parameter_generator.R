@@ -5,20 +5,34 @@ sys.source(here::here("code", "common.R"), envir = common)
 
 
 parameter_generator <- function(
-    how_numerical = "CC_MAGIC",
+    how_numerical = "SSE",
+    optimizer = "hjkb",
     vaccine_type1 = "PCV7",
     vaccine_type2 = "PCV13",
     use_switch = FALSE,
     how_gene_order = "default"
 ) {
-    # Read optimizer output
-    parameters <- readRDS(common$FITTED_PARAMETERS_PATH)
 
-    # Select parameter set
-    idx <- match(how_numerical, parameters$loss)
+    if (how_numerical == "CC_MAGIC") {
+        # Read optimizer output
+        parameters <- readRDS(common$CC_MAGIC)
+    } else {
+        # Read optimizer output
+        parameters <- readRDS(common$FITTED_PARAMETERS_PATH)
 
-    if (is.na(idx)) {
-        stop("Unknown parameter set: ", how_numerical)
+        # Select parameter set by loss function and optimizer
+        idx <- which(
+            parameters$loss == how_numerical &
+            parameters$method == optimizer
+        )
+
+        if (length(idx) != 1) {
+            stop(
+                "Expected exactly one parameter set for loss = '",
+                how_numerical, "' and optimizer = '", optimizer,
+                "'; found ", length(idx), "."
+            )
+        }
     }
 
     modelpars <- as.list(
@@ -80,7 +94,7 @@ parameter_generator <- function(
             z          = order_by("z"), # used to be z; number of sds that the freq mvoed, under a simple model for the sd
             lograt = order_by("lograt"),
             logitdiff = order_by("logitdiff"),
-            varlogitpre = order_by("varlogitpre"), 
+            varlogitpre = order_by("varlogitpre"),
             stop("Unknown gene-order method: ", how_gene_order)
         )
     } else if (
@@ -93,4 +107,4 @@ parameter_generator <- function(
     }
 
     modelpars
-}
+    }

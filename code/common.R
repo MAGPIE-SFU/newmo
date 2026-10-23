@@ -19,7 +19,11 @@ VACCINE_TYPES <- list(
 )
 
 FITTED_PARAMETERS_PATH <- here::here(
-    "data", "SouthAfrica", "fitted_parameters.rds"
+    "data", "SouthAfrica", "all_fitted_parameters.rds"
+)
+
+CC_MAGIC <- here::here(
+  "data",  "SouthAfrica", "CC_MAGIC.rds"
 )
 
 LOCUS_FILE_PATH <- here::here(

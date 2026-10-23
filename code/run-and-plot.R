@@ -17,20 +17,28 @@ xt <- read_csv(
 
 nyears <- common$NYEARS
 
-simulations <- setNames(
+modelpars_list <- setNames(
     lapply(common$FITTING_METHODS, function(method) {
-        modelpars <- parameter_generator(
+        parameter_generator(
             how_numerical = method,
+            optimizer = "nmkb",
             vaccine_type1 = "PCV7",
             vaccine_type2 = "PCV13",
             how_gene_order = "default",
             use_switch = F
         )
-
-        simulate(samodel, modelpars, nyears)
     }),
     common$FITTING_METHODS
 )
+
+# Inspect parameters for each method
+str(modelpars_list)
+modelpars_list[["weighted_SSE"]]  # example: inspect one method
+
+# Run simulations using the stored parameters
+simulations <- lapply(modelpars_list, function(modelpars) {
+    simulate(samodel, modelpars, nyears)
+})
 
 
 # plot the top groups
