@@ -100,7 +100,7 @@ XT_SD_MATRIX <- xt %>%
 XT_SD_MATRIX <- XT_SD_MATRIX[, seq_len(NYEARS), drop=FALSE]
 # Doing crazy adding to avoid 0 in SD matrix
 min_nonzero <- min(XT_SD_MATRIX[XT_SD_MATRIX > 0])
-XT_SD_MATRIX <- XT_SD_MATRIX + min_nonzero / 2
+XT_SD_MATRIX[XT_SD_MATRIX == 0] <- min_nonzero / 2
 
 # ------------------------------------------------------------
 # 2. Model object cache
@@ -256,7 +256,7 @@ run_optimizer <- function(method, fn, initial, lower, upper) {
     "nmkb" = {
       r <- dfoptim::nmkb(
         par = initial, fn = fn, lower = lower, upper = upper,
-        control = list(maxfeval = 5000)
+        control = list(maxfeval = 20000)
       )
       list(par = r$par, value = r$value,
            convergence = r$convergence, message = NA_character_)
@@ -264,7 +264,7 @@ run_optimizer <- function(method, fn, initial, lower, upper) {
     "hjkb" = {
       r <- dfoptim::hjkb(
         par = initial, fn = fn, lower = lower, upper = upper,
-        control = list(maxfeval = 5000)
+        control = list(maxfeval = 20000)
       )
       list(par = r$par, value = r$value,
            convergence = r$convergence, message = NA_character_)
