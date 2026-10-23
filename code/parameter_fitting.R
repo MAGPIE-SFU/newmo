@@ -291,16 +291,19 @@ parameters <- as.data.frame(
     do.call(rbind, lapply(fits, `[[`, "par"))
 )
 
-# not needed i think
-# parameters$loss <- names(fits)
-# parameters <- rbind(parameters,
-#                     data.frame(as.list(initial_raw), loss = "CC_MAGIC"))
+parameters$loss <- names(fits)
+parameters <- rbind(parameters,
+                    data.frame(as.list(initial_raw), loss = "CC_MAGIC"))
 
 # Convert wfrac to wlow for the saved parameter sets
 if ("wfrac" %in% names(parameters)) {
     parameters$wlow <- parameters$whigh * parameters$wfrac
     parameters$wfrac <- NULL
 }
+
+parameters$tswitch <- common$T_SWITCH
+parameters$v2 <- parameters$v1
+
 
 print(parameters, row.names=FALSE)
 
