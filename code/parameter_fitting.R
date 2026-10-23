@@ -218,109 +218,201 @@ make_loss <- function(data, loss_fn, use_switch, sa_model_path = common$SA_MODEL
 # ------------------------------------------------------------
 # 6. Fit
 # ------------------------------------------------------------
-
-# Using both vaccines with fixed time points
-USE_SWITCH <- T
-
-initial <- unlist(DEFAULT_PARS)[PAR_NAMES]
-lower <- c(v1 = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0.002, wfrac = 0)
-upper <- c(v1 = 0.8, sigma = 100, migr = 1, portion = 1, whigh = 1,     wfrac = 1)
-stopifnot(!anyNA(initial), identical(names(initial), names(lower)))
-
-initial_raw <- unlist(DEFAULT_PARS)[PAR_NAMES]  # values achieved by CC magic
-
-initial <- pmin(pmax(initial, lower + 1e-6), upper - 1e-6)
-
+# Compare all optimization methods, excluding multistart
+USE_SWITCH <- F
 set.seed(1337)
 
-# "L-BFGS-B", "nlminb", "nmkb", "hjkb", "multistart"
-method <- "nmkb"
+methods <- c("L-BFGS-B", "nlminb", "nmkb", "hjkb", "BFGS", "CG", "Nelder-Mead")
 
-fits <- lapply(loss_functions, function(loss_fn) {
-  fn <- make_loss(XT_MATRIX, loss_fn, USE_SWITCH)
+initial_raw <- unlist(DEFAULT_PARS)[PAR_NAMES]
+lower <- c(v1 = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0.002, wfrac = 0)
+upper <- c(v1 = 0.1, sigma = 100, migr = 1, portion = 1, whigh = 1, wfrac = 1)
+initial <- pmin(pmax(initial_raw, lower + 1e-6), upper - 1e-6)
 
+stopifnot(
+  !anyNA(initial),
+  identical(names(initial), names(lower)),
+  identical(names(lower), names(upper))
+)
+
+# Output directory for comparison results
+output_dir <- file.path(
+  dirname(common$FITTED_PARAMETERS_PATH),
+  "fit_comparison"
+)
+dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
+# Run one optimizer and standardize its output
+run_optimizer <- function(method, fn, initial, lower, upper) {
   switch(method,
-    "L-BFGS-B" = optim(initial, fn, method = "L-BFGS-B", lower = lower, upper = upper),
-
+    "L-BFGS-B" = {
+      r <- optim(
+        par = initial, fn = fn, method = "L-BFGS-B",
+        lower = lower, upper = upper
+      )
+      list(par = r$par, value = r$value,
+           convergence = r$convergence, message = r$message)
+    },
     "nlminb" = {
-      r <- nlminb(initial, fn, lower = lower, upper = upper)
-      list(par = r$par, value = r$objective, convergence = r$convergence, message = r$message)
+      r <- nlminb(
+        start = initial, objective = fn,
+        lower = lower, upper = upper
+      )
+      list(par = r$par, value = r$objective,
+           convergence = r$convergence, message = r$message)
     },
-
     "nmkb" = {
-      r <- dfoptim::nmkb(initial, fn, lower = lower, upper = upper,
-                         control = list(maxfeval = 5000))
-      list(par = r$par, value = r$value, convergence = r$convergence)
+      r <- dfoptim::nmkb(
+        par = initial, fn = fn, lower = lower, upper = upper,
+        control = list(maxfeval = 5000)
+      )
+      list(par = r$par, value = r$value,
+           convergence = r$convergence, message = NA_character_)
     },
-
     "hjkb" = {
-      r <- dfoptim::hjkb(initial, fn, lower = lower, upper = upper,
-                         control = list(maxfeval = 5000))
-      list(par = r$par, value = r$value, convergence = r$convergence)
+      r <- dfoptim::hjkb(
+        par = initial, fn = fn, lower = lower, upper = upper,
+        control = list(maxfeval = 5000)
+      )
+      list(par = r$par, value = r$value,
+           convergence = r$convergence, message = NA_character_)
     },
-
-    # global-ish: nlminb from several (was 20, now changed to 5...) random starts inside the bounds, keep the best
-    "multistart" = {
-      starts <- c(list(initial),
-                  lapply(1:5, function(i) {
-                    s <- lower + runif(length(lower)) * (upper - lower)
-                    pmin(pmax(s, lower + 1e-6), upper - 1e-6)
-                  }))
-      runs <- lapply(starts, function(s) nlminb(s, fn, lower = lower, upper = upper))
-      r <- runs[[which.min(sapply(runs, `[[`, "objective"))]]
-      list(par = r$par, value = r$objective, convergence = r$convergence)
+    "BFGS" = {
+    r <- optim(
+        par = initial, fn = fn, method = "BFGS"
+    )
+    list(par = r$par, value = r$value,
+        convergence = r$convergence, message = r$message)
+    },
+    "CG" = {
+    r <- optim(
+        par = initial, fn = fn, method = "CG"
+    )
+    list(par = r$par, value = r$value,
+        convergence = r$convergence, message = r$message)
+    },
+    "Nelder-Mead" = {
+    r <- optim(
+        par = initial, fn = fn, method = "Nelder-Mead"
+    )
+    list(par = r$par, value = r$value,
+        convergence = r$convergence, message = r$message)
     }
   )
-})
-
-# computing loss for CC magic values
-initial_values <- sapply(loss_functions, function(loss_fn) {
-  make_loss(XT_MATRIX, loss_fn, USE_SWITCH)(initial_raw)
-})
-
-# Compare the fitted parameters
-results <- data.frame(
-  loss        = names(fits),
-  initial     = initial_values[names(fits)],
-  fitted      = sapply(fits, `[[`, "value"),
-  convergence = sapply(fits, `[[`, "convergence")
-)
-results$improvement <- results$initial - results$fitted
-results$pct_change  <- 100 * results$improvement / abs(results$initial)
-
-print(results, row.names = FALSE)
-
-parameters <- as.data.frame(
-  do.call(rbind, lapply(fits, function(fit) {
-    setNames(fit$par, PAR_NAMES)
-  }))
-)
-
-names(parameters) <- PAR_NAMES
-parameters$loss <- names(fits)
-
-parameters <- rbind(
-  parameters,
-  data.frame(as.list(initial_raw), loss = "CC_MAGIC")
-)
-
-if ("wfrac" %in% names(parameters)) {
-  parameters$wlow <- parameters$whigh * parameters$wfrac
-  parameters$wfrac <- NULL
 }
 
-parameters$tswitch <- if (USE_SWITCH) common$T_SWITCH else 0
-parameters$v2 <- parameters$v1
+# Transform fitted parameters into the format used by the model
+format_parameters <- function(par) {
+  p <- as.data.frame(as.list(setNames(par, PAR_NAMES)))
 
-print(parameters, row.names=FALSE)
+  if ("wfrac" %in% names(p)) {
+    p$wlow <- p$whigh * p$wfrac
+    p$wfrac <- NULL
+  }
 
-# This should be looked at but currently not necessary to save it...
-# saveRDS(fits, "data/SouthAfrica/parameter_fitting_results.rds")
-
-output_path <- if (USE_SWITCH) {
-  sub("\\.rds$", "_vaccine_switch.rds", common$FITTED_PARAMETERS_PATH)
-} else {
-  common$FITTED_PARAMETERS_PATH
+  p$tswitch <- if (USE_SWITCH) common$T_SWITCH else 0
+  p$v2 <- p$v1
+  p
 }
 
-saveRDS(parameters, output_path)
+fits <- list()
+summary_rows <- list()
+parameter_rows <- list()
+
+for (loss_name in names(loss_functions)) {
+  fn <- make_loss(XT_MATRIX, loss_functions[[loss_name]], USE_SWITCH)
+  initial_loss <- fn(initial_raw)
+
+  for (method_name in methods) {
+    fit_id <- paste(loss_name, method_name, sep = "__")
+    message("Fitting: ", fit_id)
+
+    elapsed <- system.time({
+      result <- tryCatch(
+        run_optimizer(method_name, fn, initial, lower, upper),
+        error = function(e) list(
+            par = rep(NA_real_, length(PAR_NAMES)),
+            value = NA_real_,
+            convergence = NA_integer_,
+            message = conditionMessage(e)
+        )
+        )
+    })[["elapsed"]]
+
+    fits[[fit_id]] <- result
+    fits[[fit_id]]$method <- method_name
+    fits[[fit_id]]$loss <- loss_name
+    fits[[fit_id]]$initial <- initial_loss
+    fits[[fit_id]]$runtime_seconds <- elapsed
+
+    summary_rows[[fit_id]] <- data.frame(
+      loss = loss_name,
+      method = method_name,
+      initial = initial_loss,
+      fitted = result$value,
+      improvement = initial_loss - result$value,
+      pct_change = 100 * (initial_loss - result$value) /
+        abs(initial_loss),
+      convergence = result$convergence,
+      runtime_seconds = elapsed,
+      message = if (is.null(result$message)) NA_character_ else
+        result$message,
+      row.names = NULL
+    )
+
+    # Save this fit's parameters separately
+    if (all(is.finite(result$par))) {
+      pars <- format_parameters(result$par)
+      pars$loss <- loss_name
+      pars$method <- method_name
+      parameter_rows[[fit_id]] <- pars
+
+      saveRDS(
+        pars,
+        file.path(
+          output_dir,
+          paste0(make.names(loss_name), "__", method_name, ".rds")
+        )
+      )
+    }
+  }
+}
+
+# Combined summary, sorted by loss then best fitted objective
+summary_table <- do.call(rbind, summary_rows)
+summary_table <- summary_table[
+  order(summary_table$loss, summary_table$fitted),
+]
+row.names(summary_table) <- NULL
+
+print(summary_table, row.names = FALSE)
+
+# Combined parameter table
+parameter_table <- do.call(rbind, parameter_rows)
+row.names(parameter_table) <- NULL
+parameter_table <- parameter_table[
+  , c("loss", "method", setdiff(names(parameter_table), c("loss", "method")))
+]
+
+print(parameter_table, row.names = FALSE)
+
+# Save combined outputs and the full optimizer results
+saveRDS(summary_table, file.path(output_dir, "fit_summary.rds"))
+write.csv(
+  summary_table,
+  file.path(output_dir, "fit_summary.csv"),
+  row.names = FALSE
+)
+saveRDS(parameter_table, file.path(output_dir, "all_fitted_parameters.rds"))
+write.csv(
+  parameter_table,
+  file.path(output_dir, "all_fitted_parameters.csv"),
+  row.names = FALSE
+)
+saveRDS(fits, file.path(output_dir, "all_fit_objects.rds"))
+
+# Also save the original CC_MAGIC parameters for comparison
+cc_magic <- format_parameters(initial_raw)
+cc_magic$loss <- "CC_MAGIC"
+cc_magic$method <- "initial"
+saveRDS(cc_magic, file.path(output_dir, "CC_MAGIC.rds"))
