@@ -24,7 +24,7 @@ simulations <- setNames(
             vaccine_type1 = "PCV7",
             vaccine_type2 = "PCV13",
             how_gene_order = "default",
-            use_switch = T
+            use_switch = F
         )
 
         simulate(samodel, modelpars, nyears)

@@ -220,11 +220,11 @@ make_loss <- function(data, loss_fn, use_switch, sa_model_path = common$SA_MODEL
 # ------------------------------------------------------------
 
 # Using both vaccines with fixed time points
-USE_SWITCH <- F
+USE_SWITCH <- T
 
 initial <- unlist(DEFAULT_PARS)[PAR_NAMES]
 lower <- c(v1 = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0.002, wfrac = 0)
-upper <- c(v1 = 1, sigma = 100, migr = 1, portion = 1, whigh = 1,     wfrac = 1)
+upper <- c(v1 = 0.8, sigma = 100, migr = 1, portion = 1, whigh = 1,     wfrac = 1)
 stopifnot(!anyNA(initial), identical(names(initial), names(lower)))
 
 initial_raw <- unlist(DEFAULT_PARS)[PAR_NAMES]  # values achieved by CC magic
@@ -234,7 +234,7 @@ initial <- pmin(pmax(initial, lower + 1e-6), upper - 1e-6)
 set.seed(1337)
 
 # "L-BFGS-B", "nlminb", "nmkb", "hjkb", "multistart"
-method <- "multistart"
+method <- "nmkb"
 
 fits <- lapply(loss_functions, function(loss_fn) {
   fn <- make_loss(XT_MATRIX, loss_fn, USE_SWITCH)
