@@ -222,7 +222,7 @@ make_loss <- function(data, loss_fn, use_switch, sa_model_path = common$SA_MODEL
 USE_SWITCH <- F
 set.seed(1337)
 
-methods <- c("L-BFGS-B", "nlminb", "nmkb", "hjkb", "BFGS", "CG", "Nelder-Mead")
+methods <- c("L-BFGS-B", "nlminb", "nmkb", "hjkb")
 
 initial_raw <- unlist(DEFAULT_PARS)[PAR_NAMES]
 lower <- c(v1 = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0.002, wfrac = 0)
@@ -276,29 +276,7 @@ run_optimizer <- function(method, fn, initial, lower, upper) {
       )
       list(par = r$par, value = r$value,
            convergence = r$convergence, message = NA_character_)
-    },
-    "BFGS" = {
-    r <- optim(
-        par = initial, fn = fn, method = "BFGS"
-    )
-    list(par = r$par, value = r$value,
-        convergence = r$convergence, message = r$message)
-    },
-    "CG" = {
-    r <- optim(
-        par = initial, fn = fn, method = "CG"
-    )
-    list(par = r$par, value = r$value,
-        convergence = r$convergence, message = r$message)
-    },
-    "Nelder-Mead" = {
-    r <- optim(
-        par = initial, fn = fn, method = "Nelder-Mead"
-    )
-    list(par = r$par, value = r$value,
-        convergence = r$convergence, message = r$message)
-    }
-  )
+    })
 }
 
 # Transform fitted parameters into the format used by the model
