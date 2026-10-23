@@ -1,3 +1,5 @@
+library(dplyr)
+
 common <- new.env()
 sys.source(here::here("code", "common.R"), envir = common)
 
@@ -51,7 +53,8 @@ parameter_generator <- function(
     # Gene-order parameterization
     # ------------------------------------------------
     locus_by_year <- read_csv(common$LOCUS_FILE_PATH, show_col_types = FALSE)
-    locus_by_year <- filter(locus_by_year, in_model) # note we rely on the order of the loci
+    locus_by_year <- filter(locus_by_year, in_model)
+    # note we rely on the order of the loci
     # being the same as in the model's G matrix, or we load the samodel here.
     # this is checked in the file that creates the SA nfds model (that the locus order is correct)
 

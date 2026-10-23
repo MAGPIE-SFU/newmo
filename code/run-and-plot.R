@@ -1,13 +1,9 @@
-library(deSolve)
-library(readr)
-library(tibble)
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-
 source("code/plot_functions.R")
 source("code/simulate_ode.R")
 source("code/parameter_generator.R")
+
+library(tidyr)
+library(tibble)
 
 common <- new.env()
 sys.source(here::here("code", "common.R"), envir = common)
@@ -28,7 +24,7 @@ simulations <- setNames(
             vaccine_type1 = "PCV7",
             vaccine_type2 = "PCV13",
             how_gene_order = "default",
-            use_switch = FALSE
+            use_switch = T
         )
 
         simulate(samodel, modelpars, nyears)
