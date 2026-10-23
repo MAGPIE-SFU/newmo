@@ -21,7 +21,7 @@ modelpars_list <- setNames(
     lapply(common$FITTING_METHODS, function(method) {
         parameter_generator(
             how_numerical = method,
-            optimizer = "nmkb",
+            optimizer = "hjkb",
             vaccine_type1 = "PCV7",
             vaccine_type2 = "PCV13",
             how_gene_order = "default",

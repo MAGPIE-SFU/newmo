@@ -222,11 +222,11 @@ make_loss <- function(data, loss_fn, use_switch, sa_model_path = common$SA_MODEL
 USE_SWITCH <- T
 set.seed(1337)
 
-methods <- c("nlminb", "nmkb", "hjkb")
+methods <- c("nmkb", "hjkb")
 
 initial_raw <- unlist(DEFAULT_PARS)[PAR_NAMES]
 lower <- c(v1 = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0.002, wfrac = 0)
-upper <- c(v1 = 0.1, sigma = 100, migr = 1, portion = 1, whigh = 1, wfrac = 1)
+upper <- c(v1 = 0.99, sigma = 1000, migr = 1, portion = 1, whigh = 1, wfrac = 1)
 initial <- pmin(pmax(initial_raw, lower + 1e-6), upper - 1e-6)
 
 stopifnot(
@@ -245,15 +245,6 @@ dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 # Run one optimizer and standardize its output
 run_optimizer <- function(method, fn, initial, lower, upper) {
   switch(method,
-    "nlminb" = {
-      r <- nlminb(
-        start = initial, objective = fn,
-        lower = lower, upper = upper,
-        control = list(iter.max = 1000, eval.max=2000)
-      )
-      list(par = r$par, value = r$objective,
-           convergence = r$convergence, message = r$message)
-    },
     "nmkb" = {
       r <- dfoptim::nmkb(
         par = initial, fn = fn, lower = lower, upper = upper,
