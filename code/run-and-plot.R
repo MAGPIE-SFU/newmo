@@ -34,9 +34,15 @@ simulations <- setNames(
 
 
 # plot the top groups
-top_group_plot(vax_start=2010, prevax_years = 2000:2009,
-               n_groups=20, samodel, xt, simulations, drop_vt = FALSE,
-              vaccine=common$VACCINE_TYPES[["PCV13"]])
+top_group_plot(
+  vax_start=2010, prevax_years = 2000:2009,
+  n_groups=40,
+  samodel,
+  xt,
+  simulations,
+  drop_vt = FALSE,
+  vaccine=common$VACCINE_TYPES[["PCV13"]]
+)
 
 # plot the top serotypes
 top_sero_plot(vax_start=2010, prevax_years = 2000:2009,

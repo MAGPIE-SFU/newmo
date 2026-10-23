@@ -4,7 +4,7 @@ library(here)
 SA_MODEL_PATH <- here::here("data", "SouthAfrica", "samodel.rds")
 
 XT_PATH <- here::here(
-    "data", "SouthAfrica", "processed-inputs", "xt_grouped.csv"
+    "data", "SouthAfrica", "processed-inputs", "xt_grouped_uncertainty.csv"
 )
 
 # Vaccine definitions
