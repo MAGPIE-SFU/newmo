@@ -222,7 +222,7 @@ make_loss <- function(data, loss_fn, use_switch, sa_model_path = common$SA_MODEL
 USE_SWITCH <- F
 set.seed(1337)
 
-methods <- c("L-BFGS-B", "nlminb", "nmkb", "hjkb")
+methods <- c("nlminb", "nmkb", "hjkb")
 
 initial_raw <- unlist(DEFAULT_PARS)[PAR_NAMES]
 lower <- c(v1 = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0.002, wfrac = 0)
@@ -245,14 +245,6 @@ dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 # Run one optimizer and standardize its output
 run_optimizer <- function(method, fn, initial, lower, upper) {
   switch(method,
-    "L-BFGS-B" = {
-      r <- optim(
-        par = initial, fn = fn, method = "L-BFGS-B",
-        lower = lower, upper = upper
-      )
-      list(par = r$par, value = r$value,
-           convergence = r$convergence, message = r$message)
-    },
     "nlminb" = {
       r <- nlminb(
         start = initial, objective = fn,

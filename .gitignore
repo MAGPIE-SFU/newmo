@@ -1,5 +1,5 @@
 **/.DS_Store
 .idea/
 **/__pycache__
-data/SouthAfrica/fit_comparison/
-!data/SouthAfrica/fit_comparison/*html
+data/SouthAfrica/fit_comparison/*
+!data/SouthAfrica/fit_comparison/combined_fit_comparison.html

@@ -18,114 +18,114 @@ parameters <- read_csv(parameters_file, show_col_types = FALSE)
 # 1. Fit summary: improvement over CC_MAGIC baseline
 # ------------------------------------------------------------
 
-fit_summary <- fit_summary |>
-  arrange(loss, fitted) |>
-  mutate(
-    improvement = initial - fitted,
-    pct_change = 100 * improvement / abs(initial)
-  )
+# fit_summary <- fit_summary |>
+#   arrange(loss, fitted) |>
+#   mutate(
+#     improvement = initial - fitted,
+#     pct_change = 100 * improvement / abs(initial)
+#   )
 
-summary_table <- fit_summary |>
-  select(
-    loss, method, initial, fitted, improvement,
-    pct_change, convergence, runtime_seconds
-  ) |>
-  gt(groupname_col = "loss") |>
-  tab_header(
-    title = "Optimization results",
-    subtitle = "Improvement relative to the initial CC_MAGIC loss"
-  ) |>
-  fmt_number(
-    columns = c(initial, fitted, improvement),
-    decimals = 4
-  ) |>
-  fmt_number(columns = pct_change, decimals = 2) |>
-  fmt_number(columns = runtime_seconds, decimals = 2) |>
-  cols_label(
-    method = "Method",
-    initial = "Initial loss",
-    fitted = "Fitted loss",
-    improvement = "Absolute improvement",
-    pct_change = "Improvement (%)",
-    convergence = "Convergence code",
-    runtime_seconds = "Runtime (s)"
-  ) |>
-  data_color(
-    columns = improvement,
-    palette = c("white", "lightgreen")
-  ) |>
-  tab_options(table.font.size = px(12))
+# summary_table <- fit_summary |>
+#   select(
+#     loss, method, initial, fitted, improvement,
+#     pct_change, convergence, runtime_seconds
+#   ) |>
+#   gt(groupname_col = "loss") |>
+#   tab_header(
+#     title = "Optimization results",
+#     subtitle = "Improvement relative to the initial CC_MAGIC loss"
+#   ) |>
+#   fmt_number(
+#     columns = c(initial, fitted, improvement),
+#     decimals = 4
+#   ) |>
+#   fmt_number(columns = pct_change, decimals = 2) |>
+#   fmt_number(columns = runtime_seconds, decimals = 2) |>
+#   cols_label(
+#     method = "Method",
+#     initial = "Initial loss",
+#     fitted = "Fitted loss",
+#     improvement = "Absolute improvement",
+#     pct_change = "Improvement (%)",
+#     convergence = "Convergence code",
+#     runtime_seconds = "Runtime (s)"
+#   ) |>
+#   data_color(
+#     columns = improvement,
+#     palette = c("white", "lightgreen")
+#   ) |>
+#   tab_options(table.font.size = px(12))
 
-gtsave(summary_table, file.path(output_dir, "fit_summary.html"))
-print(summary_table)
+# gtsave(summary_table, file.path(output_dir, "fit_summary.html"))
+# print(summary_table)
 
 
 # ------------------------------------------------------------
 # 2. Parameter comparison: one row per fit, parameters as columns
 # ------------------------------------------------------------
 
-parameter_cols <- setdiff(names(parameters), c("loss", "method"))
+# parameter_cols <- setdiff(names(parameters), c("loss", "method"))
 
-baseline <- readRDS(file.path(output_dir, "CC_MAGIC.rds")) |>
-  select(all_of(parameter_cols)) |>
-  slice(1)
+# baseline <- readRDS(file.path(output_dir, "CC_MAGIC.rds")) |>
+#   select(all_of(parameter_cols)) |>
+#   slice(1)
 
-if (nrow(baseline) != 1) {
-  stop("Expected exactly one CC_MAGIC baseline row.")
-}
+# if (nrow(baseline) != 1) {
+#   stop("Expected exactly one CC_MAGIC baseline row.")
+# }
 
-# Add the baseline as a clearly labelled row for each loss function
-baseline_rows <- expand_grid(
-  loss = unique(parameters$loss[parameters$loss != "CC_MAGIC"])
-) |>
-  mutate(method = "CC_MAGIC")
+# # Add the baseline as a clearly labelled row for each loss function
+# baseline_rows <- expand_grid(
+#   loss = unique(parameters$loss[parameters$loss != "CC_MAGIC"])
+# ) |>
+#   mutate(method = "CC_MAGIC")
 
-for (p in parameter_cols) {
-  baseline_rows[[p]] <- baseline[[p]][1]
-}
+# for (p in parameter_cols) {
+#   baseline_rows[[p]] <- baseline[[p]][1]
+# }
 
-parameter_table_data <- bind_rows(
-  parameters |> filter(loss != "CC_MAGIC"),
-  baseline_rows
-) |>
-  arrange(loss, method)
+# parameter_table_data <- bind_rows(
+#   parameters |> filter(loss != "CC_MAGIC"),
+#   baseline_rows
+# ) |>
+#   arrange(loss, method)
 
-# Save the table data
-write_csv(
-  parameter_table_data,
-  file.path(output_dir, "fitted_parameters_wide.csv")
-)
+# # Save the table data
+# write_csv(
+#   parameter_table_data,
+#   file.path(output_dir, "fitted_parameters_wide.csv")
+# )
 
 # Display as a formatted table, grouped by loss function
-parameter_table <- parameter_table_data |>
-  gt(groupname_col = "loss") |>
-  tab_header(
-    title = "Fitted parameter values",
-    subtitle = "Each optimizer compared with the CC_MAGIC baseline"
-  ) |>
-  fmt_number(
-    columns = all_of(parameter_cols),
-    decimals = 5
-  ) |>
-  cols_label(
-    method = "Method",
-    v1 = "v1",
-    v2 = "v2",
-    sigma = "Sigma",
-    migr = "Migration",
-    portion = "Portion",
-    whigh = "w_high",
-    wlow = "w_low",
-    tswitch = "Switch time"
-  ) |>
-  tab_options(table.font.size = px(12))
+# parameter_table <- parameter_table_data |>
+#   gt(groupname_col = "loss") |>
+#   tab_header(
+#     title = "Fitted parameter values",
+#     subtitle = "Each optimizer compared with the CC_MAGIC baseline"
+#   ) |>
+#   fmt_number(
+#     columns = all_of(parameter_cols),
+#     decimals = 5
+#   ) |>
+#   cols_label(
+#     method = "Method",
+#     v1 = "v1",
+#     v2 = "v2",
+#     sigma = "Sigma",
+#     migr = "Migration",
+#     portion = "Portion",
+#     whigh = "w_high",
+#     wlow = "w_low",
+#     tswitch = "Switch time"
+#   ) |>
+#   tab_options(table.font.size = px(12))
 
-gtsave(
-  parameter_table,
-  file.path(output_dir, "parameter_comparison.html")
-)
+# gtsave(
+#   parameter_table,
+#   file.path(output_dir, "parameter_comparison.html")
+# )
 
-print(parameter_table)
+# print(parameter_table)
 
 
 # ------------------------------------------------------------
