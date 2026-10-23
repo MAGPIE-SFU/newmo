@@ -16,6 +16,7 @@ parameter_generator <- function(
     if (how_numerical == "CC_MAGIC") {
         # Read optimizer output
         parameters <- readRDS(common$CC_MAGIC)
+        idx <- match(how_numerical, parameters$loss)
     } else {
         # Read optimizer output
         parameters <- readRDS(common$FITTED_PARAMETERS_PATH)

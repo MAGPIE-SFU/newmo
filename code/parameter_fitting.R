@@ -248,7 +248,8 @@ run_optimizer <- function(method, fn, initial, lower, upper) {
     "nlminb" = {
       r <- nlminb(
         start = initial, objective = fn,
-        lower = lower, upper = upper
+        lower = lower, upper = upper,
+        control = list(iter.max = 1000, eval.max=2000)
       )
       list(par = r$par, value = r$objective,
            convergence = r$convergence, message = r$message)
