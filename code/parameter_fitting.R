@@ -220,7 +220,7 @@ make_loss <- function(data, loss_fn, use_switch, sa_model_path = common$SA_MODEL
 # ------------------------------------------------------------
 
 # Using both vaccines with fixed time points
-USE_SWITCH <- F
+USE_SWITCH <- T
 
 initial <- unlist(DEFAULT_PARS)[PAR_NAMES]
 lower <- c(v1 = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0.002, wfrac = 0)
