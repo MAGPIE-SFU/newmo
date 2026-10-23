@@ -6,6 +6,7 @@ parameter_generator <- function(
     how_numerical = "CC_MAGIC",
     vaccine_type1 = "PCV7",
     vaccine_type2 = "PCV13",
+    use_switch = FALSE,
     how_gene_order = "default"
 ) {
     # Read optimizer output
@@ -25,7 +26,7 @@ parameter_generator <- function(
     # ------------------------------------------------
     # Vaccine related input
     # ------------------------------------------------
-    modelpars$t_switch <- common$T_SWITCH
+    modelpars$tswitch <- if (use_switch) common$T_SWITCH else 0
 
     # Each argument may be either a name looked up in common$VACCINE_TYPES
     # or a raw character vector of strain labels.

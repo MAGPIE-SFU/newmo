@@ -122,7 +122,7 @@ get_samodel <- local({
 
 run_model <- function(model_pars = list(),
                       sa_model_path = common$SA_MODEL_PATH,
-                      nyears = NYEARS) {
+                      nyears = NYEARS, use_switch) {
 
   samodel <- get_samodel(sa_model_path)
 
@@ -135,7 +135,7 @@ run_model <- function(model_pars = list(),
     pars$wfrac <- NULL
   }
   pars$v2 <- pars$v1
-  pars$tswitch <- common$T_SWITCH
+  pars$tswitch <- if (use_switch) common$T_SWITCH else 0
 
   pars <- c(pars, FIXED_PARS, list(K = sum(samodel$x0)))
 
@@ -190,13 +190,13 @@ compare <- function(sim, data, loss_fn) {
 # Loss factory
 # ------------------------------------------------------------
 
-make_loss <- function(data, loss_fn, sa_model_path = common$SA_MODEL_PATH,
+make_loss <- function(data, loss_fn, use_switch, sa_model_path = common$SA_MODEL_PATH,
                       nyears = NYEARS) {
     force(data)
 
     function(par) {
         names(par) <- PAR_NAMES
-        sim <- run_model(as.list(par), sa_model_path, nyears)
+        sim <- run_model(as.list(par), sa_model_path, nyears, use_switch)
         compare(sim, data, loss_fn)
     }
 }
@@ -219,9 +219,12 @@ make_loss <- function(data, loss_fn, sa_model_path = common$SA_MODEL_PATH,
 # 6. Fit
 # ------------------------------------------------------------
 
+# Using both vaccines with fixed time points
+USE_SWITCH <- F
+
 initial <- unlist(DEFAULT_PARS)[PAR_NAMES]
 lower <- c(v1 = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0.002, wfrac = 0)
-upper <- c(v1 = 1, sigma = 100, migr = 200, portion = 1, whigh = 1,     wfrac = 1)
+upper <- c(v1 = 1, sigma = 100, migr = 1, portion = 1, whigh = 1,     wfrac = 1)
 stopifnot(!anyNA(initial), identical(names(initial), names(lower)))
 
 initial_raw <- unlist(DEFAULT_PARS)[PAR_NAMES]  # values achieved by CC magic
@@ -234,7 +237,7 @@ set.seed(1337)
 method <- "multistart"
 
 fits <- lapply(loss_functions, function(loss_fn) {
-  fn <- make_loss(XT_MATRIX, loss_fn)
+  fn <- make_loss(XT_MATRIX, loss_fn, USE_SWITCH)
 
   switch(method,
     "L-BFGS-B" = optim(initial, fn, method = "L-BFGS-B", lower = lower, upper = upper),
@@ -272,7 +275,7 @@ fits <- lapply(loss_functions, function(loss_fn) {
 
 # computing loss for CC magic values
 initial_values <- sapply(loss_functions, function(loss_fn) {
-  make_loss(XT_MATRIX, loss_fn)(initial_raw)
+  make_loss(XT_MATRIX, loss_fn, USE_SWITCH)(initial_raw)
 })
 
 # Compare the fitted parameters
@@ -288,26 +291,36 @@ results$pct_change  <- 100 * results$improvement / abs(results$initial)
 print(results, row.names = FALSE)
 
 parameters <- as.data.frame(
-    do.call(rbind, lapply(fits, `[[`, "par"))
+  do.call(rbind, lapply(fits, function(fit) {
+    setNames(fit$par, PAR_NAMES)
+  }))
 )
 
+names(parameters) <- PAR_NAMES
 parameters$loss <- names(fits)
-parameters <- rbind(parameters,
-                    data.frame(as.list(initial_raw), loss = "CC_MAGIC"))
 
-# Convert wfrac to wlow for the saved parameter sets
+parameters <- rbind(
+  parameters,
+  data.frame(as.list(initial_raw), loss = "CC_MAGIC")
+)
+
 if ("wfrac" %in% names(parameters)) {
-    parameters$wlow <- parameters$whigh * parameters$wfrac
-    parameters$wfrac <- NULL
+  parameters$wlow <- parameters$whigh * parameters$wfrac
+  parameters$wfrac <- NULL
 }
 
-parameters$tswitch <- common$T_SWITCH
+parameters$tswitch <- if (USE_SWITCH) common$T_SWITCH else 0
 parameters$v2 <- parameters$v1
-
 
 print(parameters, row.names=FALSE)
 
 # This should be looked at but currently not necessary to save it...
 # saveRDS(fits, "data/SouthAfrica/parameter_fitting_results.rds")
 
-saveRDS(parameters, common$FITTED_PARAMETERS_PATH)
+output_path <- if (USE_SWITCH) {
+  sub("\\.rds$", "_vaccine_switch.rds", common$FITTED_PARAMETERS_PATH)
+} else {
+  common$FITTED_PARAMETERS_PATH
+}
+
+saveRDS(parameters, output_path)
