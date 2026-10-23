@@ -21,6 +21,9 @@ VACCINE_TYPES <- list(
 FITTED_PARAMETERS_PATH <- here::here(
     "data", "SouthAfrica", "all_fitted_parameters.rds"
 )
+FITTED_PARAMETERS_PATH_SWITCH <- here::here(
+    "data", "SouthAfrica", "all_fitted_parameters_switch.rds"
+)
 
 CC_MAGIC <- here::here(
   "data",  "SouthAfrica", "CC_MAGIC.rds"

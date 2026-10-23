@@ -19,8 +19,11 @@ parameter_generator <- function(
         idx <- match(how_numerical, parameters$loss)
     } else {
         # Read optimizer output
-        parameters <- readRDS(common$FITTED_PARAMETERS_PATH)
-
+        if (use_switch) {
+          parameters <- readRDS(common$FITTED_PARAMETERS_PATH_SWITCH)
+        } else {
+          parameters <- readRDS(common$FITTED_PARAMETERS_PATH)
+        }
         # Select parameter set by loss function and optimizer
         idx <- which(
             parameters$loss == how_numerical &

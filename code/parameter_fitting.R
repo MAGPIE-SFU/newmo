@@ -219,7 +219,7 @@ make_loss <- function(data, loss_fn, use_switch, sa_model_path = common$SA_MODEL
 # 6. Fit
 # ------------------------------------------------------------
 # Compare all optimization methods, excluding multistart
-USE_SWITCH <- F
+USE_SWITCH <- T
 set.seed(1337)
 
 methods <- c("nlminb", "nmkb", "hjkb")
@@ -339,12 +339,15 @@ for (loss_name in names(loss_functions)) {
       parameter_rows[[fit_id]] <- pars
 
       saveRDS(
-        pars,
-        file.path(
-          output_dir,
-          paste0(make.names(loss_name), "__", method_name, ".rds")
+            pars,
+            file.path(
+                output_dir,
+                paste0(
+                    make.names(loss_name), "_",
+                    method_name, "_switch", ".rds"
+                )
+            )
         )
-      )
     }
   }
 }
@@ -366,21 +369,22 @@ parameter_table <- parameter_table[
 ]
 
 # print(parameter_table, row.names = FALSE)
+suffix <- if (USE_SWITCH) "_switch" else ""
 
 # Save combined outputs and the full optimizer results
-saveRDS(summary_table, file.path(output_dir, "fit_summary.rds"))
+saveRDS(summary_table, file.path(output_dir, paste0("fit_summary", suffix, ".rds")))
 write.csv(
   summary_table,
-  file.path(output_dir, "fit_summary.csv"),
+  file.path(output_dir, paste0("fit_summary", suffix, ".csv")),
   row.names = FALSE
 )
-saveRDS(parameter_table, file.path(output_dir, "all_fitted_parameters.rds"))
+saveRDS(parameter_table, file.path(output_dir, paste0("all_fitted_parameters", suffix, ".rds")))
 write.csv(
   parameter_table,
-  file.path(output_dir, "all_fitted_parameters.csv"),
+  file.path(output_dir, paste0("all_fitted_parameters", suffix, ".csv")),
   row.names = FALSE
 )
-saveRDS(fits, file.path(output_dir, "all_fit_objects.rds"))
+saveRDS(fits, file.path(output_dir, paste0("all_fit_objects", suffix, ".rds")))
 
 # Also save the original CC_MAGIC parameters for comparison
 cc_magic <- format_parameters(initial_raw)

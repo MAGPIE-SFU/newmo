@@ -21,11 +21,11 @@ modelpars_list <- setNames(
     lapply(common$FITTING_METHODS, function(method) {
         parameter_generator(
             how_numerical = method,
-            optimizer = "nlminb",
+            optimizer = "nmkb",
             vaccine_type1 = "PCV7",
             vaccine_type2 = "PCV13",
             how_gene_order = "default",
-            use_switch = F
+            use_switch = T
         )
     }),
     common$FITTING_METHODS
@@ -40,15 +40,14 @@ simulations <- lapply(modelpars_list, function(modelpars) {
     simulate(samodel, modelpars, nyears)
 })
 
-
 # plot the top groups
 top_group_plot(
   vax_start=2010, prevax_years = 2000:2009,
-  n_groups=40,
+  n_groups=20,
   samodel,
   xt,
   simulations,
-  drop_vt = FALSE,
+  drop_vt = T,
   vaccine=common$VACCINE_TYPES[["PCV13"]]
 )
 
