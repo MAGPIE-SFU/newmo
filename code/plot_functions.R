@@ -85,14 +85,14 @@ stack_sims <- function(sims, samodel, vax_start) {
 # plot VTs and NVTs total, model and data together (data = our synth carriage sample)
 # VT and NVT now go in separate panels (colour is used for the simulations)
 vt_nvt_plot <- function(vax_start = 2010, prevax_years = 2000:2009,
-                        samodel, xt, sims, palette = "Dark2") {
+                        samodel, xt, sims, palette = "Dark2", vaccine) {
   sim_long  <- stack_sims(sims, samodel, vax_start)
   data_long <- xt |> select(group, year, frac, frac_sd)
   x0_df     <- tibble(group = rownames(samodel$G),
                       frac  = as.numeric(samodel$x0) / sum(samodel$x0))
 
   ggplot() +
-    compare_layers(agg(data_long, "vt", xt), agg(sim_long, "vt", xt), agg(x0_df, "vt", xt),
+    compare_layers(agg(data_long, "vt", xt, vaccine), agg(sim_long, "vt", xt, vaccine), agg(x0_df, "vt", xt, vaccine),
                    vax_start = vax_start, prevax_years = prevax_years,
                    palette = palette) +
     facet_wrap(~ vt, scales = "free_y") +
