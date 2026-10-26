@@ -14,8 +14,6 @@ USE_LOG         <- TRUE                    # optimize log(loss)
 METHODS         <- names(OPTIMIZERS)       # or e.g. c("nmkb")
 LOSSES          <- names(loss_functions)   # or e.g. c("weighted_SSE")
 N_RANDOM_STARTS <- 2                       # extra starts besides the default
-START_TYPE      <- "jitter"                # "jitter" or "uniform"
-JITTER_SD       <- 0.5
 MAXFEVAL        <- 20000
 SEED            <- 1337
 
@@ -31,9 +29,7 @@ set.seed(SEED)
 
 fit_data <- load_fit_data()
 starts   <- make_starts(
-  n_random  = N_RANDOM_STARTS,
-  type      = START_TYPE,
-  jitter_sd = JITTER_SD
+  n_random  = N_RANDOM_STARTS
 )
 
 # ------------------------------------------------------------

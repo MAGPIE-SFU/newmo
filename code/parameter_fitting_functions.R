@@ -21,6 +21,7 @@ source(here::here("code", "simulate_ode.R"))
 
 PAR_NAMES <- c("v1", "sigma", "migr", "portion", "whigh", "wfrac")
 
+# These are the CC-magic parameters, hard coded here, so no need to save them to disk
 DEFAULT_PARS <- list(
   v1      = 0.065,
   sigma   = 0.13,
@@ -187,34 +188,49 @@ log_loss <- function(fn, penalty = 1e10) {
 # 5. Starting points
 # ------------------------------------------------------------
 
-# Returns a named list of starting vectors: "default" plus `n_random` extras.
-#   type = "jitter":  default * exp(N(0, jitter_sd)), i.e. multiplicative noise
-#   type = "uniform": uniform within start_lower / start_upper (tighten these
-#                     if the bounds are very wide, e.g. sigma up to 1000)
+# Ranges and sampling scale for RANDOM STARTS only (the fitting bounds
+# PAR_LOWER/PAR_UPPER are unchanged). Log-scale needs a positive lower end,
+# so sigma and migr can't start at exactly 0.
+# These ranges are my placeholders: please set them to what's plausible.
+START_LOWER <- c(v1 = 0.001, sigma = 0.001, migr = 1e-8, portion = 0.01, whigh = 0.002, wfrac = 1e-3)
+START_UPPER <- c(v1 = 0.99,  sigma = 10,    migr = 1e-2, portion = 0.99, whigh = 1,     wfrac = 1)
+START_LOG   <- c(v1 = TRUE,  sigma = TRUE,  migr = TRUE, portion = FALSE, whigh = TRUE, wfrac = TRUE)
+
+# Latin hypercube on [0,1]^k: one point in each of n strata per dimension
+lhs_unit <- function(n, k) {
+  matrix(
+    unlist(lapply(seq_len(k), function(j) (sample.int(n) - runif(n)) / n)),
+    nrow = n
+  )
+}
+
 make_starts <- function(n_random = 0,
-                        type = c("jitter", "uniform"),
-                        jitter_sd = 0.5,
-                        lower = PAR_LOWER,
-                        upper = PAR_UPPER,
-                        start_lower = lower,
-                        start_upper = upper) {
-  type <- match.arg(type)
+                        lower = PAR_LOWER, upper = PAR_UPPER,
+                        start_lower = START_LOWER, start_upper = START_UPPER,
+                        start_log = START_LOG) {
   stopifnot(
-    identical(names(lower), PAR_NAMES),
-    identical(names(upper), PAR_NAMES)
+    identical(names(lower), PAR_NAMES), identical(names(upper), PAR_NAMES),
+    identical(names(start_lower), PAR_NAMES), identical(names(start_upper), PAR_NAMES),
+    identical(names(start_log), PAR_NAMES),
+    all(start_lower >= lower), all(start_upper <= upper),
+    all(start_lower > 0)
   )
 
   base <- clamp_to_bounds(unlist(DEFAULT_PARS)[PAR_NAMES], lower, upper)
   stopifnot(!anyNA(base))
-
   starts <- list(default = base)
-  for (i in seq_len(n_random)) {
-    s <- switch(type,
-      jitter  = base * exp(rnorm(length(base), 0, jitter_sd)),
-      uniform = runif(length(base), start_lower, start_upper)
-    )
-    names(s) <- PAR_NAMES
-    starts[[sprintf("start_%02d", i)]] <- clamp_to_bounds(s, lower, upper)
+
+  if (n_random > 0) {
+    u <- lhs_unit(n_random, length(PAR_NAMES))
+    for (i in seq_len(n_random)) {
+      s <- ifelse(
+        start_log,
+        exp(log(start_lower) + u[i, ] * (log(start_upper) - log(start_lower))),
+        start_lower + u[i, ] * (start_upper - start_lower)
+      )
+      names(s) <- PAR_NAMES
+      starts[[sprintf("start_%02d", i)]] <- clamp_to_bounds(s, lower, upper)
+    }
   }
   starts
 }
