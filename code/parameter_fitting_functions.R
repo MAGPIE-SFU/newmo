@@ -242,7 +242,7 @@ OPTIMIZERS <- list(
 # loss on the ORIGINAL scale (re-evaluated at the optimum), so fits are
 # comparable whether or not use_log was used.
 run_optimizer <- function(method, fn, initial, lower, upper,
-                          use_log = TRUE, maxfeval = 20000) {
+                          use_log = TRUE, maxfeval = 10000) {
   optimizer <- OPTIMIZERS[[method]]
   if (is.null(optimizer)) stop("Unknown method: ", method)
 

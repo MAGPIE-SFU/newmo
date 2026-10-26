@@ -17,18 +17,28 @@ xt <- read_csv(
 
 nyears <- common$NYEARS
 
+all_fits <- readRDS(common$FITTED_PARAMETERS_PATH_SWITCH)
+
+# Optional filter, since 3 losses x 3 starts x 2 optimizers is a lot of curves.
+# Examples: one optimizer, or one loss function:
+# all_fits <- all_fits[all_fits$method == "hjkb", ]
+all_fits <- all_fits[all_fits$loss == "weighted_composition_distance", ]
+
 modelpars_list <- setNames(
-    lapply(common$FITTING_METHODS, function(method) {
-        parameter_generator(
-            how_numerical = method,
-            optimizer = "hjkb",
-            vaccine_type1 = "PCV7",
-            vaccine_type2 = "PCV13",
-            how_gene_order = "default",
-            use_switch = T
-        )
-    }),
-    common$FITTING_METHODS
+  Map(function(id, loss, method) {
+    parameter_generator(
+      how_numerical = loss, optimizer = method, fit_id = id,
+      vaccine_type1 = "PCV7", vaccine_type2 = "PCV13",
+      how_gene_order = "default",
+      use_switch = TRUE
+    )
+  }, all_fits$fit_id, all_fits$loss, all_fits$method),
+  all_fits$fit_id
+)
+
+# keep the baseline for comparison
+modelpars_list[["CC_MAGIC"]] <- parameter_generator(
+  how_numerical = "CC_MAGIC", use_switch = TRUE
 )
 
 # Inspect parameters for each method

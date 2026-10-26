@@ -73,7 +73,3 @@ report <- write_fit_report(
 )
 
 print(report$gt)
-
-# Later, without refitting:
-# res <- read_fit_results(OUTPUT_DIR, USE_SWITCH)
-# write_fit_report(res$summary, res$parameters, OUTPUT_DIR, USE_SWITCH, baseline = baseline)
