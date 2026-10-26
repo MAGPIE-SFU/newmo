@@ -5,6 +5,7 @@
 # ==============================================================================
 
 library(dplyr)
+library(readr) 
 library(ggplot2)
 library(tidyr)
 library(lubridate) # may not be needed 
@@ -22,8 +23,10 @@ if(!file.exists(META_FILEPATH) || !file.exists(INVASIVE_FILEPATH) || !file.exist
 # number of repetitions for the invasiveness uncertainty quantification
 N_REPS <- 1000
 
-# pseudo-count to add to the prior concentration
-PSEUDOCOUNT <- 1
+# PSEUDOCOUNT <- 1              # delete; was bringing all the _other groups too high the way were were adding these 
+# and it was pushing things too much towards the mean
+LAMBDA <- 0.01                  # prior mean smoothed toward uniform; 
+# lambda is the fraction of the prior mean that is uniform 
 
 # set the seed for the script
 set.seed(1)
@@ -100,49 +103,39 @@ missing <- setdiff(unique(meta_clean$serotype), inv$serotype)
 if (length(missing)) stop("No invasiveness for: ", paste(missing, collapse = ", "),
                           " -- re-run make_invasiveness_lookup.R")
 
-child_v_lookup <- inv %>% transmute(serotype, v = v_child)
-adult_v_lookup <- inv %>% transmute(serotype, v = v_adult)
-
+# NEW   - take the log normal pars from the table before rather than moment matching 
+# to Nick's ranges, because in the previous script (make_invasiveness... ) 
+# we did "shrinkage" for the log means 
 child_v_lookup <- inv %>%
-  transmute(serotype,
-            v_mean = v_child,
-            v_lower = v_child_lower,
-            v_upper = v_child_upper) %>%
-  mutate(SE = (v_upper-v_lower)/(2*1.96),
-         logmean = log(v_mean^2/sqrt(v_mean^2+SE^2)),
-         logsd = sqrt(log(1+SE^2/v_mean^2)))
+    transmute(serotype, logmean = v_child_logmean, logsd = v_child_logsd) %>%
+    filter(!is.na(logmean), !is.na(logsd))
 
 adult_v_lookup <- inv %>%
-  transmute(serotype,
-            v_mean = v_adult,
-            v_lower = v_adult_lower,
-            v_upper = v_adult_upper) %>%
-  mutate(SE = (v_upper-v_lower)/(2*1.96),
-         logmean = log(v_mean^2/sqrt(v_mean^2+SE^2)),
-         logsd = sqrt(log(1+SE^2/v_mean^2)))
-  
-get_child_inv <- function() {
+    transmute(serotype, logmean = v_adult_logmean, logsd = v_adult_logsd) %>%
+    filter(!is.na(logmean), !is.na(logsd))
+
+# one draw per serotype, reused across all years within a replicate
+draw_v <- function(lk) lk %>% mutate(v = rlnorm(n(), logmean, logsd)) %>% select(serotype, v)
+
+
+get_child_inv <- function(vdraw) {
   yearly_counts %>%
     filter(age_group == "child", ipd_n > 0) %>%
-    left_join(child_v_lookup, by = "serotype") %>%
-    filter(!is.na(logmean)) %>%
-    group_by(year) %>%
-    mutate(v = rlnorm(n(), meanlog=logmean, sdlog=logsd),
-           r_C = (ipd_n) / v, # carriage cases you'd expect from this number of IPD
+    inner_join(vdraw, by = "serotype") %>%   
+    group_by(year) %>% # CC: previously each st got a draw of v for each year? instead we want ONE draw for the ST, not one for the st for each SC and year (!) 
+    mutate( r_C = (ipd_n) / v, # carriage cases you'd expect from this number of IPD
            p_C_inv = r_C / sum(r_C)) %>%  # proportion group g in child carriage based on this IPD sample
     ungroup() %>%
     select(year, serotype, gpsc,
            ipd_n, carriage_n, v, r_C, p_C_inv)
 }
 
-get_adult_inv <- function() {
+get_adult_inv <- function(vdraw) {
   yearly_counts %>%
     filter(age_group == "adult", ipd_n > 0) %>%
-    left_join(adult_v_lookup, by = "serotype") %>%
-    filter(!is.na(logmean)) %>%
+    inner_join(vdraw, by = "serotype") %>%  
     group_by(year) %>%
-    mutate(v = rlnorm(n(), meanlog=logmean, sdlog=logsd),
-           r_A = (ipd_n ) / v, # carriage cases you'd expect from this number of IPD; have removed alpha - not needed  
+    mutate(r_A = (ipd_n ) / v, # carriage cases you'd expect from this number of IPD; have removed alpha - not needed  
            p_A_inv = r_A / sum(r_A)) %>%  # proportion group g in adult carriage based on this IPD sample
     ungroup() %>%
     select(year, serotype, gpsc, 
@@ -152,14 +145,12 @@ get_adult_inv <- function() {
 
 # unknowns: i treat them as if they are kids from the point of view of invasiveness. but we don't know. See notes / sanity check at the bottom of this script. 
 #  ??? might want to average 0.8*kid invasiveness + 0.2* adult invasiveness later  
-get_unknown_proxy <- function() {
+get_unknown_proxy <- function(vdraw) {
   yearly_counts %>%
     filter(age_group == "unknown", ipd_n > 0) %>%
-    left_join(child_v_lookup, by = "serotype") %>%
-    filter(!is.na(logmean)) %>%
+    inner_join(vdraw, by = "serotype") %>%  
     group_by(year) %>%
-    mutate(v = rlnorm(n(), meanlog=logmean, sdlog=logsd),
-           r_U = (ipd_n ) / v,
+    mutate(r_U = (ipd_n ) / v,
            p_U_proxy = r_U / sum(r_U)) %>%
     ungroup() %>%
     select(year, serotype, gpsc, 
@@ -178,15 +169,19 @@ child_carriage_counts <- yearly_counts %>%
   select(year, serotype, gpsc,  carriage_n)
 
 # this is the data frame that is going to be turned into my final sythn population: 
-components_yearly <- lapply(1:N_REPS, function(x) {get_child_inv() %>%
+components_yearly <- lapply(1:N_REPS, function(x) {
+    vc <- draw_v(child_v_lookup)      # child AND unknown share this draw
+    va <- draw_v(adult_v_lookup)
+    
+    get_child_inv(vc) %>%
   select(year, serotype, gpsc,  p_C_inv) %>%
   full_join(
-    get_adult_inv() %>%
+    get_adult_inv(va) %>%
       select(year, serotype, gpsc,  p_A_inv),
     by = c("year", "serotype", "gpsc")
   ) %>%
   full_join(
-    get_unknown_proxy() %>%
+    get_unknown_proxy(vc) %>%
       select(year, serotype, gpsc,  p_U_proxy),
     by = c("year", "serotype", "gpsc")
   ) %>%
@@ -203,19 +198,14 @@ components_yearly <- lapply(1:N_REPS, function(x) {get_child_inv() %>%
   ungroup()
 })
 
-# sanity check: do the things add to 1 where they are supposed to? 
-get_child_inv() %>%
-  group_by(year) %>%
-  summarise(sum_p_C_inv = sum(p_C_inv))
+vc_check <- draw_v(child_v_lookup)
 
-get_adult_inv() %>%
-  group_by(year) %>%
-  summarise(sum_p_A_inv = sum(p_A_inv))
+# in a given year what is the max fraction any one group has in p_C_inv? 
+# shouldn't be like 50% or whatever 
+get_child_inv(vc_check) %>% group_by(year) %>% summarise(max_p = max(p_C_inv))
 
-get_unknown_proxy() %>%
-  group_by(year) %>%
-  summarise(sum_p_U_proxy = sum(p_U_proxy))
-
+# does each st have exactly one v within a replicate? k should be 1 
+get_child_inv(vc_check) %>% group_by(serotype) %>% summarise(k = n_distinct(v)) %>% count(k)
 
 ######################################################################
 # create the final weighted composition accounting for all the various things 
@@ -257,10 +247,11 @@ final_yearly <- lapply(components_yearly, function(x) {
       
       p_C_aug = wC * p_C_inv + wA * p_A_inv + wU * p_U_proxy,
       N_car      = sum(carriage_n),                               # child carriage swabs this year
-      omega_t    = N_car / (N_car + k),                           # weight on carriage (0 if none)
-      p_final    = (carriage_n + k * p_C_aug + PSEUDOCOUNT ) / (N_car + k + PSEUDOCOUNT*n()),      # Dirichlet posterior mean
-      p_final_sd = sqrt(p_final * (1 - p_final) / (N_car + k + 1 + PSEUDOCOUNT*n())) # posterior SD (optional)
-    ) %>%
+      omega_t    = N_car / (N_car + k)                           # weight on carriage (0 if none)
+  #    p_final    = (carriage_n + k * p_C_aug + PSEUDOCOUNT ) / (N_car + k + PSEUDOCOUNT*n()), # n() here is hte number of groups at this stage, > 84 # Dirichlet posterior mean
+  #    p_final_sd = sqrt(p_final * (1 - p_final) / (N_car + k + 1 + PSEUDOCOUNT*n())) # posterior SD (optional)
+ # CC: removed those two lines, pseudocount was pulling too far towards uniform by x 84 in the denominator
+     ) %>% 
     ungroup()
 })
 
@@ -271,13 +262,13 @@ final_yearly <- lapply(components_yearly, function(x) {
 head(final_yearly[[1]])
 
 # sanity check -- the sums should be 1 
-final_yearly[[1]] %>%
-  group_by(year) %>%
-  summarise(sum_p_C_aug = sum(p_C_aug),
-            sum_p_final = sum(p_final)  ) # yes they all sum to 1. 
+# final_yearly[[1]] %>%
+#  group_by(year) %>%
+#  summarise(sum_p_C_aug = sum(p_C_aug),
+#            sum_p_final = sum(p_final)  ) # yes they all sum to 1. 
 
 
-ggplot(final_yearly[[1]], aes(x=p_final, fill=year))+geom_histogram() +facet_wrap(~as.factor(year))+xlim(c(0, 0.01))
+# ggplot(final_yearly[[1]], aes(x=p_final, fill=year))+geom_histogram() +facet_wrap(~as.factor(year))+xlim(c(0, 0.01))
 
 # now we define groups. Before, I was using a cutoff for how many isolates there were. But what if there 
 # were isolates of a low-inv type? also i don't want rareNVT to be conditioned on being rare after vaccination
@@ -319,7 +310,10 @@ final_yearly <- lapply(final_yearly, function(x){
     left_join(select(group_lookup, serotype, gpsc, group), by = c("serotype", "gpsc"))
 })
 
+# meta_clean <- meta_clean %>%
+ #    left_join(select(group_lookup, serotype, gpsc, group), by = c("serotype", "gpsc"))
 meta_clean <- meta_clean %>%
+    select(-any_of("group")) %>% # in case group was already in there i guess? 
     left_join(select(group_lookup, serotype, gpsc, group), by = c("serotype", "gpsc"))
 
 stopifnot(!any(sapply(final_yearly, function(x) any(is.na(x$group)))), !any(is.na(meta_clean$group)))
@@ -340,23 +334,45 @@ group_sero <- group_lookup %>%
             vaccine_type = first(vaccine_type),
             .groups = "drop")
 
-# NOTE the line that sets frac_sd could eventually have better sds 
+all_groups <- sort(unique(group_lookup$group))
+all_years  <- sort(unique(final_yearly[[1]]$year))
 
+# old 
+#xt <- lapply(final_yearly, function(x) {
+#  x %>%
+#    group_by(year, group) %>% # CC: in the nxt line, n() varies by group, so a0 does too # CC: next line the sum pulls something weird for rare_NVT i think 
+#    summarise(frac_mean = sum(p_final), a0 = first(N_car) + k + PSEUDOCOUNT * n(), .groups = "drop") %>%
+#    complete(year, group, fill = list(frac_mean = 0)) %>% # CC: inserts 0s? next line a0 gets the max a0 of all the groups, which is probably rare_NVT, which is weird? 
+#    group_by(year) %>% mutate(a0 = max(a0, na.rm = TRUE)) %>% ungroup() %>%
+#    mutate(frac_var = frac_mean * (1 - frac_mean) / (a0 + 1), # which then have 0 variance still 
+#           count   = frac_mean * 1e5) %>%
+#    left_join(group_sero, by = "group") %>%
+#    select(year, group, serotype, vaccine_type, frac_mean, frac_var, count) %>%
+#    arrange(year, group)
+#})
+
+# new: uses lambda to smooth the prior ps not the counts in above 
 xt <- lapply(final_yearly, function(x) {
-  x %>%
-    group_by(year, group) %>%
-    summarise(frac_mean = sum(p_final), a0 = first(N_car) + k + PSEUDOCOUNT * n(), .groups = "drop") %>%
-    complete(year, group, fill = list(frac_mean = 0)) %>%
-    group_by(year) %>% mutate(a0 = max(a0, na.rm = TRUE)) %>% ungroup() %>%
-    mutate(frac_var = frac_mean * (1 - frac_mean) / (a0 + 1),
-           count   = frac_mean * 1e5) %>%
-    left_join(group_sero, by = "group") %>%
-    select(year, group, serotype, vaccine_type, frac_mean, frac_var, count) %>%
-    arrange(year, group)
+    x %>%
+        group_by(year, group) %>%
+        summarise(p_tilde_g  = sum(p_C_aug),       # sums to 1 over groups
+                  carriage_g = sum(carriage_n),    # sums to N_car
+                  .groups = "drop") %>%
+        complete(year = all_years, group = all_groups,
+                 fill = list(p_tilde_g = 0, carriage_g = 0)) %>%
+        group_by(year) %>%
+        mutate(N_car     = sum(carriage_g),
+               p_tilde   = (1 - LAMBDA) * p_tilde_g + LAMBDA / n(),   # n() == 84
+               alpha     = carriage_g + k * p_tilde,
+               frac_mean = alpha / sum(alpha),                        # sum(alpha) == N_car + k
+               frac_var  = frac_mean * (1 - frac_mean) / (N_car + k + 1)) %>%
+        ungroup() %>%
+        left_join(group_sero, by = "group") %>%
+        select(year, group, serotype, vaccine_type, frac_mean, frac_var)
 })
 
 # aggregate results and compute the new standard deviation
-xt_agg <- list_rbind(xt) %>%
+xt_agg <-bind_rows(xt) %>%
   group_by(year, group, serotype, vaccine_type) %>%
   summarise(frac = mean(frac_mean),
             frac_sd = sqrt(mean(frac_var) + var(frac_mean)), .groups="drop")

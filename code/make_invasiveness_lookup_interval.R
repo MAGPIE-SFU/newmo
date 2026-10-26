@@ -1,4 +1,3 @@
-
 # ==============================================================================
 # Build invasiveness lookup for South African pneumococcal data with intervals
 # ==============================================================================
@@ -34,11 +33,13 @@ non_typeable <- c("untypable", "Swiss_NT")
 # ------------------------------------------------------------------------------
 
 serotype_substitutions <- c(
-  "6G"  = "6B",
-  "24"  = "24F",
-  "33D" = "33A"
+    "15B/15C" = "15B/C",   # label mismatch only — exact donor exists
+    "11BC"    = "11B",
+    "35D"     = "35B",     # wciG-deficient 35B variant
+    "6G"      = "6B",
+    "24"      = "24F",
+    "33D"     = "33A"
 )
-
 # ------------------------------------------------------------------------------
 # Empirical Bayes shrinkage on the log scale
 # DerSimonian-Laird estimate of between-serotype variance
@@ -118,11 +119,14 @@ shrink_invasiveness <- function(tab) {
 
   result <- tab %>%
     mutate(
+      logmean  = mu + B * (y - mu),   # posterior mean of log v
+      logsd    = sqrt(B) * se,        # posterior sd of log v
       v_shrunk = exp(mu + B * (y - mu))
     )
 
   attr(result, "overall_mean") <- exp(mu)
-
+  attr(result, "mu")           <- mu
+  attr(result, "tau")          <- sqrt(tau2)
   result
 }
 
@@ -149,15 +153,22 @@ lookup_one_age <- function(tab, other_tab, serotypes) {
   raw1 <- setNames(t1$invasiveness, t1$Serotype)
   lower1 <- setNames(t1$invasiveness_lower, t1$Serotype)
   upper1 <- setNames(t1$invasiveness_upper, t1$Serotype)
-
+  lm1 <- setNames(t1$logmean, t1$Serotype);  ls1 <- setNames(t1$logsd, t1$Serotype)
   # Other age table
   v2 <- setNames(t2$v_shrunk, t2$Serotype)
   raw2 <- setNames(t2$invasiveness, t2$Serotype)
   lower2 <- setNames(t2$invasiveness_lower, t2$Serotype)
   upper2 <- setNames(t2$invasiveness_upper, t2$Serotype)
+  lm2 <- setNames(t2$logmean, t2$Serotype);  ls2 <- setNames(t2$logsd, t2$Serotype)
+
+  # Shrinkage constants, used as the uncertainty for imputed serotypes
+  mu_1  <- attr(t1, "mu")
+  tau_1 <- attr(t1, "tau")
+  tau_2 <- attr(t2, "tau")
 
   # Create an output row
-  make_row <- function(s, donor, v, raw, lower, upper, source) {
+  make_row <- function(s, donor, v, raw, lower, upper, source,
+                       logmean = NA_real_, logsd = NA_real_) {
 
     tibble(
       serotype = s,
@@ -165,6 +176,8 @@ lookup_one_age <- function(tab, other_tab, serotypes) {
       v_raw = as.numeric(raw),
       v_lower = as.numeric(lower),
       v_upper = as.numeric(upper),
+      v_logmean = as.numeric(logmean),
+      v_logsd = as.numeric(logsd),
       v_source = source,
       v_donor = donor
     )
@@ -182,7 +195,9 @@ lookup_one_age <- function(tab, other_tab, serotypes) {
         raw = raw1[[donor]],
         lower = lower1[[donor]],
         upper = upper1[[donor]],
-        source = source
+        source = source,
+        logmean = lm1[[donor]],
+        logsd = ls1[[donor]]
       )
 
     } else {
@@ -194,7 +209,9 @@ lookup_one_age <- function(tab, other_tab, serotypes) {
         raw = raw2[[donor]],
         lower = lower2[[donor]],
         upper = upper2[[donor]],
-        source = source
+        source = source,
+        logmean = lm2[[donor]],
+        logsd = ls2[[donor]]
       )
     }
   }
@@ -307,7 +324,8 @@ lookup_one_age <- function(tab, other_tab, serotypes) {
       return(make_row(
         s, paste0("serogroup ", sg),
         m, NA_real_, NA_real_, NA_real_,
-        paste("serogroup mean", sg)
+        paste("serogroup mean", sg),
+        logmean = log(m), logsd = tau_1
       ))
     }
 
@@ -334,7 +352,8 @@ lookup_one_age <- function(tab, other_tab, serotypes) {
       return(make_row(
         s, paste0("serogroup ", sg),
         m, NA_real_, NA_real_, NA_real_,
-        paste("other age table, serogroup mean", sg)
+        paste("other age table, serogroup mean", sg),
+        logmean = log(m), logsd = tau_2
       ))
     }
 
@@ -346,7 +365,8 @@ lookup_one_age <- function(tab, other_tab, serotypes) {
       s, NA_character_,
       attr(t1, "overall_mean"),
       NA_real_, NA_real_, NA_real_,
-      "overall mean"
+      "overall mean",
+      logmean = mu_1, logsd = tau_1
     )
   }))
 }
@@ -383,6 +403,8 @@ invasiveness_lookup <- child %>%
     v_child_raw = v_raw,
     v_child_lower = v_lower,
     v_child_upper = v_upper,
+    v_child_logmean = v_logmean,
+    v_child_logsd = v_logsd,
     v_child_source = v_source,
     v_child_donor = v_donor
   ) %>%
@@ -393,6 +415,8 @@ invasiveness_lookup <- child %>%
         v_adult_raw = v_raw,
         v_adult_lower = v_lower,
         v_adult_upper = v_upper,
+        v_adult_logmean = v_logmean,
+        v_adult_logsd = v_logsd,
         v_adult_source = v_source,
         v_adult_donor = v_donor
       ),
@@ -514,23 +538,21 @@ invasiveness_lookup %>%
     serotype,
     v_child_source,
     v_child_donor,
-    v_child_lower,
-    v_child_upper,
+    v_child_logmean,
+    v_child_logsd,
     v_adult_source,
     v_adult_donor,
-    v_adult_lower,
-    v_adult_upper
+    v_adult_logmean,
+    v_adult_logsd
   ) %>%
   print(n = Inf, width = Inf)
 
-message("\nSerotypes still missing confidence intervals:")
+message("\nSerotypes still missing a sampling distribution for v:")
 
 invasiveness_lookup %>%
   filter(
-    is.na(v_child_lower) |
-      is.na(v_child_upper) |
-      is.na(v_adult_lower) |
-      is.na(v_adult_upper)
+    is.na(v_child_logmean) | is.na(v_child_logsd) |
+      is.na(v_adult_logmean) | is.na(v_adult_logsd)
   ) %>%
   select(
     serotype,
