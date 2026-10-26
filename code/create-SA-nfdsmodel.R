@@ -31,8 +31,7 @@ all(colnames(Gnfds) == rownames(locus_by_year$locus[locus_by_year$in_model])) # 
 samodel <- list(G =Gnfds,
                 st = xt$serotype[xt$year == 2008], # serotype for each strain (ie each row of G)
                 x0 = x0  , # use mean pre-vaccine and just fit to post-vaccine? 
-                el = as.numeric(locus_by_year$pre2009[locus_by_year$in_model]), # equilibrium frequencies 
-                logitdiff = as.numeric(locus_by_year$logitdiff)
+                el = as.numeric(locus_by_year$pre2009[locus_by_year$in_model]) # equilibrium frequencies 
 ) 
 
 # print(samodel)

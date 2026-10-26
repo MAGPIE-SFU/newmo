@@ -91,9 +91,9 @@ ggplot(locus_by_year, aes(x=abs(z), y=delta, colour = pre2009))+
 
 # alternatives log(f/e)  and logit(f) - logit(e) (both | | of those obvs) 
 # for less overall tendency to choose high vs low frequency genes 
-logit <- function(x) log(x/(1-x)) 
-locus_by_year <- locus_by_year %>% 
-  mutate( lograt = abs(log(pre2009/post2011)) ) 
+# logit <- function(x) log(x/(1-x)) 
+# locus_by_year <- locus_by_year %>% 
+#  mutate( lograt = abs(log(pre2009/post2011)) ) 
 
 ggplot(filter(locus_by_year, in_model), aes(x=abs(pre2009), y=lograt, color = logitdiff))+ 
   geom_point(alpha=0.5) + scale_x_log10()+ scale_y_log10()
@@ -101,10 +101,10 @@ ggplot(filter(locus_by_year, in_model), aes(x=abs(pre2009), y=lograt, color = lo
 
 ggplot(filter(locus_by_year, in_model == TRUE) , aes(x=abs(pre2009), y=logitdiff))+ 
   geom_point(alpha=0.5) + scale_x_log10()+ scale_y_log10()
-# this is still frequency dependent because of course the high-freq genes will have to be pretty stable
+# this has very low frequency dependence. Note that the high-freq genes will have to be pretty stable so
 # it requires a huge lineage turnover to shift them. (though they don't have the highest delta)
 # choosing the lowest lograt genes for the NFDS model will, even with the 0.95 cutoff,
-# lead us to quite a few high-frequency genes. 
+# lead us to quite a few high-frequency genes. whereas logitdiff is not going to bias towards low or high -freq genes
 
 ggplot(filter(locus_by_year, in_model == TRUE), 
        aes(x=logitdiff, y = lograt, color = pre2009)) + 
@@ -116,18 +116,12 @@ ggplot(filter(locus_by_year, in_model == TRUE),
 ggplot(filter(locus_by_year, in_model == TRUE), 
        aes(x=delta, y = z, color = pre2009)) + 
     geom_point(alpha=0.5) + scale_x_log10()+ scale_y_log10()
+# delta and z are very similar 
 
 # note also: consider whether 0 or 1 are so different. should we want our measure to be 
 # symmetric under the transformation p -> 1-p, such that we think NFDS also applies to 
 # the lack of a gene? The log ratio does *not* have this property but delta, z and the logit do. 
 
-# let's take a look at the logit 
-ggplot(filter(locus_by_year, in_model == TRUE) , aes(x=abs(pre2009), y=logitr))+ 
-geom_point(alpha=0.5) + scale_x_log10()+ scale_y_log10()
-# abs(logit  difference) is looking like a winner here: choosing the most stable will give us
-# genes across a range of frequencies, not just low-frequency genes which i thikn will happen with 
-# delta and z. no aactually delta is ok here i geuss. 
- 
 ggplot(filter(locus_by_year, in_model == TRUE) , aes(x=delta, y=logitr, color = pre2009))+ 
   geom_point(alpha=0.5) + scale_x_log10()+ scale_y_log10()
 
@@ -135,15 +129,15 @@ ggplot(filter(locus_by_year, in_model == TRUE) , aes(x=delta, y=logitr, color = 
 m <- locus_by_year[locus_by_year$in_model, ]
 n <- 200                                      # or whatever the model uses
 length(intersect(head(m$locus[order(m$delta)],  n),
-                 head(m$locus[order(m$logitr)], n)))
-cor(m$delta, m$logitr, method = "spearman")
+                 head(m$locus[order(m$logitdiff)], n)))
+cor(m$delta, m$logitdiff, method = "spearman")
 
 # where they are different what are the frequencies? 
-swapped <- setdiff(head(m$locus[order(m$logitr)], 200),
+swapped <- setdiff(head(m$locus[order(m$logitdiff)], 200),
                    head(m$locus[order(m$delta)],  200))
 summary(m$pre2009[m$locus %in% swapped])
 summary(m$pre2009)
-# logitr will choose more intermediate-frequency loci than delta will. which i think is what we want. 
+# logitdiff will choose more intermediate-frequency loci than delta will. which i think is what we want. 
 # it is symmetric under the swap p to 1-p which treats absence of a locus as a trait too 
 # and its slope against pre-vaccine frequency is v small - frequency-independent. 
 # therefore it seems a better choice than delta , but not vastly 
@@ -153,9 +147,10 @@ summary(m$pre2009)
 
   # some slopes: shows that delta goes up with frequency, z and logitr are approx stable and lograt goes down. 
  m <- locus_by_year[locus_by_year$in_model, ]
- sapply(c("delta", "z", "logitr", "lograt"), function(v)
+ sapply(c("delta", "z", "logitdiff", "lograt"), function(v)
    coef(lm(log(abs(m[[v]])) ~ log(m$pre2009)))[2])
-
+# logitdiff now the only one with a near-zero slope 
+ 
 # --- now i want to explore whether i can get a good NFDS result out of pre-vaccine stability measures 
  
  # so let's compute these measures over the 9 years of pre-vaccine data 
@@ -164,6 +159,7 @@ summary(m$pre2009)
  # but i can compute the variance in the other things too : delta, z, whatever . 
  
  # already have some stuff in here like varianc in the frequency 
- ggplot(locus_by_year, aes(x=pre2009, y=vardifflogpre))+geom_point(alpha=0.5) + 
+ ggplot(filter(locus_by_year, in_model), aes(x=obs_pre, y=logitdiff))+geom_point(alpha=0.5) + 
       scale_x_log10()+ scale_y_log10()
-# no good - the extremes are just high and low 
+# varlogitpre is no good - interesting but could see if any of the others 
+# none of the others are correlated with logitdiff either  
