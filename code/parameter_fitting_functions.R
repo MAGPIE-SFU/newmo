@@ -232,12 +232,37 @@ make_starts <- function(n_random = 0,
 # 6. Optimizers
 # ------------------------------------------------------------
 
-# Add new methods here; run_optimizer() picks them up by name.
-OPTIMIZERS <- list(
-  nmkb = dfoptim::nmkb,
-  hjkb = dfoptim::hjkb
-)
+# L-BFGS-B with finite-difference gradients. `portion` is held fixed: it is
+# rounded to a whole number of loci inside simulate(), so the loss is a step
+# function of it and has no usable gradient.
+GRADIENT_FIXED <- "portion"
 
+lbfgsb <- function(par, fn, lower, upper, control = list(maxfeval = 20000)) {
+  free <- !(names(par) %in% GRADIENT_FIXED)
+  full <- function(p) { x <- par; x[free] <- p; x }
+  n_free <- sum(free)
+
+  r <- optim(
+    par[free], function(p) fn(full(p)),
+    method = "L-BFGS-B", lower = lower[free], upper = upper[free],
+    control = list(
+      # iterations allowed within the evaluation budget (1 + 2 * n_free per iteration)
+      maxit    = control$maxfeval %/% (1 + 2 * n_free),
+      parscale = pmax(abs(par[free]), 1e-6),   # relative steps despite very different scales
+      ndeps    = rep(1e-3, n_free)
+    )
+  )
+
+  list(
+    par         = full(r$par),
+    value       = r$value,
+    feval       = r$counts[["function"]] * (1 + 2 * n_free),  # counts include gradient evals
+    convergence = r$convergence,
+    message     = r$message
+  )
+}
+
+OPTIMIZERS <- list(nmkb = dfoptim::nmkb, hjkb = dfoptim::hjkb, lbfgsb = lbfgsb)
 # Run one optimizer and standardize its output. `value` is always the
 # loss on the ORIGINAL scale (re-evaluated at the optimum), so fits are
 # comparable whether or not use_log was used.

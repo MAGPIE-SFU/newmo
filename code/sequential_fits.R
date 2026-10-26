@@ -14,8 +14,8 @@ source(here::here("code", "fit_report_functions.R"))
 USE_SWITCH    <- TRUE
 USE_LOG       <- TRUE
 LOSSES        <- names(loss_functions)     # one independent chain per loss
-CHAIN_METHODS <- c("nmkb")         # cycled over rounds: nmkb, hjkb, nmkb, ...
-N_ROUNDS      <- 5
+CHAIN_METHODS <- c("nmkb", "lbfgsb", "hjkb")         # cycled over rounds: nmkb, hjkb, nmkb, ...
+N_ROUNDS      <- 6
 START_FROM    <- "random"                 # "default", "random", or a named parameter vector
 MAXFEVAL      <- 20000
 SEED          <- 1337
@@ -23,10 +23,7 @@ REL_TOL       <- NULL                      # e.g. 1e-6 to stop a chain early whe
                                            # improves the loss by less than this (relative)
 
 # Kept separate so run_fits.R output is not overwritten
-OUTPUT_DIR <- file.path(
-  dirname(common$FITTED_PARAMETERS_PATH),
-  "fit_sequential"
-)
+OUTPUT_DIR <- common$FIT_SEQUENTIAL_DIR
 
 # ------------------------------------------------------------
 # Setup

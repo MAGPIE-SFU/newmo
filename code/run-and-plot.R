@@ -17,17 +17,21 @@ xt <- read_csv(
 
 nyears <- common$NYEARS
 
-all_fits <- readRDS(common$FITTED_PARAMETERS_PATH_SWITCH)
+rds_params_fit_path <- common$FITTED_PARAMETERS_PATH_SEQ
+
+all_fits <- readRDS(rds_params_fit_path)
 
 # Optional filter, since 3 losses x 3 starts x 2 optimizers is a lot of curves.
 # Examples: one optimizer, or one loss function:
 # all_fits <- all_fits[all_fits$method == "hjkb", ]
-all_fits <- all_fits[all_fits$loss == "weighted_composition_distance", ]
+# all_fits <- all_fits[all_fits$loss == "weighted_composition_distance", ]
+all_fits <- all_fits[all_fits$start_id == "round_05", ]
 
 modelpars_list <- setNames(
   Map(function(id, loss, method) {
     parameter_generator(
       how_numerical = loss, optimizer = method, fit_id = id,
+      path = rds_params_fit_path,
       vaccine_type1 = "PCV7", vaccine_type2 = "PCV13",
       how_gene_order = "default",
       use_switch = TRUE
@@ -42,8 +46,8 @@ modelpars_list[["CC_MAGIC"]] <- parameter_generator(
 )
 
 # Inspect parameters for each method
-str(modelpars_list)
-modelpars_list[["weighted_SSE"]]  # example: inspect one method
+# str(modelpars_list)
+# modelpars_list[["weighted_SSE"]]  # example: inspect one method
 
 # Run simulations using the stored parameters
 simulations <- lapply(modelpars_list, function(modelpars) {

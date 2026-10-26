@@ -24,6 +24,7 @@ FIT_SEQUENTIAL_DIR <- here::here("data", "SouthAfrica", "fit_sequential")
 # one row per loss x method (written by save_fit_results, see my earlier snippet)
 FITTED_PARAMETERS_PATH        <- file.path(FIT_DIR, "all_fitted_parameters.rds")
 FITTED_PARAMETERS_PATH_SWITCH <- file.path(FIT_DIR, "all_fitted_parameters_switch.rds")
+FITTED_PARAMETERS_PATH_SEQ <- file.path(FIT_SEQUENTIAL_DIR, "all_fitted_parameters_switch.rds")
 
 # Default (CC_MAGIC) parameters: fit starting values and the baseline
 DEFAULT_PARS <- list(
