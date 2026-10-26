@@ -7,7 +7,8 @@ simulate <- function(samodel, modelpars, nyears, stepspy = 24 ) {
     K <- sum(samodel$x0)
 
     # create logged versions to translate to continuous time
-    rho <- log(1 + modelpars$sigma)
+    # rho <- log(1 + modelpars$sigma)
+    rho <- modelpars$sigma
 
     # create weight vector w (one value for each locus)
     if (is.null(modelpars[["gene_order"]])) modelpars$gene_order = seq_len(length(samodel$el))
@@ -22,17 +23,22 @@ simulate <- function(samodel, modelpars, nyears, stepspy = 24 ) {
     modifiedGT  <- t(samodel$G) *w # this is Gw
     modelpars$GtimesModG  <- as.matrix(samodel$G) %*% modifiedGT
 
+    rr1 <- modelpars$v1 * (samodel$st %in% modelpars$vaccine1)
+    rr2 <- modelpars$v2 * (samodel$st %in% modelpars$vaccine2)
+
     # define the differential equation
     diffxt <- function(t, x, modelpars) {
         # create vt: 0 or parameter v, one value for each strain (row of G)
 
         # time dependent vaccines, where we switch from vaccine1 to vaccine2 at point tswitch
-        vt <- if (t < modelpars$tswitch) {
-            modelpars$v1 * (samodel$st %in% modelpars$vaccine1)
-        } else {
-            modelpars$v2 * (samodel$st %in% modelpars$vaccine2)
-        }
-        rr  <- -log(1 - vt)
+        # vt <- if (t < modelpars$tswitch) {
+        #     modelpars$v1 * (samodel$st %in% modelpars$vaccine1)
+        # } else {
+        #     modelpars$v2 * (samodel$st %in% modelpars$vaccine2)
+        # }
+        # rr  <- -log(1 - vt)
+
+        rr <- if (t < modelpars$tswitch) rr1 else rr2
 
         with(modelpars, {
             totalx <- sum(x)

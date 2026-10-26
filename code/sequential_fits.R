@@ -15,7 +15,7 @@ USE_SWITCH    <- TRUE
 USE_LOG       <- TRUE
 LOSSES        <- names(loss_functions)     # one independent chain per loss
 CHAIN_METHODS <- c("nmkb", "lbfgsb", "hjkb")         # cycled over rounds: nmkb, hjkb, nmkb, ...
-N_ROUNDS      <- 6
+N_ROUNDS      <- 9
 START_FROM    <- "screen"
 N_SCREEN      <- 1000
 MAXFEVAL      <- 20000
