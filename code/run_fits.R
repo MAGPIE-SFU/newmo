@@ -17,10 +17,7 @@ N_RANDOM_STARTS <- 2                       # extra starts besides the default
 MAXFEVAL        <- 20000
 SEED            <- 1337
 
-OUTPUT_DIR <- file.path(
-  dirname(common$FITTED_PARAMETERS_PATH),
-  "fit_comparison"
-)
+OUTPUT_DIR <- common$FIT_DIR
 
 # ------------------------------------------------------------
 # Setup

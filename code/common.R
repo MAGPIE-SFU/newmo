@@ -18,15 +18,21 @@ VACCINE_TYPES <- list(
     )
 )
 
-FITTED_PARAMETERS_PATH <- here::here(
-    "data", "SouthAfrica", "all_fitted_parameters.rds"
-)
-FITTED_PARAMETERS_PATH_SWITCH <- here::here(
-    "data", "SouthAfrica", "all_fitted_parameters_switch.rds"
-)
+FIT_DIR            <- here::here("data", "SouthAfrica", "fit_comparison")
+FIT_SEQUENTIAL_DIR <- here::here("data", "SouthAfrica", "fit_sequential")
 
-CC_MAGIC <- here::here(
-  "data",  "SouthAfrica", "CC_MAGIC.rds"
+# one row per loss x method (written by save_fit_results, see my earlier snippet)
+FITTED_PARAMETERS_PATH        <- file.path(FIT_DIR, "best_fitted_parameters.rds")
+FITTED_PARAMETERS_PATH_SWITCH <- file.path(FIT_DIR, "best_fitted_parameters_switch.rds")
+
+# Default (CC_MAGIC) parameters: fit starting values and the baseline
+DEFAULT_PARS <- list(
+  v1      = 0.065,
+  sigma   = 0.13,
+  migr    = 0.00001,
+  portion = 0.3,
+  whigh   = 0.1363,
+  wfrac   = 0.0023 / 0.1363
 )
 
 LOCUS_FILE_PATH <- here::here(

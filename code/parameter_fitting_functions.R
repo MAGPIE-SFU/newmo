@@ -22,14 +22,7 @@ source(here::here("code", "simulate_ode.R"))
 PAR_NAMES <- c("v1", "sigma", "migr", "portion", "whigh", "wfrac")
 
 # These are the CC-magic parameters, hard coded here, so no need to save them to disk
-DEFAULT_PARS <- list(
-  v1      = 0.065,
-  sigma   = 0.13,
-  migr    = 0.00001,
-  portion = 0.3,
-  whigh   = 0.1363,
-  wfrac   = 0.0023 / 0.1363
-)
+DEFAULT_PARS <- common$DEFAULT_PARS
 
 FIXED_PARS <- list(
   vaccine1 = common$VACCINE_TYPES[["PCV7"]],
