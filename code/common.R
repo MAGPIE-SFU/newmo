@@ -29,7 +29,7 @@ FITTED_PARAMETERS_PATH_SEQ <- file.path(FIT_SEQUENTIAL_DIR, "all_fitted_paramete
 # Default (CC_MAGIC) parameters: fit starting values and the baseline
 DEFAULT_PARS <- list(
 #   v1      = 0.065,
-    v1      = log(1 - 0.065),
+    v1      = -log(1 - 0.065),
 #   sigma   = 0.13,
     sigma   = log(1 + 0.13),
   migr    = 0.00001,
