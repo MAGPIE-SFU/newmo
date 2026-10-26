@@ -16,7 +16,7 @@ N_SCREEN   <- 1000                    # random starts (the default start is adde
 LOSSES     <- names(loss_functions)
 SEED       <- 1337
 N_CORES    <- 1                       # > 1 uses parallel::mclapply (Linux/macOS only)
-RECOMPUTE  <- TRUE                    # FALSE: reuse the saved screen if it exists
+RECOMPUTE  <- F
 TOP_FRAC   <- 0.1                     # second plot zooms on the best fraction per loss
 
 # Plot these parameters on a log10 axis (match the log-scale starts in make_starts)
@@ -26,6 +26,16 @@ X_LABEL  <- setNames(
   ifelse(LOG_AXIS, paste0("log10(", names(LOG_AXIS), ")"), names(LOG_AXIS)),
   names(LOG_AXIS)
 )
+
+theme_panels <- theme_bw() +
+  theme(
+    panel.border     = element_rect(colour = "grey30", fill = NA, linewidth = 0.8),
+    panel.grid.minor = element_blank(),
+    panel.spacing    = unit(0.9, "lines"),
+    strip.background = element_rect(fill = "grey90", colour = "grey30"),
+    strip.text       = element_text(face = "bold"),
+    legend.position  = "none"
+  )
 
 # 1D profiles through the fitted optimum
 FITS_PATH       <- common$FITTED_PARAMETERS_PATH_SEQ  # fits table; the last round per loss is used
@@ -111,7 +121,9 @@ plot_landscape <- function(d, title) {
     ungroup()
 
   ggplot(d, aes(x, loss_value)) +
-    geom_point(alpha = 0.25, size = 0.7) +
+    # geom_point(alpha = 0.25, size = 0.7) +
+    geom_point(aes(colour = loss), alpha = 0.3, size = 0.7) +
+    scale_colour_brewer(palette = "Dark2") +
     geom_point(data = filter(d, start_id == "default"), colour = "red", size = 2.5) +
     geom_point(data = best, colour = "dodgerblue3", size = 2.5) +
     facet_grid(loss ~ parameter, scales = "free",
@@ -122,8 +134,9 @@ plot_landscape <- function(d, title) {
       subtitle = "red = default start, blue = best start for that loss",
       x = NULL, y = "loss (log scale)"
     ) +
-    theme_minimal() +
-    theme(strip.text = element_text(face = "bold"))
+    theme_panels
+    # theme_minimal() +
+    # theme(strip.text = element_text(face = "bold"))
 }
 
 p_all <- plot_landscape(long, paste0("Loss vs parameter: ", N_SCREEN, " random starts"))
@@ -234,7 +247,10 @@ p_prof <- ggplot(prof, aes(x, ratio)) +
   geom_hline(yintercept = 1, linetype = "dotted", colour = "grey50") +
   geom_vline(aes(xintercept = x_center), linetype = "dashed", colour = "dodgerblue3") +
   geom_line() +
-  geom_point(size = 0.8) +
+  # geom_point(size = 0.8) +
+  geom_line(aes(colour = loss)) +
+  geom_point(aes(colour = loss), size = 0.8) +
+  scale_colour_brewer(palette = "Dark2") +
   facet_grid(loss ~ parameter, scales = "free_x",
              labeller = labeller(parameter = X_LABEL)) +
   scale_y_log10() +
@@ -244,8 +260,9 @@ p_prof <- ggplot(prof, aes(x, ratio)) +
                       "values capped at ", PROFILE_YMAX, "x the fitted loss"),
     x = NULL, y = "loss / fitted loss (log scale)"
   ) +
-  theme_minimal() +
-  theme(strip.text = element_text(face = "bold"))
+  theme_panels
+  # theme_minimal() +
+  # theme(strip.text = element_text(face = "bold"))
 
 ggsave(file.path(OUTPUT_DIR, "profiles_last_round.png"), p_prof,
        width = 16, height = 3.2 * length(unique(prof$loss)), dpi = 150)
