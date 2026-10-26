@@ -25,7 +25,7 @@ all_fits <- readRDS(rds_params_fit_path)
 # Examples: one optimizer, or one loss function:
 # all_fits <- all_fits[all_fits$method == "hjkb", ]
 # all_fits <- all_fits[all_fits$loss == "weighted_composition_distance", ]
-all_fits <- all_fits[all_fits$start_id == "round_05", ]
+all_fits <- all_fits[all_fits$start_id == "round_06", ]
 
 modelpars_list <- setNames(
   Map(function(id, loss, method) {

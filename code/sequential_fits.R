@@ -16,7 +16,8 @@ USE_LOG       <- TRUE
 LOSSES        <- names(loss_functions)     # one independent chain per loss
 CHAIN_METHODS <- c("nmkb", "lbfgsb", "hjkb")         # cycled over rounds: nmkb, hjkb, nmkb, ...
 N_ROUNDS      <- 6
-START_FROM    <- "random"                 # "default", "random", or a named parameter vector
+START_FROM    <- "screen"
+N_SCREEN      <- 1000
 MAXFEVAL      <- 20000
 SEED          <- 1337
 REL_TOL       <- NULL                      # e.g. 1e-6 to stop a chain early when a round
@@ -31,11 +32,35 @@ OUTPUT_DIR <- common$FIT_SEQUENTIAL_DIR
 set.seed(SEED)
 fit_data <- load_fit_data()
 
-start <- if (is.numeric(START_FROM)) {
-  clamp_to_bounds(START_FROM[PAR_NAMES])
+dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
+
+if (identical(START_FROM, "screen")) {
+
+  screen_starts <- make_starts(n_random = N_SCREEN)   # includes "default"
+
+  # losses x starts: simulate once per start, apply every loss to that simulation
+  t_screen <- system.time(
+    screen <- sapply(screen_starts, function(s) {
+      sim <- tryCatch(run_model(as.list(s), USE_SWITCH), error = function(e) NULL)
+      vapply(loss_functions, function(f) {
+        if (is.null(sim)) return(Inf)
+        v <- tryCatch(f(sim, fit_data$data, fit_data$sd), error = function(e) Inf)
+        if (is.finite(v)) v else Inf
+      }, numeric(1))
+    })
+  )[["elapsed"]]
+  message("Screened ", length(screen_starts), " starts in ", round(t_screen), " s")
+
+  saveRDS(screen, file.path(OUTPUT_DIR, "screen_losses.rds"))
+  best_idx <- apply(screen, 1, which.min)    # best start per loss function
+
 } else {
-  starts <- make_starts(n_random = as.integer(START_FROM == "random"))
-  starts[[length(starts)]]   # "default" or the single random start
+  start <- if (is.numeric(START_FROM)) {
+    clamp_to_bounds(START_FROM[PAR_NAMES])
+  } else {
+    starts <- make_starts(n_random = as.integer(START_FROM == "random"))
+    starts[[length(starts)]]
+  }
 }
 
 # ------------------------------------------------------------
@@ -45,7 +70,12 @@ fits <- list()
 
 for (loss_name in LOSSES) {
   fn <- make_loss(fit_data$data, fit_data$sd, loss_functions[[loss_name]], USE_SWITCH)
-  current <- start
+  current <- if (identical(START_FROM, "screen")) {
+      message("  best screened start: ", names(screen_starts)[best_idx[[loss_name]]],
+              " (loss ", signif(screen[loss_name, best_idx[[loss_name]]], 4),
+              "; default start: ", signif(screen[loss_name, "default"], 4), ")")
+      screen_starts[[best_idx[[loss_name]]]]
+    } else start
 
   for (r in seq_len(N_ROUNDS)) {
     method <- CHAIN_METHODS[(r - 1) %% length(CHAIN_METHODS) + 1]
