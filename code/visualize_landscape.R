@@ -16,7 +16,7 @@ N_SCREEN   <- 1000                    # random starts (the default start is adde
 LOSSES     <- names(loss_functions)
 SEED       <- 1337
 N_CORES    <- 1                       # > 1 uses parallel::mclapply (Linux/macOS only)
-RECOMPUTE  <- F
+RECOMPUTE  <- T
 TOP_FRAC   <- 0.1                     # second plot zooms on the best fraction per loss
 
 # Plot these parameters on a log10 axis (match the log-scale starts in make_starts)
@@ -147,9 +147,9 @@ top <- long |>
   ungroup()
 p_top <- plot_landscape(top, paste0("Best ", TOP_FRAC * 100, "% of starts per loss"))
 
-ggsave(file.path(OUTPUT_DIR, "landscape_all.png"), p_all,
+ggsave(file.path(OUTPUT_DIR, "landscape_all.pdf"), p_all,
        width = 16, height = 3.2 * length(LOSSES), dpi = 150)
-ggsave(file.path(OUTPUT_DIR, "landscape_top.png"), p_top,
+ggsave(file.path(OUTPUT_DIR, "landscape_top.pdf"), p_top,
        width = 16, height = 3.2 * length(LOSSES), dpi = 150)
 
 print(p_all)
@@ -264,6 +264,6 @@ p_prof <- ggplot(prof, aes(x, ratio)) +
   # theme_minimal() +
   # theme(strip.text = element_text(face = "bold"))
 
-ggsave(file.path(OUTPUT_DIR, "profiles_last_round.png"), p_prof,
+ggsave(file.path(OUTPUT_DIR, "profiles_last_round.pdf"), p_prof,
        width = 16, height = 3.2 * length(unique(prof$loss)), dpi = 150)
 print(p_prof)

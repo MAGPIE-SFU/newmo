@@ -34,11 +34,9 @@ FIXED_PARS <- list(
 PAR_LOWER <- c(v1 = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0.002, wfrac = 0)
 PAR_UPPER <- c(v1 = 5,     sigma = 7, migr = 1, portion = 1, whigh = 1,     wfrac = 1)
 
-
 NYEARS <- common$NYEARS
 
-# Keep a start strictly inside the bounds (the bounded optimizers dislike
-# starting exactly on a boundary).
+# Keep a start strictly inside the bounds (the bounded optimizers dislike starting exactly on a boundary).
 clamp_to_bounds <- function(par, lower = PAR_LOWER, upper = PAR_UPPER, eps = 1e-6) {
   pmin(pmax(par, lower + eps), upper - eps)
 }
