@@ -32,7 +32,7 @@ FIXED_PARS <- list(
 # PAR_LOWER <- c(v1 = 0.001, sigma = 0,    migr = 0, portion = 0, whigh = 0.002, wfrac = 0)
 # PAR_UPPER <- c(v1 = 0.99,  sigma = 1000, migr = 1, portion = 1, whigh = 1,     wfrac = 1)
 PAR_LOWER <- c(v1 = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0.002, wfrac = 0)
-PAR_UPPER <- c(v1 = 5,     sigma = 7, migr = 1, portion = 1, whigh = 1,     wfrac = 1)
+PAR_UPPER <- c(v1 = 5,     sigma = 15, migr = 1, portion = 1, whigh = 1,     wfrac = 1)
 
 NYEARS <- common$NYEARS
 

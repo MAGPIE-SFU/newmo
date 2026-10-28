@@ -26,6 +26,9 @@ FITTED_PARAMETERS_PATH        <- file.path(FIT_DIR, "all_fitted_parameters.rds")
 FITTED_PARAMETERS_PATH_SWITCH <- file.path(FIT_DIR, "all_fitted_parameters_switch.rds")
 FITTED_PARAMETERS_PATH_SEQ <- file.path(FIT_SEQUENTIAL_DIR, "all_fitted_parameters_switch.rds")
 
+ALL_BEST_FITS_PATH <- file.path(here::here("data", "SouthAfrica"), "all_best_fitted_parameters.rds")
+OVERALL_BEST_FITS_PATH <- file.path(here::here("data", "SouthAfrica"), "overall_best_fitted_parameters.rds")
+
 # Default (CC_MAGIC) parameters: fit starting values and the baseline
 DEFAULT_PARS <- list(
 #   v1      = 0.065,
