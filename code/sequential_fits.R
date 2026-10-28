@@ -20,7 +20,7 @@ START_FROM    <- "screen"
 N_SCREEN      <- 1000
 MAXFEVAL      <- 20000
 SEED          <- 1337
-REL_TOL       <- NULL                      # e.g. 1e-6 to stop a chain early when a round
+REL_TOL       <- 1e-6                      # e.g. 1e-6 to stop a chain early when a round
                                            # improves the loss by less than this (relative)
 
 # Kept separate so run_fits.R output is not overwritten

@@ -17,13 +17,13 @@ idx <- tapply(seq_len(nrow(fit_summary)), fit_summary[, "loss"],
 
 best <- all_fits[all_fits$fit_id %in% fit_summary[idx, "fit_id"], ]
 
-saveRDS(best, common$BEST_FITS_PATH)
+saveRDS(best, common$ALL_BEST_FITS_PATH)
 
 modelpars_list <- setNames(
   Map(function(id, loss, method) {
     parameter_generator(
       how_numerical = loss, optimizer = method, fit_id = id,
-      path = common$BEST_FITS_PATH,
+      path = common$ALL_BEST_FITS_PATH,
       vaccine_type1 = "PCV7", vaccine_type2 = "PCV13",
       how_gene_order = "default",
       use_switch = TRUE

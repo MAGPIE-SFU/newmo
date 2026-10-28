@@ -32,7 +32,7 @@ FIXED_PARS <- list(
 # PAR_LOWER <- c(v1 = 0.001, sigma = 0,    migr = 0, portion = 0, whigh = 0.002, wfrac = 0)
 # PAR_UPPER <- c(v1 = 0.99,  sigma = 1000, migr = 1, portion = 1, whigh = 1,     wfrac = 1)
 PAR_LOWER <- c(v1 = 0.001, sigma = 0, migr = 0, portion = 0, whigh = 0.002, wfrac = 0)
-PAR_UPPER <- c(v1 = 5,     sigma = 15, migr = 1, portion = 1, whigh = 1,     wfrac = 1)
+PAR_UPPER <- c(v1 = 5,     sigma = 20, migr = 1, portion = 1, whigh = 1,     wfrac = 1)
 
 NYEARS <- common$NYEARS
 
@@ -190,7 +190,7 @@ log_loss <- function(fn, penalty = 1e10) {
 # START_UPPER <- c(v1 = 0.99,  sigma = 10,    migr = 1e-2, portion = 0.99, whigh = 1,     wfrac = 1)
 
 START_LOWER <- c(v1 = 0.001, sigma = 0.001, migr = 1e-8, portion = 0.01, whigh = 0.002, wfrac = 1e-3)
-START_UPPER <- c(v1 = 1,     sigma = 2.4,   migr = 1e-2, portion = 0.99, whigh = 1,     wfrac = 1)
+START_UPPER <- c(v1 = 1,     sigma = 7,   migr = 1e-2, portion = 0.99, whigh = 1,     wfrac = 1)
 
 START_LOG   <- c(v1 = TRUE,  sigma = TRUE,  migr = TRUE, portion = FALSE, whigh = TRUE, wfrac = TRUE)
 
