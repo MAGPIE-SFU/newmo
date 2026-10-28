@@ -103,7 +103,7 @@ p_change <- ggplot(dat, aes(y = serotype)) +
   theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
 
 
-p_inv + p_ipdfrac+ p_change + plot_layout(guides = "collect")
+p_inv + p_carpre+ p_change + plot_layout(guides = "collect")
 
 # note: what we see is that PCV13 does pretty well at choosing the top contributors to IPD. 
 # there are several alternate strains we could put in if we want the top 13 contributors to IPD. 
@@ -144,9 +144,71 @@ ipdfrac20 = summary$serotype[1:20]
 
 # for this i will need: set up modelpars; set the vaccine; simulate; getIPD for the simulation, etc 
 
+candidates = setdiff(summary$serotype[1:27] , common$VACCINE_TYPES$PCV7) # could compute this directly from inv, might be more reliable than making my summary 
+current   <- common$VACCINE_TYPES$PCV7
+remaining <- candidates
+trace     <- tibble(step = integer(), added = character(),
+                    ipd = double(), ipd_drop = double())
+targetsize <- 20 # valency 
+baseIPD <- score_vaccine(modelpars, current, inv, group_lookup)
+
+while (length(current) < targetsize && length(remaining) > 0) {
+  
+  scores <- vapply(remaining,
+                   function(s) score_vaccine(modelpars, c(current, s), inv, group_lookup),
+                   FUN.VALUE = 1)
+  
+  best <- remaining[which.min(scores)]
+  
+  trace <- add_row(trace,
+                   step     = length(current) - 7 + 1, # 7 because it's the length of pcv7.. 
+                   added    = best,
+                   ipd      = min(scores),
+                   ipd_drop = baseIPD - min(scores))
+  
+  current   <- c(current, best)
+  remaining <- setdiff(remaining, best)
+  base_ipd  <- min(scores)
+  
+  message(sprintf("step %d: added %s, IPD %.1f",
+                  nrow(trace), best, base_ipd))
+}
+trace
+#  the IPD does not drop much as you add the next few 
+# note that we do better than PCV13; can cmopare to our ipdfrac15 vaccine for example
 
 
 
+# now let's do an exhaustive search 
+library(tictoc) 
+tic(); score_vaccine(modelpars, current, inv, group_lookup); toc() # 0.03s per evaluation, can do 32 per second 
+# so an exhaustive search of the top 25 serotypes, but forced to include PCV7 (so 18 to choose from), 
+# and we search for the remaining 8 to add for a 15-valent vaccine, is choose(18,8) which will take about 1350s 
+# or about 30 mins. seems reasonable. 
 
+
+library(future.apply)
+
+plan(multisession, workers = parallel::detectCores(logical = FALSE) - 2)   # 16
+candidates = setdiff(summary$serotype[1:27] , common$VACCINE_TYPES$PCV7) # could compute this directly from inv, might be more reliable than making my summary 
+combos <- combn(candidates, 8, simplify = FALSE)   # combos[[1]] is a character vector of things added to PCV7
+# the vaccine for each row of the resulting stuff is going to be c(PCV7, combos[[id]]) 
+
+# compute all the scores
+scores <- future_vapply(combos,
+                        function(s) score_vaccine(modelpars, c(PCV7, s), inv, group_lookup),
+                        FUN.VALUE=1)
+
+res8 <- tibble(
+  id    = seq_along(combos),
+  added = vapply(combos, paste, character(1), collapse = ","),
+  ipd   = scores
+) %>%
+  arrange(ipd) %>%
+  mutate(rank = row_number(),
+         ipd_rel = ipd / ipd[1])
+
+write_csv(res8, "exhaustive_15valent.csv")
+plan(sequential)       # release the workers
 
 
