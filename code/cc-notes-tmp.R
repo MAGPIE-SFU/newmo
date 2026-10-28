@@ -6,22 +6,28 @@ library(dplyr)
 
 source("code/plot_functions.R") 
 source("code/simulate_ode.R")
-samodel = readRDS("data/SouthAfrica/samodel.rds")
 
-xt <- read_csv("data/SouthAfrica/xt_grouped.csv", show_col_types = FALSE)
+common <- new.env()
+sys.source(here::here("code", "common.R"), envir = common)
+
+# Load information
+samodel <- readRDS(common$SA_MODEL_PATH)
+xt <- read_csv(
+  common$XT_PATH,
+  show_col_types = FALSE
+)
+nyears <- common$NYEARS
+
 
 # model parameters 
- modelpars <-list()
- modelpars$v <- 0.065 # there is a reference to 0.1 in my notes, too..
- modelpars$sigma <- 0.13 # from previous NFDS models
- modelpars$migr <- 0.00001 # migration parameter
- modelpars$portion <- 0.3 # fraction under NFDS
- modelpars$vaccine = c("1", "3", "4", "5", "6A","6B","7F","9V","14","18C","19A", "19F","23F") # PCV13 i think
- modelpars$whigh = 0.1363 # from MA model and previous paper
- modelpars$wlow = 0.0023 # from MA model too; could be 0 (Leonie)
-#
- modelpars$K=sum(samodel$x0) # ok but that's 1.. 
-nyears = 6 
+modelpars = common$DEFAULT_PARS
+modelpars$vaccine1 = c("1", "3", "4", "5", "6A","6B","7F","9V","14","18C","19A", "19F","23F") # PCV13
+modelpars$vaccine2 = c("1", "3", "4", "5", "6A","6B","7F","9V","14","18C","19A", "19F","23F") # PCV13
+modelpars$wlow  <- modelpars$whigh * modelpars$wfrac
+modelpars$v2    <- modelpars$v1
+modelpars$tswitch <- 0 
+modelpars$gene_order <- 1:length(samodel$el) # logitdiff order since that is how we made Gnfds
+ #
 mp2 = modelpars; mp2$sigma = 0; 
 # note that all 3 of sigma, portion and whigh (and wlow) give a strength of NFDS - should probably simplify 
 # more wlow (0.07 only change) : 19A and 35B are worse, but rareNVT a bit better , 15A is worse (than baseline above) 

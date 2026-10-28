@@ -444,7 +444,12 @@ ggplot(comp_wide_sero, aes(x = adult, y = unknown)) +
   )
 # the unknowns look more like kids than adults in their ST composition. 
 
-### make a plot of the estimated carriage composition with the new uncertinaty
+################################################################################
+################################################################################
+### make a plot of the estimated carriage composition with the new uncertainty
+################################################################################
+
+
 # Select 20 most common groups
 top_groups <- xt_agg %>%
   group_by(group) %>%
