@@ -14,8 +14,8 @@ rownames(locus_by_year) <- locus_by_year$locus      # only if something downstre
 xt <- read_csv("data/SouthAfrica/processed-inputs/xt_grouped_uncertainty.csv", show_col_types = FALSE)
 
 x0 <- xt %>%
-  filter(year <= 2008) %>%
-  filter(2005 < year) %>%
+  filter(year <= 2009) %>%
+  filter(2004 < year) %>%
   group_by(group) %>%
   summarise(frac = mean(frac), .groups = "drop")
 

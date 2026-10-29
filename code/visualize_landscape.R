@@ -38,7 +38,7 @@ theme_panels <- theme_bw() +
   )
 
 # 1D profiles through the fitted optimum
-FITS_PATH       <- common$FITTED_PARAMETERS_PATH_SEQ  # fits table; the last round per loss is used
+FITS_PATH       <- common$ALL_BEST_FITS_PATH  # fits table; the last round per loss is used
 PROFILE_DECADES <- 1.5     # log-scale parameters: +/- this many decades around the fit
 N_GRID          <- 41      # grid points per parameter
 PROFILE_YMAX    <- 10      # cap on loss / fitted loss, so one bad region doesn't flatten the rest
