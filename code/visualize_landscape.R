@@ -23,7 +23,7 @@ TOP_FRAC   <- 0.1                     # second plot zooms on the best fraction p
 LOG_AXIS <- c(v1 = TRUE, sigma = TRUE, migr = TRUE,
               portion = FALSE, whigh = TRUE, wfrac = TRUE)
 X_LABEL  <- setNames(
-  ifelse(LOG_AXIS, paste0("log10(", names(LOG_AXIS), ")"), names(LOG_AXIS)),
+  ifelse(LOG_AXIS, paste0("log(", names(LOG_AXIS), ")"), names(LOG_AXIS)),
   names(LOG_AXIS)
 )
 
@@ -38,7 +38,9 @@ theme_panels <- theme_bw() +
   )
 
 # 1D profiles through the fitted optimum
-FITS_PATH       <- common$ALL_BEST_FITS_PATH  # fits table; the last round per loss is used
+# FITS_PATH       <- common$ALL_BEST_FITS_PATH  # fits table; the last round per loss is used
+seq_seed <- 1337
+FITS_PATH <- file.path(here::here("data", "SouthAfrica", "fit_sequential", paste0("seed_", seq_seed)), "all_fitted_parameters_switch.rds")
 PROFILE_DECADES <- 1.5     # log-scale parameters: +/- this many decades around the fit
 N_GRID          <- 41      # grid points per parameter
 PROFILE_YMAX    <- 10      # cap on loss / fitted loss, so one bad region doesn't flatten the rest
@@ -145,15 +147,15 @@ top <- long |>
   group_by(loss) |>
   filter(loss_value <= quantile(loss_value, TOP_FRAC)) |>
   ungroup()
-p_top <- plot_landscape(top, paste0("Best ", TOP_FRAC * 100, "% of starts per loss"))
+# p_top <- plot_landscape(top, paste0("Best ", TOP_FRAC * 100, "% of starts per loss"))
 
 ggsave(file.path(OUTPUT_DIR, "landscape_all.pdf"), p_all,
        width = 16, height = 3.2 * length(LOSSES), dpi = 150)
-ggsave(file.path(OUTPUT_DIR, "landscape_top.pdf"), p_top,
-       width = 16, height = 3.2 * length(LOSSES), dpi = 150)
+# ggsave(file.path(OUTPUT_DIR, "landscape_top.pdf"), p_top,
+#        width = 16, height = 3.2 * length(LOSSES), dpi = 150)
 
 print(p_all)
-print(p_top)
+# print(p_top)
 
 # Best screened start per loss (feed these into the fits)
 best_starts <- do.call(rbind, lapply(LOSSES, function(l) {
