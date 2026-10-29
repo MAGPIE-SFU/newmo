@@ -1,5 +1,6 @@
 # functions for the NFDS-based vaccine design 
 
+compress_vstring = function(vaccine) { paste(vaccine, collapse=",")}
 
 getIPD <- function(simulation, inv,group_lookup) {
   # simulation needs the serotype, right now the row names are the groups 

@@ -28,7 +28,7 @@ sero_inv <- inv %>%
   filter(!is.na(v_child))
 
 # mis-matches? 
-setdiff(sero_car$serotype, sero_inv$serotype)   # rare_NVT, NTs, *_other labels
+setdiff(sero_car$serotype, sero_inv$serotype)   # rare_NVT, NTs - no invasiveness
 setdiff(sero_inv$serotype, sero_car$serotype)   # not in the population
 
 dat <- inner_join(sero_car, sero_inv, sero_post, by = "serotype") %>%
