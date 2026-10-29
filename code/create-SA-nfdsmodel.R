@@ -15,7 +15,7 @@ xt <- read_csv("data/SouthAfrica/processed-inputs/xt_grouped_uncertainty.csv", s
 
 x0 <- xt %>%
   filter(year <= 2008) %>%
-  filter(2004 < year) %>%
+  filter(2005 < year) %>%
   group_by(group) %>%
   summarise(frac = mean(frac), .groups = "drop")
 

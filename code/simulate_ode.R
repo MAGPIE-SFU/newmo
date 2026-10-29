@@ -39,6 +39,12 @@ simulate <- function(samodel, modelpars, nyears, stepspy = 24 ) {
         # rr  <- -log(1 - vt)
 
         rr <- if (t < modelpars$tswitch) rr1 else rr2
+        cur_sum <- sum(x)
+        if (cur_sum <= 0){
+          print(modelpars)
+          print(cur_sum)
+          stop("Sum is less than 0")
+        }
 
         with(modelpars, {
             totalx <- sum(x)
