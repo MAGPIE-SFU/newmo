@@ -19,9 +19,11 @@ source(here::here("code", "simulate_ode.R"))
 # 1. Parameter bookkeeping
 # ------------------------------------------------------------
 
-PAR_NAMES <- c("v1", "sigma", "portion", "whigh", "wfrac")
+PAR_NAMES <- c("v1", "sigma", "portion")
 
 FIXED_MIGR <- 0.00001
+FIXED_WLOW <- 0.0
+FIXED_WHIGH <- 1
 
 # These are the CC-magic parameters, hard coded here, so no need to save them to disk
 DEFAULT_PARS <- common$DEFAULT_PARS
@@ -33,8 +35,8 @@ FIXED_PARS <- list(
 
 # PAR_LOWER <- c(v1 = 0.001, sigma = 0,    migr = 0, portion = 0, whigh = 0.002, wfrac = 0)
 # PAR_UPPER <- c(v1 = 0.99,  sigma = 1000, migr = 1, portion = 1, whigh = 1,     wfrac = 1)
-PAR_LOWER <- c(v1 = 0.001, sigma = 0, portion = 0, whigh = 0.002, wfrac = 0)
-PAR_UPPER <- c(v1 = 1, sigma = 200, portion = 1, whigh = 100, wfrac = 1)
+PAR_LOWER <- c(v1 = 0.001, sigma = 0, portion = 0)
+PAR_UPPER <- c(v1 = 1, sigma = 1000, portion = 1)
 
 NYEARS <- common$NYEARS
 
@@ -114,14 +116,11 @@ run_model <- function(
 ) {
   samodel <- get_samodel(sa_model_path)
 
-  pars <- DEFAULT_PARS
-  pars[names(model_pars)] <- model_pars
+  pars <- as.list(model_pars)
 
-  # wfrac = wlow / whigh, so wlow <= whigh always holds
-  if ("wfrac" %in% names(pars)) {
-    pars$wlow <- pars$whigh * pars$wfrac
-    pars$wfrac <- NULL
-  }
+  # Fixed Parameters are added:
+  pars$whigh <- FIXED_WHIGH
+  pars$wlow <- FIXED_WLOW
   pars$v2 <- pars$v1
   pars$migr <- FIXED_MIGR
   pars$tswitch <- if (use_switch) common$T_SWITCH else 0
@@ -220,19 +219,14 @@ log_loss <- function(fn, penalty = 1e10) {
 START_LOWER <- c(
   v1 = 0.001,
   sigma = 0.001,
-  portion = 0.01,
-  whigh = 0.002,
-  wfrac = 1e-3
+  portion = 0.01
 )
-START_UPPER <- c(v1 = 1, sigma = 200, portion = 0.99, whigh = 100, wfrac = 1)
+START_UPPER <- c(v1 = 1, sigma = 1000, portion = 0.99)
 
 START_LOG <- c(
   v1 = TRUE,
   sigma = TRUE,
-  # migr = TRUE,
-  portion = FALSE,
-  whigh = TRUE,
-  wfrac = TRUE
+  portion = FALSE
 )
 
 # Latin hypercube on [0,1]^k: one point in each of n strata per dimension
@@ -411,9 +405,11 @@ fit_one <- function(
 format_parameters <- function(par, use_switch) {
   p <- as.data.frame(as.list(setNames(par, PAR_NAMES)))
 
-  p$wlow <- p$whigh * p$wfrac
+  # Should not be there, but keeping it for now.
   p$wfrac <- NULL
 
+  p$whigh <- FIXED_WHIGH
+  p$wlow <- FIXED_WLOW
   p$migr <- FIXED_MIGR
 
   p$tswitch <- if (use_switch) common$T_SWITCH else 0
