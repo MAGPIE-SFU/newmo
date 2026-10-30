@@ -15,7 +15,8 @@ simulate <- function(samodel, modelpars, nyears, stepspy = 24 ) {
 
     w <- rep(modelpars$wlow, length(samodel$el))
     tmpind <- round(modelpars$portion*length(samodel$el))
-    w[modelpars$gene_order[1:tmpind]] <- modelpars$whigh
+    # w[modelpars$gene_order[1:tmpind]] <- modelpars$whigh
+    w[modelpars$gene_order[seq_len(tmpind)]] <- modelpars$whigh
 
     # create matrix multiples to simplify pi calculation
     modelpars$Gwe <- samodel$G %*% (w * samodel$el) # this is sum_l Gil wl el , the first part of pi
@@ -31,14 +32,8 @@ simulate <- function(samodel, modelpars, nyears, stepspy = 24 ) {
         # create vt: 0 or parameter v, one value for each strain (row of G)
 
         # time dependent vaccines, where we switch from vaccine1 to vaccine2 at point tswitch
-        # vt <- if (t < modelpars$tswitch) {
-        #     modelpars$v1 * (samodel$st %in% modelpars$vaccine1)
-        # } else {
-        #     modelpars$v2 * (samodel$st %in% modelpars$vaccine2)
-        # }
-        # rr  <- -log(1 - vt)
-
         rr <- if (t < modelpars$tswitch) rr1 else rr2
+
         cur_sum <- sum(x)
         if (cur_sum <= 0){
           print(modelpars)
