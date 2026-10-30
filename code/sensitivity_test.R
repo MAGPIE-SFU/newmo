@@ -20,19 +20,30 @@ source("common.R")
 source("parameter_fitting_functions.R")
 
 # load in fits
-opt_pars <- readRDS("../data/SouthAfrica/all_best_fitted_parameters.rds")
+opt_pars <- readRDS(paste0(here::here("data/SouthAfrica"), "/all_fitted_parameters_switch.rds"))
+
+# making modifications for the initial file Lars sent me
+opt_pars <- opt_pars |>
+  filter(start_id == "round_06") |>
+  bind_cols(whigh=1)
 
 # default theme for the plots
 clean_theme <- theme(panel.background = element_rect(fill="white", colour="black"),
       panel.grid.major = element_line("grey85"),
       panel.grid.minor = element_line('grey95'))
 
+# pull out initial conditions
+IC <- data.frame(value = get_samodel()$x0) |>
+  rownames_to_column(var="group") |> 
+  bind_cols(year=0)
+
 
 # some relevant parameters for running the test and generating figures
-N_GROUPS <- 25     # number of groups to plot
-QTILE <- 0.95      # summary quantile for the ribbons
-N_SIMS <- 1000     # number of simulated parameter settings to draw (for each loss function)
-START_YEAR <- 2008 # year prior to start of model evaluation (i.e., fitted trajectories start at START_YEAR+1)
+N_GROUPS <- 16       # number of groups to plot
+QTILE <- 0.95        # summary quantile for the ribbons
+N_SIMS <- 100        # number of simulated parameter settings to draw (for each loss function)
+START_YEAR <- 2007.5 # year prior to start of model evaluation (i.e., fitted trajectories start at START_YEAR+1)
+BEST_LOSS <- "SSE"   # the loss function used to obtain the optimal parameters (options are SSE, weighted_SSE, and weighted_composition_distance)
 
 
 # Optimal trajectories 
@@ -52,18 +63,21 @@ out1 <- run_model(as.list(opt_pars[1,]), T) |>
   rownames_to_column(var="group") |>
   # filter(group %in% top_groups$group) |>
   pivot_longer(-group, names_to="year", names_prefix="year.", names_transform = as.numeric) |>
+  bind_rows(IC) |>
   bind_cols(loss = opt_pars[1,"loss"])
 
 out2 <- run_model(as.list(opt_pars[2,]), T) |>
   rownames_to_column(var="group") |>
   # filter(group %in% top_groups$group) |>
   pivot_longer(-group, names_to="year", names_prefix="year.", names_transform = as.numeric) |>
+  bind_rows(IC) |>
   bind_cols(loss = opt_pars[2,"loss"])
 
 out3 <- run_model(as.list(opt_pars[3,]), T) |>
   rownames_to_column(var="group") |>
   # filter(ST %in% top_STs$ST) |>
   pivot_longer(-group, names_to="year", names_prefix="year.", names_transform = as.numeric) |>
+  bind_rows(IC) |>
   bind_cols(loss = opt_pars[3,"loss"])
 
 # plot trajectories for the three optimal fits
@@ -72,7 +86,7 @@ bind_rows(out1, out2, out3) |>
   ggplot(aes(x=year, y=value, colour=loss)) +
   geom_point() +
   geom_line() +
-  facet_wrap(~group, ncol=5, scales="free_y") +
+  facet_wrap(~group, ncol=4, scales="free_y") +
   clean_theme +
   theme(legend.position="bottom")
 
@@ -85,24 +99,17 @@ bind_rows(out1, out2, out3) |>
 #  equal to the optimized values and standard deviation loosely based on the 
 #  loss function profiles
 
-sd_pars <- data.frame(par = c("log10v1", "log10sigma", "log10migr", "portion", "log10whigh", "log10wfrac"),
-                      SD  = c( 0.25,      0.5,          1,           0.1,       0.25,         2),
+sd_pars <- data.frame(par = c("logv1", "logsigma", "portion"),
+                      SD  = c( 0.1,      0.25,          0.01),
                       # bounds on the sampling scale: portion in [0,1], and
-                      #  log10wfrac <= 0 so that wlow <= whigh
-                      lo  = c(-Inf,      -Inf,         -Inf,         0,        -Inf,         -Inf),
-                      hi  = c( Inf,       Inf,          Inf,         1,         Inf,          0))
-
-# floor for wfrac so that fits with wlow = 0 have a finite mean on the log10
-#  scale (log10(0) = -Inf breaks the truncated normal draws)
-wfrac_min <- 1e-8
+                      lo  = c(-Inf,      -Inf,         0.01),
+                      hi  = c( Inf,       Inf,         0.99))
 
 par_lookup <- lapply(1:3, function(i) {as.data.frame(opt_pars[i,]) |>
-    mutate(log10v1 = log10(v1),
-           log10sigma = log10(sigma),
-           log10migr = log10(migr),
-           log10whigh = log10(whigh),
-           log10wfrac = log10(pmax(wlow/whigh, wfrac_min))) |>
-    select(log10v1, log10sigma, log10migr, log10whigh, log10wfrac, portion) |>
+    mutate(logv1 = log(v1),
+           logsigma = log(sigma),
+           portion = portion,
+           .keep = "none") |>
     pivot_longer(everything(), names_to="par") |>
     left_join(sd_pars, by="par")
   }
@@ -126,17 +133,28 @@ par_df <- lapply(1:3, function(j) {
 }) |>
   list_rbind()
 
+# pull out parameters used in the optimal fits
+opt_settings <- lapply(seq_along(par_lookup), function(i) {
+  par_lookup[[i]] |>
+    select(par, value) |>
+    bind_cols(loss = names(loss_functions)[i])
+}) |> list_rbind()
+
+# check the range of the simulated parameters (on the simulation scale)
+par_df |>
+  ggplot(aes(x=val)) +
+  geom_histogram(aes(fill=loss), colour="black") +
+  facet_grid(loss~par, scales="free") +
+  geom_vline(data=opt_settings, aes(xintercept=value), linewidth=1, linetype="dashed") +
+  clean_theme
+
 sim_par_sets <- par_df |>
   pivot_wider(names_from="par", values_from = "val") |>
-  mutate(sigma = 10^log10sigma,
-         v1 = 10^log10v1,
-         migr = 10^log10migr,
-         whigh = 10^log10whigh,
-         wfrac = 10^log10wfrac,
+  mutate(sigma = exp(logsigma),
+         v1 = exp(logv1),
          .keep = "unused")
 
-stopifnot(all(between(sim_par_sets$portion, 0, 1)),
-          all(sim_par_sets$wfrac <= 1))
+stopifnot(all(between(sim_par_sets$portion, 0, 1)))
 
 # run the model for each perturbed parameter set, keeping the rep/loss labels
 #  alongside the trajectories so the results can be summarised and plotted
@@ -154,7 +172,7 @@ parallel::clusterEvalQ(cl, {
   source("parameter_fitting_functions.R")
   NULL
 })
-parallel::clusterExport(cl, c("sim_par_sets", "top_groups"))
+parallel::clusterExport(cl, c("sim_par_sets", "top_groups", "IC"))
 
 run_one <- function(k) {
   pars_k <- sim_par_sets[k, ]
@@ -164,6 +182,7 @@ run_one <- function(k) {
       rownames_to_column(var="group") |>
       # filter(group %in% top_groups$ST) |>
       pivot_longer(-group, names_to="year", names_prefix="year.", names_transform = as.numeric) |>
+      bind_rows(IC) |>
       bind_cols(select(pars_k, rep, loss)),
     error = function(e) {
       data.frame(rep = pars_k$rep, loss = pars_k$loss, error = conditionMessage(e))
@@ -183,7 +202,12 @@ if (NROW(failed) > 0) warning(nrow(failed), " parameter sets failed; see `failed
 sim_out <- discard(sim_res, \(x) "error" %in% names(x)) |>
   list_rbind()
 
-# plot perturbed trajectories for each loss function
+# fitted trajectories
+opt_fit <- bind_rows(out1, out2, out3) |>
+  filter(group %in% top_groups$group) |>
+  mutate(year = START_YEAR + year)
+
+# Plot: ribbons w/ optimal trajectories (dashed line)
 sim_out |>
   filter(group %in% top_groups$group) |>
   group_by(group, year, loss) |>
@@ -195,7 +219,8 @@ sim_out |>
   ggplot(aes(x=year, colour=loss)) +
   geom_ribbon(aes(ymin=L, ymax=U, fill=loss), alpha=0.25, colour=NA) +
   geom_line(aes(y=med), linewidth=1) +
-  facet_wrap(~group, ncol=5, scales="free_y") +
+  geom_line(data=opt_fit, aes(y=value), linetype="dashed", linewidth=1) +
+  facet_wrap(~group, ncol=4, scales="free_y") +
   labs(x="Year", y="ST-SC group frequency", colour="Loss function", fill="Loss function") +
   scale_colour_brewer(palette="Dark2",
                       labels = c("SSE", "Weighted composition", "Weighted SSE")) +
@@ -204,6 +229,76 @@ sim_out |>
   clean_theme +
   theme(legend.position="bottom")
 
+# plot all simulated trajectories
+sim_out |>
+  filter(group %in% top_groups$group) |>
+  mutate(year = START_YEAR + year) |>
+  ggplot(aes(x=year, colour=loss)) +
+  geom_line(aes(y=value, colour=loss, group=interaction(rep,loss)), alpha=0.1) +
+  geom_line(data=opt_fit, aes(y=value), linetype="dashed", linewidth=1) +
+  facet_wrap(~group, ncol=4, scales="free_y") +
+  labs(x="Year", y="ST-SC group frequency", colour="Loss function", fill="Loss function") +
+  scale_colour_brewer(palette="Dark2",
+                      labels = c("SSE", "Weighted composition", "Weighted SSE")) +
+  scale_fill_brewer(palette="Dark2",
+                    labels = c("SSE", "Weighted composition", "Weighted SSE")) +
+  clean_theme +
+  theme(legend.position="bottom")
+
+# plot all simulated trajectories: SSE only
+sim_out |>
+  filter(group %in% top_groups$group,
+         loss =="SSE") |>
+  mutate(year = START_YEAR + year) |>
+  ggplot(aes(x=year, colour=loss)) +
+  geom_line(aes(y=value, colour=loss, group=interaction(rep,loss)), alpha=0.1) +
+  geom_line(data=opt_fit, aes(y=value), linetype="dashed", linewidth=1) +
+  facet_wrap(~group, ncol=4, scales="free_y") +
+  labs(x="Year", y="ST-SC group frequency", colour="Loss function") +
+  scale_colour_brewer(palette="Dark2",
+                      labels = c("SSE", "Weighted composition", "Weighted SSE")) +
+  scale_fill_brewer(palette="Dark2",
+                    labels = c("SSE", "Weighted composition", "Weighted SSE")) +
+  clean_theme +
+  theme(legend.position="bottom")
+ggsave(paste0(here::here("plots"), "/sim_trajectories_SSE.pdf"), width=9, height=7, units="in", dpi=700)
+
+# plot all simulated trajectories: weighted SSE only
+sim_out |>
+  filter(group %in% top_groups$group,
+         loss =="weighted_SSE") |>
+  mutate(year = START_YEAR + year) |>
+  ggplot(aes(x=year, colour=loss)) +
+  geom_line(aes(y=value, colour=loss, group=interaction(rep,loss)), alpha=0.1) +
+  geom_line(data=opt_fit, aes(y=value), linetype="dashed", linewidth=1) +
+  facet_wrap(~group, ncol=4, scales="free_y") +
+  labs(x="Year", y="ST-SC group frequency", colour="Loss function") +
+  scale_colour_brewer(palette="Dark2",
+                      labels = c("SSE", "Weighted composition", "Weighted SSE")) +
+  scale_fill_brewer(palette="Dark2",
+                    labels = c("SSE", "Weighted composition", "Weighted SSE")) +
+  clean_theme +
+  theme(legend.position="bottom")
+ggsave(paste0(here::here("plots"), "/sim_trajectories_weighted-SSE.pdf"), width=9, height=7, units="in", dpi=700)
+
+# plot all simulated trajectories: weighted composition distance only
+sim_out |>
+  filter(group %in% top_groups$group,
+         loss =="weighted_composition_distance") |>
+  mutate(year = START_YEAR + year) |>
+  ggplot(aes(x=year, colour=loss)) +
+  geom_line(aes(y=value, colour=loss, group=interaction(rep,loss)), alpha=0.1) +
+  geom_line(data=opt_fit, aes(y=value), linetype="dashed", linewidth=1) +
+  facet_wrap(~group, ncol=4, scales="free_y") +
+  labs(x="Year", y="ST-SC group frequency", colour="Loss function") +
+  scale_colour_brewer(palette="Dark2",
+                      labels = c("SSE", "Weighted composition", "Weighted SSE")) +
+  scale_fill_brewer(palette="Dark2",
+                    labels = c("SSE", "Weighted composition", "Weighted SSE")) +
+  clean_theme +
+  theme(legend.position="bottom")
+ggsave(paste0(here::here("plots"), "/sim_trajectories_weighted-composition.pdf"), width=9, height=7, units="in", dpi=700)
+
 
 
 # Combine the above plot with xt and the optimal fits
@@ -211,11 +306,6 @@ sim_out |>
 
 # data
 xt <- read_csv(common$XT_PATH, col_types=cols())
-
-# fitted trajectories
-opt_fit <- bind_rows(out1, out2, out3) |>
-  filter(group %in% top_groups$group) |>
-  mutate(year = START_YEAR + year)
 
 # simulated trajectory summaries
 sim_summ <- sim_out |>
@@ -227,15 +317,17 @@ sim_summ <- sim_out |>
             .groups = "drop") |>
   mutate(year = START_YEAR + year)
 
+# summarise sensitivity for all 3 loss functions
 xt |>
   filter(group %in% top_groups$group) |>
   ggplot(aes(x=year)) +
-  geom_point(aes(y=frac)) +
+  geom_point(aes(y=frac), size=1) +
+  geom_line(aes(y=frac), linewidth=0.5, linetype="dashed") +
   geom_segment(aes(y=frac-frac_sd*1.96, yend=frac+frac_sd*1.96)) +
   geom_line(data=opt_fit, aes(y=value, colour=loss), linewidth=1) +
   geom_ribbon(data=sim_summ, aes(ymin=L, ymax=U, fill=loss), alpha=0.2) +
   labs(x="Year", y="ST-SC group frequency", colour="Loss function", fill="Loss function",
-       title=paste0("Top ",N_GROUPS, " ST-GPSC groups. Ribbons show ", QTILE*100, "% range.")) +
+       title=paste0("Top ",N_GROUPS, " ST-GPSC groups. Ribbons show ", QTILE*100, "% trajectory band.")) +
   scale_colour_brewer(palette="Dark2",
                       labels = c("SSE", "Weighted composition", "Weighted SSE")) +
   scale_fill_brewer(palette="Dark2",
@@ -243,4 +335,21 @@ xt |>
   facet_wrap(~group, scales="free_y") +
   clean_theme +
   theme(legend.position="bottom")
-ggsave(paste0(here::here("plots/"), "sensitivity_top",N_GROUPS,"_ribbon",QTILE,".png"), width=9, height=7, units="in", dpi=700)
+ggsave(paste0(here::here("plots/"), "/sensitivity_top",N_GROUPS,"_ribbon",QTILE,".pdf"), width=9, height=7, units="in", dpi=700)
+
+# summarise sensitivity for just the chosen loss function
+xt |>
+  filter(group %in% top_groups$group) |>
+  ggplot(aes(x=year)) +
+  geom_point(aes(y=frac), size=1) +
+  geom_line(aes(y=frac), linewidth=0.5, linetype="dashed") +
+  geom_segment(aes(y=frac-frac_sd*1.96, yend=frac+frac_sd*1.96)) +
+  geom_line(data=filter(opt_fit, loss==BEST_LOSS), aes(y=value), linewidth=1) +
+  geom_ribbon(data=filter(sim_summ, loss==BEST_LOSS), aes(ymin=L, ymax=U), alpha=0.2) +
+  labs(x="Year", y="ST-SC group frequency",
+       title=paste0("Top ",N_GROUPS, " ST-GPSC groups. Ribbons show ", QTILE*100, "% range."),
+       subtitle=paste("Based on the optimal fit from the", BEST_LOSS, "function.")) +
+  facet_wrap(~group, scales="free_y") +
+  clean_theme +
+  theme(legend.position="bottom")
+ggsave(paste0(here::here("plots/"), "/sensitivity_top",N_GROUPS,"_ribbon",QTILE,"_",BEST_LOSS,".pdf"), width=9, height=7, units="in", dpi=700)
