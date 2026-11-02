@@ -17,8 +17,11 @@ xt <- read_csv(
 
 nyears <- common$NYEARS
 
-rds_params_fit_path <- common$ALL_BEST_FITS_PATH
-# rds_params_fit_path <- common$OVERALL_BEST_FITS_PATH
+# seq_seed <- 42
+# rds_params_fit_path <- file.path(here::here("data", "SouthAfrica", "fit_sequential", paste0("seed_", seq_seed)), "all_fitted_parameters_switch.rds")
+
+# rds_params_fit_path <- common$ALL_BEST_FITS_PATH
+rds_params_fit_path <- common$OVERALL_BEST_FITS_PATH
 
 all_fits <- readRDS(rds_params_fit_path)
 
@@ -26,7 +29,7 @@ all_fits <- readRDS(rds_params_fit_path)
 # Examples: one optimizer, or one loss function:
 # all_fits <- all_fits[all_fits$method == "hjkb", ]
 # all_fits <- all_fits[all_fits$loss == "weighted_composition_distance", ]
-# all_fits <- all_fits[all_fits$start_id == "round_06", ]
+all_fits <- all_fits[all_fits$start_id == "round_06", ]
 
 modelpars_list <- setNames(
   Map(function(id, loss, method) {
@@ -52,7 +55,7 @@ modelpars_list <- setNames(
 
 # Run simulations using the stored parameters
 simulations <- lapply(modelpars_list, function(modelpars) {
-    simulate(samodel, modelpars, nyears)
+  simulate(samodel, modelpars, nyears)
 })
 
 # plot the top groups

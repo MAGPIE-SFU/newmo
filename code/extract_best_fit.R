@@ -1,54 +1,89 @@
 source("code/simulate_ode.R")
 source("code/parameter_generator.R")
+source(here::here("code", "parameter_fitting_functions.R"))
+library(dplyr)
 
 common <- new.env()
 sys.source(here::here("code", "common.R"), envir = common)
 
+# ---- Find all seed runs -------------------------------------------------------
+seed_dirs <- list.dirs(common$FIT_SEQUENTIAL_DIR, recursive = FALSE)
+seed_dirs <- seed_dirs[grepl("^seed_", basename(seed_dirs))]
+stopifnot("No seed_* folders found" = length(seed_dirs) > 0)
 
-rds_params_fit_path <- common$FITTED_PARAMETERS_PATH_SEQ
+read_seed <- function(dir, prefix) {
+  f <- file.path(dir, paste0(prefix, basename(dir), ".rds"))
+  if (!file.exists(f)) {
+    message("Skipping ", basename(dir), ": ", basename(f), " not found (run unfinished?)")
+    return(NULL)
+  }
+  readRDS(f)
+}
 
-all_fits <- readRDS(rds_params_fit_path)
+summary_all <- bind_rows(lapply(seed_dirs, read_seed, prefix = "summary_with_start_"))
+params_all  <- bind_rows(lapply(seed_dirs, read_seed, prefix = "parameters_with_start_"))
 
-fit_summary <- readRDS(file.path(common$FIT_SEQUENTIAL_DIR, "fit_summary_switch.rds"))
+# parameter_generator reads fits from a file; point each seed at its own
+param_paths <- setNames(
+  file.path(seed_dirs, paste0("parameters_with_start_", basename(seed_dirs), ".rds")),
+  sub("^seed_", "", basename(seed_dirs))
+)
 
-idx <- tapply(seq_len(nrow(fit_summary)), fit_summary[, "loss"],
-              function(i) i[which.min(fit_summary[i, "fitted"])])
-# fit_summary[idx, ]
-
-best <- all_fits[all_fits$fit_id %in% fit_summary[idx, "fit_id"], ]
+# ---- Best fit per seed x loss (excluding the round_00 starting points) --------
+best <- summary_all |>
+  filter(method != "start", is.finite(fitted)) |>
+  group_by(seed, loss) |>
+  slice_min(fitted, n = 1, with_ties = FALSE) |>
+  ungroup() |>
+  select(seed, fit_id, loss, method, start_id, fitted) |>
+  left_join(params_all |> select(-loss, -method, -start_id),
+            by = c("seed", "fit_id")) |>
+  mutate(key = paste0("seed", seed, "_", fit_id))   # fit_id repeats across seeds
 
 saveRDS(best, common$ALL_BEST_FITS_PATH)
 
-modelpars_list <- setNames(
-  Map(function(id, loss, method) {
-    parameter_generator(
-      how_numerical = loss, optimizer = method, fit_id = id,
-      path = common$ALL_BEST_FITS_PATH,
-      vaccine_type1 = "PCV7", vaccine_type2 = "PCV13",
-      how_gene_order = "default",
-      use_switch = TRUE
-    )
-  }, best$fit_id, best$loss, best$method),
-  best$fit_id
-)
+# ---- Simulate every candidate --------------------------------------------------
+modelpars_list <- setNames(lapply(seq_len(nrow(best)), function(i) {
+  parameter_generator(
+    how_numerical = best$loss[i], optimizer = best$method[i],
+    fit_id = best$fit_id[i], path = param_paths[[as.character(best$seed[i])]],
+    vaccine_type1 = "PCV7", vaccine_type2 = "PCV13",
+    how_gene_order = "default", use_switch = TRUE
+  )
+}), best$key)
 
 samodel <- readRDS(common$SA_MODEL_PATH)
-simulations <- lapply(modelpars_list, function(modelpars) {
-    simulate(samodel, modelpars, common$NYEARS)
-})
+simulations <- lapply(modelpars_list, simulate,
+                      samodel = samodel, nyears = common$NYEARS)
 
-source("code/parameter_fitting_functions.R")
-
+# ---- Cross-evaluate every candidate on every loss -----------------------------
 data_sd <- load_fit_data()
-
-# loss_functions[["SSE"]](simulations[[1]], data_sd$data, data_sd$sd)
 errors <- t(sapply(simulations, function(sim)
   sapply(loss_functions, function(f) f(sim, data_sd$data, data_sd$sd))
 ))
-rel <- sweep(errors, 2, apply(errors, 2, min), "/")
-score <- rowSums(rel)
-best_i <- which.min(score)
+rel <- sweep(errors, 2, apply(errors, 2, min), "/")   # relative to best across ALL seeds
+best$score <- rowSums(rel)[best$key]
 
-best_params <- best[best_i, ]
+# ---- Report --------------------------------------------------------------------
+cat("\nScore = sum over loss functions of (loss / best loss across all fits);",
+    "lower is better, minimum possible =", ncol(errors), "\n")
+
+for (s in sort(unique(best$seed))) {
+  tab <- best |>
+    filter(seed == s) |>
+    arrange(score) |>
+    select(loss, method, start_id, fitted, score)
+  cat(sprintf("\nSeed %s  ->  best: %s (score %.3f)\n", s, tab$loss[1], tab$score[1]))
+  print(as.data.frame(tab), row.names = FALSE, digits = 4)
+}
+
+best_params <- best |> slice_min(score, n = 1, with_ties = FALSE)
+cat(sprintf("\nOverall best: seed %s, fitted with %s (%s, %s), score %.3f\n",
+            best_params$seed, best_params$loss, best_params$method,
+            best_params$start_id, best_params$score))
+
+cat("\nWins per loss function across seeds:\n")
+print(best |> group_by(seed) |> slice_min(score, n = 1, with_ties = FALSE) |>
+        ungroup() |> count(loss, name = "wins"))
 
 saveRDS(best_params, common$OVERALL_BEST_FITS_PATH)
