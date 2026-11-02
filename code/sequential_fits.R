@@ -17,11 +17,10 @@ LOSSES        <- names(loss_functions)
 CHAIN_METHODS <- c("nmkb", "lbfgsb", "hjkb")
 N_ROUNDS      <- 6
 START_FROM    <- "screen"
-N_SCREEN      <- 10000
+N_SCREEN      <- 20000
 MAXFEVAL      <- 20000
-SEED          <- 1337
-REL_TOL       <- 1e-6                      # e.g. 1e-6 to stop a chain early when a round
-                                           # improves the loss by less than this (relative)
+SEED          <- 42
+REL_TOL       <- NULL # 1e-6
 PARALLEL      <- TRUE                      # parallelise the start screen
 N_WORKERS     <- max(1, parallelly::availableCores() - 1)
 

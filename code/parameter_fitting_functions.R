@@ -36,7 +36,7 @@ FIXED_PARS <- list(
 # PAR_LOWER <- c(v1 = 0.001, sigma = 0,    migr = 0, portion = 0, whigh = 0.002, wfrac = 0)
 # PAR_UPPER <- c(v1 = 0.99,  sigma = 1000, migr = 1, portion = 1, whigh = 1,     wfrac = 1)
 PAR_LOWER <- c(v1 = 0.001, sigma = 0, portion = 0)
-PAR_UPPER <- c(v1 = 1, sigma = 1000, portion = 1)
+PAR_UPPER <- c(v1 = 1, sigma = 10000, portion = 1)
 
 NYEARS <- common$NYEARS
 
@@ -212,21 +212,10 @@ log_loss <- function(fn, penalty = 1e10) {
 # START_LOWER <- c(v1 = 0.001, sigma = 0.001, migr = 1e-8, portion = 0.01, whigh = 0.002, wfrac = 1e-3)
 # START_UPPER <- c(v1 = 0.99,  sigma = 10,    migr = 1e-2, portion = 0.99, whigh = 1,     wfrac = 1)
 
+START_LOWER <- c(v1 = 0.001, sigma = 0.001, portion = 0.01)
+START_UPPER <- c(v1 = 1, sigma = 10000, portion = 0.99)
 
-# PAR_LOWER <- c(v1 = 0.001, sigma = 0, portion = 0, whigh = 0.002, wfrac = 0)
-# PAR_UPPER <- c(v1 = 1, sigma = 200, portion = 1, whigh = 100, wfrac = 1)
-
-START_LOWER <- c(
-  v1 = 0.001,
-  sigma = 0.001,
-  portion = 0.01
-)
-START_UPPER <- c(v1 = 1, sigma = 1000, portion = 0.99)
-
-START_LOG <- c(
-  v1 = TRUE,
-  sigma = TRUE,
-  portion = FALSE
+START_LOG <- c(v1 = TRUE, sigma = TRUE, portion = FALSE
 )
 
 # Latin hypercube on [0,1]^k: one point in each of n strata per dimension
