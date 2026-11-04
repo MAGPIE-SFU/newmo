@@ -6,7 +6,8 @@ library(patchwork)
 library(future.apply)
 
 source("code/simulate_ode.R")
-source("~/newmo/code/explore-vaccine-fns.R")
+source("code/explore-vaccine-fns.R")
+source("code/parameter_generator.R")
 
 
 common <- new.env()
@@ -27,6 +28,11 @@ PCV7 = common$VACCINE_TYPES$PCV7
 PCV13 = common$VACCINE_TYPES$PCV13
 
 
+# rds_params_fit_path <- common$ALL_BEST_FITS_PATH
+rds_params_fit_path <- common$OVERALL_BEST_FITS_PATH
+
+all_fits <- readRDS(rds_params_fit_path)
+
 # set up modelpars: relevant for methods 2 and 3, not 1  
 
 # here are all the fits 
@@ -43,7 +49,7 @@ modelpars_list <- setNames(
   all_fits$fit_id
 )
 # for now start with the wcd one 
-modelpars = modelpars_list$weighted_composition_distance__lbfgsb__round_05
+modelpars = modelpars_list$SSE__hjkb__round_06 # current "best" after Lars' efforts 
 modelpars$tswitch <- 0 # we won't use a switch 
 modelpars$gene_order <- 1:length(samodel$el) # logitdiff order since that is how we made Gnfds
 
@@ -61,7 +67,7 @@ compodat <- xt %>%
   summarise(frac = mean(frac), .groups = "drop")  %>% 
   inner_join(sero_inv, by = "serotype") %>% 
   mutate(ipdfrac = v_child*frac)%>% # does not sum to 1, but comparable from simulation to simulation
-  mutate(ipdshare = ipdfrac / sum(compodat$ipdfrac)) # normalized, sums to 1 
+  mutate(ipdshare = ipdfrac / sum(ipdfrac)) # normalized, sums to 1 
 
 # the top 25 serotypes, as a character vector, in order of the fraction of IPD they are causing in our 
 # inferred pre-vaccine population 
@@ -83,13 +89,13 @@ top13car <- compodat %>%
   as.character() 
 
 direct = tibble(vaccine = compress_vstring(vax_pre_ipdfrac), 
-                ipd = score_vaccine(modelpars, vax_pre_ipdfrac, inv,group_lookup),
+                ipd = score_vaccine(modelpars, vax_pre_ipdfrac, inv,group_lookup,years=6:10),
                 method = "ipdfrac") 
 direct = rbind(direct, 
                tibble(vaccine = compress_vstring(top13car),
-                      ipd = score_vaccine(modelpars, top13car, inv, group_lookup),
+                      ipd = score_vaccine(modelpars, top13car, inv, group_lookup,years=6:10),
                       method = "mostinvasive"))
-
+direct
 # ---- method 2: greedy .
 # explanation: of the top 25 invasive serotypes (NOT according to fraction in carriage, just
 # according to their estimated invasiveness in children), choose the best one 
@@ -114,7 +120,7 @@ tmp=PCV7
 while (length(current) < targetsize && length(remaining) > 0) {
   
   scores <- vapply(remaining,
-                   function(s) score_vaccine(modelpars, c(current, s), inv, group_lookup),
+                   function(s) score_vaccine(modelpars, c(current, s), inv, group_lookup, years = 6:10),
                    FUN.VALUE = 1)
   
   best <- remaining[which.min(scores)]
@@ -132,8 +138,8 @@ while (length(current) < targetsize && length(remaining) > 0) {
                   nrow(trace), best, base_ipd))
 }
 trace
-#  the IPD does not drop much as you add the next few 
-# note that we do better than PCV13; can cmopare to our ipdfrac15 vaccine for example
+#  
+# note that we do better than PCV13 by the end (a little) 
 
 
 
@@ -153,7 +159,7 @@ combos <- combn(candidates, 6, simplify = FALSE)   # combos[[1]] is a character 
 
 # for each one, add those to PCV7 and compute the score 
 scores <- future_vapply(combos,
-                        function(s) score_vaccine(modelpars, c(PCV7, s), inv, group_lookup),
+                        function(s) score_vaccine(modelpars, c(PCV7, s), inv, group_lookup, years = 6:10),
                         FUN.VALUE=1)
 
 # collect the results 
@@ -183,8 +189,8 @@ all_vaccines <- bind_rows(
   exhaustive_results  %>% select(ipd, vaccine, method)
 )
 
-# and save . oops. the commas should have been anything else, for csv files. 
-# let's use RDS. duh. 
+# and save (no long with commas but i'll stick to rds anyway)
+
 saveRDS(all_vaccines, file = "data/SouthAfrica/processed-inputs/vaccines.rds")
 
 

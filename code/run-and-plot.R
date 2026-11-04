@@ -55,7 +55,7 @@ modelpars_list <- setNames(
 
 # Run simulations using the stored parameters
 simulations <- lapply(modelpars_list, function(modelpars) {
-  simulate(samodel, modelpars, nyears)
+  simulate(samodel, modelpars, 10)
 })
 
 # plot the top groups
@@ -65,10 +65,12 @@ top_group_plot(
   samodel,
   xt,
   simulations,
-  drop_vt = T,
+  drop_vt = F,
   vaccine=common$VACCINE_TYPES[["PCV13"]]
 )
 
-# plot the top serotypes
+  # plot the top serotypes
 top_sero_plot(vax_start=2010, prevax_years = 2000:2009,
-              n_serotypes=18, samodel, xt, simulations, vaccine=common$VACCINE_TYPES[["PCV13"]])
+              n_serotypes=18, samodel, xt, simulations, 
+              drop_vt = F, 
+              vaccine=common$VACCINE_TYPES[["PCV13"]])
