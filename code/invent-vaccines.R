@@ -5,13 +5,13 @@ library(dplyr)
 library(patchwork)
 library(future.apply)
 
+common <- new.env()
+sys.source(here::here("code", "common.R"), envir = common)
+
 source("code/simulate_ode.R")
 source("code/explore-vaccine-fns.R")
 source("code/parameter_generator.R")
 
-
-common <- new.env()
-sys.source(here::here("code", "common.R"), envir = common)
 
 # Load information
 samodel <- readRDS(common$SA_MODEL_PATH)
@@ -32,25 +32,22 @@ rds_params_fit_path <- common$OVERALL_BEST_FITS_PATH
 
 all_fits <- readRDS(rds_params_fit_path)
 
+# ===========================================================================
 # set up modelpars: relevant for methods 2 and 3, not 1
+# ===========================================================================
 
-# here are all the fits
-modelpars_list <- setNames(
-  Map(function(id, loss, method) {
-    parameter_generator(
-      how_numerical = loss, optimizer = method, fit_id = id,
-      path = rds_params_fit_path,
-      vaccine_type1 = "PCV7", vaccine_type2 = "PCV13",
-      how_gene_order = "default",
-      use_switch = TRUE
-    )
-  }, all_fits$fit_id, all_fits$loss, all_fits$method),
-  all_fits$fit_id
+# best overall fit
+best_fit_model_pars <- readRDS(common$OVERALL_BEST_FITS_PATH)
+
+modelpars <- parameter_generator(
+  how_numerical = best_fit_model_pars$loss,
+  optimizer = best_fit_model_pars$method,
+  fit_id = best_fit_model_pars$fit_id,
+  path = common$OVERALL_BEST_FITS_PATH,
+  vaccine_type1 = "PCV7", vaccine_type2 = "PCV13",
+  how_gene_order = "default",
+  use_switch = TRUE
 )
-# for now start with the wcd one
-
-# todo this needs to be fixed to use the best overall model pars...
-modelpars = modelpars_list$SSE__hjkb__round_06 # current "best" after Lars' efforts
 
 modelpars$tswitch <- 0 # we won't use a switch
 modelpars$gene_order <- 1:length(samodel$el) # logitdiff order since that is how we made Gnfds
@@ -97,7 +94,7 @@ direct = rbind(direct,
                tibble(vaccine = compress_vstring(top13car),
                       ipd = score_vaccine(modelpars, top13car, inv, group_lookup, years=6:10),
                       method = "mostinvasive"))
-direct
+# direct
 # ---- method 2: greedy .
 # explanation: of the top 25 invasive serotypes (NOT according to fraction in carriage, just
 # according to their estimated invasiveness in children), choose the best one
@@ -143,9 +140,6 @@ trace
 #
 # note that we do better than PCV13 by the end (a little)
 
-
-
-
 # ---- method 3: exhaustive search
 
 plan(multisession, workers = parallel::detectCores(logical = FALSE) - 2)   # 16
@@ -165,7 +159,6 @@ scores <- future_vapply(combos,
                         FUN.VALUE=1)
 
 # collect the results
-
 exhaustive_results <- tibble(
   id    = seq_along(combos),
   vaccine = vapply(combos,
@@ -175,11 +168,7 @@ exhaustive_results <- tibble(
 ) %>%
   arrange(ipd)
 
-
-
 plan(sequential)       # release the workers
-
-
 
 # join all the results together
 trace$method= "greedy"
@@ -192,5 +181,4 @@ all_vaccines <- bind_rows(
 )
 
 # and save (no long with commas but i'll stick to rds anyway)
-
 saveRDS(all_vaccines, file = "data/SouthAfrica/processed-inputs/vaccines.rds")
