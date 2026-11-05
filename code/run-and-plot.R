@@ -29,7 +29,7 @@ all_fits <- readRDS(rds_params_fit_path)
 # Examples: one optimizer, or one loss function:
 # all_fits <- all_fits[all_fits$method == "hjkb", ]
 # all_fits <- all_fits[all_fits$loss == "weighted_composition_distance", ]
-all_fits <- all_fits[all_fits$start_id == "round_06", ]
+# all_fits <- all_fits[all_fits$start_id == "round_06", ]
 
 modelpars_list <- setNames(
   Map(function(id, loss, method) {
@@ -55,7 +55,7 @@ modelpars_list <- setNames(
 
 # Run simulations using the stored parameters
 simulations <- lapply(modelpars_list, function(modelpars) {
-  simulate(samodel, modelpars, 10)
+  simulate(samodel, modelpars, nyears)
 })
 
 # plot the top groups
@@ -69,8 +69,8 @@ top_group_plot(
   vaccine=common$VACCINE_TYPES[["PCV13"]]
 )
 
-  # plot the top serotypes
+# plot the top serotypes
 top_sero_plot(vax_start=2010, prevax_years = 2000:2009,
-              n_serotypes=18, samodel, xt, simulations, 
-              drop_vt = F, 
+              n_serotypes=18, samodel, xt, simulations,
+              drop_vt = F,
               vaccine=common$VACCINE_TYPES[["PCV13"]])
