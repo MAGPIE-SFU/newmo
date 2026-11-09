@@ -163,3 +163,22 @@ parameter_generator <- function(
 
   modelpars
 }
+
+
+load_best_fit_pars <- function(path = common$OVERALL_BEST_FITS_PATH,
+                               use_switch = TRUE, ...) {
+  best <- readRDS(path)
+  if (nrow(best) != 1) {
+    stop("Expected one row in '", basename(path), "', found ", nrow(best))
+  }
+
+  parameter_generator(
+    how_numerical = best$loss,
+    optimizer     = best$method,
+    fit_id        = best$fit_id,
+    path          = path,
+    use_switch    = use_switch,
+    ...
+  )
+}
+
