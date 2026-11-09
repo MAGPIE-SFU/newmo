@@ -4,3 +4,7 @@
 data/SouthAfrica/fit_comparison/*
 data/SouthAfrica/fit_sequential/*
 data/SouthAfrica/landscape/*
+data/SouthAfrica/*
+plots/predictedIPD
+
+projects/*/results
