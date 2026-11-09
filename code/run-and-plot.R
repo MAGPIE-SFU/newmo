@@ -21,9 +21,8 @@ nyears <- common$NYEARS
 # rds_params_fit_path <- file.path(here::here("data", "SouthAfrica", "fit_sequential", paste0("seed_", seq_seed)), "all_fitted_parameters_switch.rds")
 
 # rds_params_fit_path <- common$ALL_BEST_FITS_PATH
-rds_params_fit_path <- common$OVERALL_BEST_FITS_PATH
-
-all_fits <- readRDS(rds_params_fit_path)
+# rds_params_fit_path <- common$OVERALL_BEST_FITS_PATH
+# all_fits <- readRDS(rds_params_fit_path)
 
 # Optional filter, since 3 losses x 3 starts x 2 optimizers is a lot of curves.
 # Examples: one optimizer, or one loss function:
@@ -31,18 +30,22 @@ all_fits <- readRDS(rds_params_fit_path)
 # all_fits <- all_fits[all_fits$loss == "weighted_composition_distance", ]
 # all_fits <- all_fits[all_fits$start_id == "round_06", ]
 
-modelpars_list <- setNames(
-  Map(function(id, loss, method) {
-    parameter_generator(
-      how_numerical = loss, optimizer = method, fit_id = id,
-      path = rds_params_fit_path,
-      vaccine_type1 = "PCV7", vaccine_type2 = "PCV13",
-      how_gene_order = "default",
-      use_switch = TRUE
-    )
-  }, all_fits$fit_id, all_fits$loss, all_fits$method),
-  all_fits$fit_id
-)
+# modelpars_list <- setNames(
+#   Map(function(id, loss, method) {
+#     parameter_generator(
+#       how_numerical = loss, optimizer = method, fit_id = id,
+#       path = rds_params_fit_path,
+#       vaccine_type1 = "PCV7", vaccine_type2 = "PCV13",
+#       how_gene_order = "default",
+#       use_switch = TRUE
+#     )
+#   }, all_fits$fit_id, all_fits$loss, all_fits$method),
+#   all_fits$fit_id
+# )
+
+best_fit <- readRDS(common$OVERALL_BEST_FITS_PATH)
+modelpars_list <- setNames(list(load_best_fit_pars()), "Best Paramter Fit")
+
 
 # keep the baseline for comparison
 # modelpars_list[["CC_MAGIC"]] <- parameter_generator(
