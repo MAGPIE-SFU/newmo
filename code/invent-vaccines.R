@@ -136,8 +136,7 @@ while (length(current) < targetsize && length(remaining) > 0) {
   message(sprintf("step %d: added %s, IPD %.1f",
                   nrow(trace), best, base_ipd))
 }
-trace
-#
+# trace
 # note that we do better than PCV13 by the end (a little)
 
 # ---- method 3: exhaustive search

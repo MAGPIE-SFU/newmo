@@ -10,8 +10,9 @@ inv <- read.csv("data/SouthAfrica/processed-inputs/invasiveness_lookup_interval.
 vaccine_data_raw <- readRDS(here::here("data", "SouthAfrica", "processed-inputs", "vaccines.rds"))
 samodel <- readRDS(common$SA_MODEL_PATH)
 
-pcv13 <- common$VACCINE_TYPES$PCV13
-pcv7 <- common$VACCINE_TYPES$PCV7
+# Licensed vaccines to score and show, in this order (rows top to bottom,
+# column blocks left to right)
+known_serotypes <- common$VACCINE_TYPES[c("PCV7", "PCV13", "PCV15", "PCV21", "PCV23")]
 
 best_fit_model_pars <- readRDS(common$OVERALL_BEST_FITS_PATH)
 best_modelpars <- parameter_generator(
@@ -24,14 +25,12 @@ best_modelpars <- parameter_generator(
 )
 best_modelpars$tswitch <- 0
 
-
-best_modelpars$vaccine1 <- pcv7
-best_modelpars$vaccine2 <- pcv7
-ipd_pcv7 <- score_vaccine(best_modelpars, pcv7, inv, group_lookup, years=6:10)
-
-best_modelpars$vaccine1 <- pcv13
-best_modelpars$vaccine2 <- pcv13
-ipd_pcv13 <- score_vaccine(best_modelpars, pcv13, inv, group_lookup, years=6:10)
+known_ipd <- sapply(names(known_serotypes), function(v) {
+  vaccine <- known_serotypes[[v]]
+  best_modelpars$vaccine1 <- vaccine
+  best_modelpars$vaccine2 <- vaccine
+  score_vaccine(best_modelpars, vaccine, inv, group_lookup, years = 6:10)
+})
 
 all_sero_types <- samodel$st
 
@@ -45,9 +44,6 @@ library(patchwork)
 
 # Settings ---------------------------------------------------------------------
 
-known_serotypes <- list(PCV7 = pcv7, PCV13 = pcv13)
-known_ipd <- c(PCV7 = ipd_pcv7, PCV13 = ipd_pcv13)
-
 # Stops here if score_vaccine() returned anything other than one number each
 stopifnot(is.numeric(known_ipd), length(known_ipd) == length(known_serotypes))
 
@@ -57,6 +53,13 @@ all_serotypes <- all_serotypes[!is.na(all_serotypes)]
 # Number of exhaustive vaccines to show, lowest IPD first. All non-exhaustive
 # vaccines are always shown.
 n_exhaustive <- 6
+
+method_labels <- c(
+  greedy       = "Greedy",
+  exhaustive   = "Exhaustive",
+  ipdfrac      = "todo: ipdfrac",
+  mostinvasive = "todo: mostinvasive"
+)
 
 # IPD is multiplied by ipd_scale for display. Keep the two settings in step.
 ipd_scale <- 1e5
@@ -83,16 +86,17 @@ candidate_long <- vaccine_data_raw %>%
     # Vaccine strings use both "-" and "," as separators
     serotypes = str_split(vaccine, "[-,]"),
     valency = lengths(serotypes),
-    group = "Candidate"
+    group = "Candidate",
+    method_name = coalesce(unname(method_labels[method]), method)
   ) %>%
   arrange(method != "greedy", method != "exhaustive", method, valency, ipd) %>%
   group_by(method, valency) %>%
   # Number the rows only where a method repeats a valency, best IPD first
   mutate(
     vaccine_label = if (n() > 1) {
-      sprintf("%s %d-valent #%d", method, valency, row_number())
+      sprintf("%s %d-valent #%d", method_name, valency, row_number())
     } else {
-      sprintf("%s %d-valent", method, valency)
+      sprintf("%s %d-valent", method_name, valency)
     }
   ) %>%
   ungroup() %>%
@@ -112,16 +116,22 @@ sort_serotypes <- function(x) {
   x[order(as.numeric(str_extract(x, "^\\d+")), x, na.last = TRUE)]
 }
 
-# PCV7 types, then the PCV13 additions, then everything else
-pcv13_additions <- setdiff(pcv13, pcv7)
+# One block per licensed vaccine, holding its serotypes that are not in any
+# earlier vaccine, then everything else
+serotype_blocks <- list()
+seen_serotypes <- character(0)
+for (v in names(known_serotypes)) {
+  serotype_blocks[[v]] <- sort_serotypes(setdiff(known_serotypes[[v]], seen_serotypes))
+  seen_serotypes <- union(seen_serotypes, known_serotypes[[v]])
+}
+
 other_serotypes <- setdiff(
   union(all_serotypes, vaccine_long$serotype),
-  c(pcv7, pcv13_additions)
+  seen_serotypes
 )
 
 serotype_levels <- c(
-  sort_serotypes(pcv7),
-  sort_serotypes(pcv13_additions),
+  unlist(serotype_blocks, use.names = FALSE),
   sort_serotypes(other_serotypes)
 )
 
@@ -130,8 +140,8 @@ serotype_levels <- c(
 line_colour <- "#1F2933"
 line_width <- 0.6
 
-# Vertical: after the PCV7 types and after the PCV13 additions
-serotype_lines <- c(length(pcv7), length(pcv7) + length(pcv13_additions)) + 0.5
+# Vertical: after each licensed vaccine's block
+serotype_lines <- cumsum(lengths(serotype_blocks)) + 0.5
 
 # Horizontal: between candidate methods. Rows are counted from the bottom.
 candidate_methods <- vaccine_table$method[vaccine_table$group == "Candidate"]
