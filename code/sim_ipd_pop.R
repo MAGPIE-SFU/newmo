@@ -27,6 +27,14 @@ OUT_DIR <- "data/SouthAfrica/processed-inputs"
 dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
 stopifnot(all(file.exists(c(INVASIVE_FILEPATH, GROUP_FILEPATH, META_FILEPATH))))
 
+source("code/simulate_ode.R")
+common <- new.env()
+sys.source(here::here("code", "common.R"), envir = common)
+
+samodel <- readRDS(common$SA_MODEL_PATH)
+source("code/parameter_generator.R")
+modelpars <- load_best_fit_pars()
+
 # IMPORTANT: `samodel`, `modelpars`, and `simulate()` must be defined/sourced
 # before this script is run; use your chosen NFDS simulation parameters.
 stopifnot(exists("samodel"), exists("modelpars"), exists("simulate", mode = "function"))

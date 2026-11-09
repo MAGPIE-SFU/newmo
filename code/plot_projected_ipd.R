@@ -193,8 +193,25 @@ print(p_total_ipd)
 # PANEL B: Dot plot with 95% uncertainty intervals
 # ============================================================
 
-# Identify the top serotypes across all simulation years
+# Identify top serotypes by total expected IPD
+sero_order <- ipd_serotype_summary %>%
+  group_by(serotype) %>%
+  summarise(
+    total_ipd = sum(mean_ipd, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(total_ipd)) %>%
+  pull(serotype)
+
 top_seros <- head(sero_order, TOP_N)
+
+# Prepare data for Panel B
+dot_data <- ipd_serotype_summary %>%
+  filter(serotype %in% top_seros) %>%
+  mutate(
+    serotype = factor(serotype, levels = rev(top_seros)),
+    year = factor(year, levels = sort(unique(year)))
+  )
 
 
 # Intervals represent uncertainty in invasiveness,
