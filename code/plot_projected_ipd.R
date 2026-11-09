@@ -1,4 +1,3 @@
-
 # ============================================================
 # Predicted South African IPD:
 # Serotype heatmap and uncertainty dot plot
@@ -15,7 +14,7 @@ library(scales)
 # Settings
 # ------------------------------------------------------------
 
-INPUT <- "data/SouthAfrica/processed-inputs/simulated_ipd_serotype_composition.csv"
+INPUT <- "data/SouthAfrica/processed-inputs/simulated_ipd_serotype_uncertainty.csv"
 OUT_DIR <- "plots/predictedIPD"
 
 TOP_N <- 20 # Number of serotypes in dot plot
@@ -30,14 +29,14 @@ dir.create(
 # 1. Load predicted IPD composition
 # ------------------------------------------------------------
 
-ipd <- read_csv(INPUT, show_col_types = FALSE)
+ipd_serotype_summary <- read_csv(INPUT, show_col_types = FALSE)
 
 required <- c(
   "year", "serotype", "ipd_mean",
   "frac", "frac_lower", "frac_upper"
 )
 
-missing_cols <- setdiff(required, names(ipd))
+missing_cols <- setdiff(required, names(ipd_serotype_summary))
 
 if (length(missing_cols) > 0) {
   stop(
@@ -46,7 +45,7 @@ if (length(missing_cols) > 0) {
   )
 }
 
-ipd <- ipd %>%
+ipd_serotype_summary <- ipd_serotype_summary %>%
   mutate(
     serotype = as.character(serotype),
     year = as.integer(year)
@@ -62,7 +61,7 @@ ipd <- ipd %>%
 # 2. Order serotypes by overall predicted IPD burden
 # ------------------------------------------------------------
 
-sero_order <- ipd %>%
+sero_order <- ipd_serotype_summary %>%
   group_by(serotype) %>%
   summarise(
     total = sum(ipd_mean),
@@ -71,7 +70,7 @@ sero_order <- ipd %>%
   arrange(desc(total)) %>%
   pull(serotype)
 
-ipd <- ipd %>%
+ipd_serotype_summary <- ipd_serotype_summary %>%
   mutate(
     serotype = factor(
       serotype,
@@ -82,6 +81,7 @@ ipd <- ipd %>%
 # ============================================================
 # Panel A: Total predicted IPD with serotype contributions
 # ============================================================
+
 
 
 # Identify serotypes contributing the most IPD overall
@@ -197,7 +197,6 @@ print(p_total_ipd)
 top_seros <- head(sero_order, TOP_N)
 
 
-
 # Intervals represent uncertainty in invasiveness,
 # not Poisson predictive intervals.
 
@@ -283,8 +282,6 @@ dot_height <- max(
   3 + 0.31 * length(top_seros)
 )
 
-
-
 ggsave(
   file.path(OUT_DIR, "ipd_serotype_dotplot.pdf"),
   p_dot,
@@ -292,8 +289,6 @@ ggsave(
   height = dot_height,
   limitsize = FALSE
 )
-
-
 
 ggsave(
   file.path(OUT_DIR, "ipd_serotype_total.pdf"),
