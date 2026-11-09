@@ -1,0 +1,3 @@
+sa_nfds_paper:
+  script: projects/sa_nfds_paper/_targets.R
+  store: projects/sa_nfds_paper/_targets
