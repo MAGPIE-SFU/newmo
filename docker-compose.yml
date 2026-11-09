@@ -1,0 +1,8 @@
+services:
+  sa_nfds_paper:
+    build:
+      context: projects/sa_nfds_paper
+      dockerfile: Dockerfile
+    image: sa_nfds_paper
+    volumes:
+      - .:/repo
