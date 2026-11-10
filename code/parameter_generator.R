@@ -6,6 +6,9 @@
 library(dplyr)
 library(readr)
 
+# tmp loadign the local package to get some things working...
+pkgload::load_all(here::here("nfdsmodelling"), quiet = TRUE)
+
 common <- new.env()
 sys.source(here::here("code", "common.R"), envir = common)
 
@@ -25,14 +28,8 @@ resolve_vaccine <- function(spec, arg_name) {
     stop(arg_name, " must be a vaccine name or a non-empty character vector of strain labels")
   }
 
-  if (length(spec) == 1L && spec %in% names(common$VACCINE_TYPES)) {
-    return(common$VACCINE_TYPES[[spec]])
-  }
-
-  # A single string that looks like a vaccine name but isn't in the table
-  if (length(spec) == 1L && grepl("^PCV[0-9]+$", spec)) {
-    stop(arg_name, " = '", spec, "' is not in names(common$VACCINE_TYPES): ",
-         paste(names(common$VACCINE_TYPES), collapse = ", "))
+  if (length(spec) == 1L) {
+    return(nfdsmodelling::VACCINE_TYPES[[spec]])
   }
 
   spec
