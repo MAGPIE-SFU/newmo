@@ -11,5 +11,6 @@ tar_source("projects/sa_nfds_paper/R")
 tar_source("projects/sa_nfds_paper/targets")
 
 c(
-  targets_vaccines
+  targets_vaccines,
+  targets_metadata_clean
 )
