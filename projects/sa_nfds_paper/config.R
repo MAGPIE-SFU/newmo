@@ -77,8 +77,17 @@ FIT_USE_LOG       <- TRUE
 FIT_CHAIN_METHODS <- c("nmkb", "lbfgsb", "hjkb")
 FIT_N_ROUNDS      <- 3
 FIT_START_FROM    <- "screen"
-FIT_N_SCREEN      <- 20
+FIT_N_SCREEN      <- 5000
 FIT_MAXFEVAL      <- 20000
 FIT_REL_TOL       <- NULL     # 1e-6
-FIT_PARALLEL      <- FALSE     # parallelise the start screen
+FIT_PARALLEL      <- TRUE     # parallelise the start screen
 FIT_N_WORKERS     <- max(1, parallelly::availableCores() - 1)
+
+# Fit diagnostics
+DIAG_N_CORES         <- 1          # > 1 uses parallel::mclapply (Linux/macOS only)
+PROFILE_DECADES      <- 1.5        # log-scale parameters: +/- this many decades around the fit
+PROFILE_N_GRID       <- 50         # grid points per parameter
+PROFILE_YMAX         <- 10         # cap on the loss ratio
+PROFILE_RELATIVE_TO  <- "best_seed"  # or "own"
+LANDSCAPE_N_SCREEN   <- 1000       # random starts (the default start is added too)
+LANDSCAPE_SEED       <- 1337

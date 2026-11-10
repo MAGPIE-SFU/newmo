@@ -6,14 +6,19 @@ export(build_gnfds)
 export(build_invasiveness_lookup)
 export(build_samodel)
 export(clean_metadata)
+export(landscape_best_starts)
 export(load_fit_data)
 export(loss_functions)
 export(make_loss)
+export(plot_landscape)
+export(plot_profiles)
 export(plot_xt_top_groups)
+export(profile_best_fits)
 export(reweight_carriage)
 export(reweight_carriage_uncertainty)
 export(run_model)
 export(run_sequential_fits)
+export(screen_landscape)
 export(select_best_fits)
 export(shrink_invasiveness)
 export(simulate_nfds)
@@ -60,6 +65,7 @@ importFrom(ggplot2,
   element_blank,
   element_rect,
   element_text,
+  facet_grid,
   facet_wrap,
   geom_errorbar,
   geom_hline,
@@ -67,10 +73,15 @@ importFrom(ggplot2,
   geom_point,
   geom_vline,
   ggplot,
+  labeller,
   labs,
+  scale_colour_brewer,
   scale_x_continuous,
+  scale_y_log10,
   theme,
-  theme_grey
+  theme_bw,
+  theme_grey,
+  unit
 )
 importFrom(readr,parse_number)
 importFrom(stats,
@@ -88,6 +99,7 @@ importFrom(tibble,
 importFrom(tidyr,
   complete,
   nesting,
+  pivot_longer,
   pivot_wider,
   replace_na
 )

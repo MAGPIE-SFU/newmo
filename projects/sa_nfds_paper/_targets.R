@@ -13,5 +13,6 @@ tar_source("projects/sa_nfds_paper/targets")
 c(
   targets_vaccines,
   targets_data,
-  targets_fits
+  targets_fits,
+  targets_fit_diagnostics
 )
