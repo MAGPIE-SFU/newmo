@@ -26,3 +26,18 @@ INVASIVENESS_DONORS <- c(
   "24"   = "24F",
   "33D"  = "33A"
 )
+
+# Carriage reweighting ----------------------------------------------------------
+# sept 22: omega was the weight for carriage compared to IPD; set to 0.27 because that's the
+# fraction of the data that's from carriage. Sept 24: replaced by the Dirichlet prior k below
+# (better statistical interpretation, works out very similarly).
+# Leonie's paper notes NFDS datasets to date only had data from children, so tauA ~ 0.
+REWEIGHT_TAU_A <- 0                      # weight for adult IPD, should be v small
+REWEIGHT_TAU_U <- 272 / (3865 + 1386)    # prop of the dataset that is unknown age; REDO if new dataset
+REWEIGHT_K     <- 100                    # Dirichlet prior strength, in equivalent child carriage swabs
+
+# Group definitions
+PREVAX_YEARS  <- 2000:2009
+MIN_SERO_FRAC <- 0.001   # NVT serotypes below this share of pre-vaccine synthetic carriage -> rare_NVT
+MIN_SG_FRAC   <- 0.005   # serotype-GPSC pairs below this share -> serotype_other
+

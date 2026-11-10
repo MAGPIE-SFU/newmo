@@ -29,6 +29,25 @@ targets_data <- list(
     write_csv_output(invasiveness_lookup,
                      file.path(results_dir, "computed_data", "invasiveness_lookup_interval.csv")),
     format = "file"
-  )
+  ),
+    tar_target(
+    reweighted,
+    reweight_carriage(
+      meta_clean, invasiveness_lookup,
+      tauA = REWEIGHT_TAU_A, tauU = REWEIGHT_TAU_U, k = REWEIGHT_K,
+      prevax_years = PREVAX_YEARS,
+      min_sero_frac = MIN_SERO_FRAC, min_sg_frac = MIN_SG_FRAC
+    )
+  ),
+  tar_target(group_lookup, reweighted$group_lookup),
+  tar_target(xt_grouped,   reweighted$xt),
+  tar_target(group_lookup_csv,
+             write_csv_output(group_lookup, file.path(results_dir, "computed_data", "group_lookup.csv")),
+             format = "file"),
+  tar_target(meta_clean_groups_csv,
+             write_csv_output(reweighted$meta_clean_groups, file.path(results_dir, "computed_data", "meta_clean_groups.csv")),
+             format = "file"),
+  tar_target(xt_grouped_csv,
+             write_csv_output(xt_grouped, file.path(results_dir, "computed_data", "xt_grouped.csv")),
+             format = "file")
 )
-

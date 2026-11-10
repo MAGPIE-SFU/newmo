@@ -3,27 +3,45 @@
 export(VACCINE_TYPES)
 export(build_invasiveness_lookup)
 export(clean_metadata)
+export(reweight_carriage)
 export(shrink_invasiveness)
 export(simulate_nfds)
 export(vaccine_serotypes)
 importFrom(deSolve,ode)
 importFrom(dplyr,
   "%>%",
+  across,
   add_count,
+  arrange,
   bind_rows,
   case_when,
   coalesce,
+  count,
+  distinct,
   filter,
+  first,
+  full_join,
+  group_by,
   if_else,
   left_join,
   mutate,
+  n_distinct,
   na_if,
   rename,
   select,
-  tibble
+  summarise,
+  tibble,
+  transmute,
+  ungroup
 )
 importFrom(readr,parse_number)
 importFrom(stats,
   na.omit,
   setNames
+)
+importFrom(tidyr,
+  complete,
+  nesting,
+  pivot_wider,
+  replace_na
 )
