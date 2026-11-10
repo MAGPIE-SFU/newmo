@@ -47,4 +47,9 @@ MIN_SG_FRAC   <- 0.005   # serotype-GPSC pairs below this share -> serotype_othe
 XT_LAMBDA <- 0.01   # prior mean smoothed toward uniform; fraction of the prior mean that is uniform
 XT_N_REPS <- 1000   # repetitions for the invasiveness uncertainty
 
+GENE_MATRIX_RAW_PATH <- "raw_data/SouthAfrica/pa_matrix_final.csv"
 
+# Locus statistics: pre- and post-vaccine windows
+LOCUS_PRE_YEARS  <- 2000:2008
+LOCUS_POST_YEARS <- 2012:2014
+LOCUS_ALL_YEARS  <- 2000:2014

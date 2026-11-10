@@ -62,5 +62,22 @@ targets_data <- list(
              save_plot_output(plot_xt_top_groups(xt_grouped_uncertainty),
                               file.path(results_dir, "plots", "xt_top_groups.pdf"),
                               width = 12, height = 9),
+             format = "file"),
+    tar_target(gene_matrix_raw_file, GENE_MATRIX_RAW_PATH, format = "file"),
+  tar_target(
+    gnfds,
+    build_gnfds(
+      as.matrix(read.csv(gene_matrix_raw_file, row.names = 1)),
+      reweighted$meta_clean_groups,
+      xt_grouped_uncertainty,
+      pre_years = LOCUS_PRE_YEARS, post_years = LOCUS_POST_YEARS, all_years = LOCUS_ALL_YEARS
+    )
+  ),
+  tar_target(locus_by_year, gnfds$locus_by_year),
+  tar_target(locus_freqs_deltas_csv,
+             write_csv_output(locus_by_year, file.path(results_dir, "computed_data", "locus_freqs_deltas.csv")),
+             format = "file"),
+  tar_target(gnfds_csv,
+             write_matrix_output(gnfds$G, file.path(results_dir, "computed_data", "Gnfds.csv")),
              format = "file")
 )
