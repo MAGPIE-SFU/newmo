@@ -1,8 +1,15 @@
-library(deSolve)
-library(readr)
-
-simulate <- function(samodel, modelpars, nyears, stepspy = 24 ) {
-    # preliminary to running a simulation, but depends on model parameters:
+#' Simulate the NFDS model
+#'
+#' @param samodel Model object (needs x0, G, el, st).
+#' @param modelpars Parameter list, e.g. from parameter_generator().
+#' @param nyears Number of years to simulate.
+#' @param stepspy ODE output steps per year.
+#' @return Data frame of yearly average strain sizes: one row per strain,
+#'   columns year.1 ... year.<nyears>.
+#' @importFrom deSolve ode
+#' @export
+simulate_nfds <- function(samodel, modelpars, nyears, stepspy = 24) {
+  # preliminary to running a simulation, but depends on model parameters:
 
     K <- sum(samodel$x0)
 
