@@ -3,6 +3,7 @@
 export(VACCINE_TYPES)
 export(build_gnfds)
 export(build_invasiveness_lookup)
+export(build_samodel)
 export(clean_metadata)
 export(plot_xt_top_groups)
 export(reweight_carriage)

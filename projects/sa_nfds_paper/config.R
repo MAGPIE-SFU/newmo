@@ -53,3 +53,5 @@ GENE_MATRIX_RAW_PATH <- "raw_data/SouthAfrica/pa_matrix_final.csv"
 LOCUS_PRE_YEARS  <- 2000:2008
 LOCUS_POST_YEARS <- 2012:2014
 LOCUS_ALL_YEARS  <- 2000:2014
+
+X0_YEARS <- 2005:2009   # pre-vaccine years averaged for x0

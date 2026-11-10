@@ -79,5 +79,9 @@ targets_data <- list(
              format = "file"),
   tar_target(gnfds_csv,
              write_matrix_output(gnfds$G, file.path(results_dir, "computed_data", "Gnfds.csv")),
+             format = "file"),
+  tar_target(samodel, build_samodel(gnfds$G, xt_grouped_uncertainty, locus_by_year, x0_years = X0_YEARS)),
+  tar_target(samodel_rds,
+             write_rds_output(samodel, file.path(results_dir, "computed_data", "samodel.rds")),
              format = "file")
 )
