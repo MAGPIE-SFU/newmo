@@ -2,8 +2,8 @@ library(targets)
 
 pkgload::load_all("nfdsmodelling", quiet=TRUE)
 tar_option_set(
-  package = c("ggplot2"),
-  imports = "nfdsmodelling"
+  packages = c("ggplot2", "dplyr", "gt"),
+  imports  = "nfdsmodelling"
 )
 
 source("projects/sa_nfds_paper/config.R")
@@ -12,5 +12,6 @@ tar_source("projects/sa_nfds_paper/targets")
 
 c(
   targets_vaccines,
-  targets_data
+  targets_data,
+  targets_fits
 )

@@ -55,3 +55,30 @@ LOCUS_POST_YEARS <- 2012:2014
 LOCUS_ALL_YEARS  <- 2000:2014
 
 X0_YEARS <- 2005:2009   # pre-vaccine years averaged for x0
+
+# Model time setup
+NYEARS   <- 6
+T_SWITCH <- 2 * 12   # 2 years between PCV7 (2009) and PCV13 (2011), 12 time units per year
+
+# Default (CC_MAGIC) parameters: fit starting values and the baseline
+DEFAULT_PARS <- list(
+  v1      = -log(1 - 0.065),
+  sigma   = log(1 + 0.13),
+  migr    = 0.00001,
+  portion = 0.3,
+  whigh   = 0.1363,
+  wfrac   = 0.0023 / 0.1363
+)
+
+# Sequential fits
+FIT_SEEDS         <- c(42, 4224, 1337, 69)
+FIT_USE_SWITCH    <- TRUE
+FIT_USE_LOG       <- TRUE
+FIT_CHAIN_METHODS <- c("nmkb", "lbfgsb", "hjkb")
+FIT_N_ROUNDS      <- 3
+FIT_START_FROM    <- "screen"
+FIT_N_SCREEN      <- 20
+FIT_MAXFEVAL      <- 20000
+FIT_REL_TOL       <- NULL     # 1e-6
+FIT_PARALLEL      <- FALSE     # parallelise the start screen
+FIT_N_WORKERS     <- max(1, parallelly::availableCores() - 1)

@@ -11,4 +11,9 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Imports:
     deSolve,
-    tibble
+    dfoptim,
+    future,
+    future.apply,
+    parallelly,
+    tibble,
+    tidyr
