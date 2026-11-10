@@ -72,9 +72,8 @@ load_fit_data <- function(
 
   stopifnot(identical(colnames(data), colnames(sd)))
 
-  # Avoid zero SDs (they would give infinite weights)
-  min_nonzero <- min(sd[sd > 0])
-  sd[sd == 0] <- min_nonzero / 2
+  # Zero SDs would give infinite weights; use FIT_SD_FLOOR (or lambda > 0) to avoid them
+  stopifnot("Zero SDs in the fit data" = all(sd > 0))
 
   if (!is.null(drop_groups)) {
     data <- data[!rownames(data) %in% drop_groups, , drop = FALSE]
