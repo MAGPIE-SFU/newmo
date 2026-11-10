@@ -33,12 +33,12 @@
 #'   "<serotype>_other".
 #'
 #' @return A list with `group_lookup`, `meta_clean_groups` (meta_clean with a
-#'   group column), `xt` (the grouped x(t)) and `final_yearly` (the synthetic
+#'   group column) and `final_yearly` (the synthetic
 #'   carriage composition per serotype-GPSC pair, for checks).
 #'
 #' @importFrom dplyr %>% count filter left_join group_by mutate ungroup select
 #'   transmute full_join if_else summarise bind_rows distinct across coalesce
-#'   case_when first n_distinct arrange rename
+#'   case_when rename
 #' @importFrom tidyr pivot_wider replace_na complete nesting
 #' @export
 reweight_carriage <- function(meta_clean, inv,
@@ -229,32 +229,9 @@ reweight_carriage <- function(meta_clean, inv,
 
   stopifnot(!any(is.na(final_yearly$group)), !any(is.na(meta_clean$group)))
 
-  ###########################################################################
-  # make x(t). but keep st in xt
-  ###########################################################################
-  group_sero <- group_lookup %>%
-    group_by(group) %>%
-    summarise(serotype     = if (n_distinct(serotype) == 1) first(serotype) else first(group),
-              vaccine_type = first(vaccine_type),
-              .groups = "drop")
-
-  # NOTE the line that sets frac_sd could eventually have better sds
-
-  xt <- final_yearly %>%
-    group_by(year, group) %>%
-    summarise(frac = sum(p_final), a0 = first(N_car) + k, .groups = "drop") %>%
-    complete(year, group, fill = list(frac = 0)) %>%
-    group_by(year) %>% mutate(a0 = max(a0, na.rm = TRUE)) %>% ungroup() %>%
-    mutate(frac_sd = sqrt(frac * (1 - frac) / (a0 + 1)),
-           count   = frac * 1e5) %>%
-    left_join(group_sero, by = "group") %>%
-    select(year, group, serotype, vaccine_type, frac, frac_sd, count) %>%
-    arrange(year, group)
-
   list(
     group_lookup      = group_lookup,
     meta_clean_groups = meta_clean,
-    xt                = xt,
     final_yearly      = final_yearly
   )
 }

@@ -41,3 +41,10 @@ PREVAX_YEARS  <- 2000:2009
 MIN_SERO_FRAC <- 0.001   # NVT serotypes below this share of pre-vaccine synthetic carriage -> rare_NVT
 MIN_SG_FRAC   <- 0.005   # serotype-GPSC pairs below this share -> serotype_other
 
+# x(t) uncertainty
+# PSEUDOCOUNT was deleted; it was bringing all the _other groups too high and
+# pushing things too much towards the mean
+XT_LAMBDA <- 0.01   # prior mean smoothed toward uniform; fraction of the prior mean that is uniform
+XT_N_REPS <- 1000   # repetitions for the invasiveness uncertainty
+
+

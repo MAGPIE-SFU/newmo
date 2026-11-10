@@ -38,7 +38,7 @@ carriage go to "rare_NVT".}
 }
 \value{
 A list with \code{group_lookup}, \code{meta_clean_groups} (meta_clean with a
-group column), \code{xt} (the grouped x(t)) and \code{final_yearly} (the synthetic
+group column) and \code{final_yearly} (the synthetic
 carriage composition per serotype-GPSC pair, for checks).
 }
 \description{

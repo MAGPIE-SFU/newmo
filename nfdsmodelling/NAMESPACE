@@ -3,7 +3,9 @@
 export(VACCINE_TYPES)
 export(build_invasiveness_lookup)
 export(clean_metadata)
+export(plot_xt_top_groups)
 export(reweight_carriage)
+export(reweight_carriage_uncertainty)
 export(shrink_invasiveness)
 export(simulate_nfds)
 export(vaccine_serotypes)
@@ -12,7 +14,7 @@ importFrom(dplyr,
   "%>%",
   across,
   add_count,
-  arrange,
+  any_of,
   bind_rows,
   case_when,
   coalesce,
@@ -23,21 +25,44 @@ importFrom(dplyr,
   full_join,
   group_by,
   if_else,
+  inner_join,
   left_join,
   mutate,
+  n,
   n_distinct,
   na_if,
+  pull,
   rename,
   select,
+  slice_max,
   summarise,
   tibble,
   transmute,
   ungroup
 )
+importFrom(ggplot2,
+  aes,
+  element_blank,
+  element_rect,
+  element_text,
+  facet_wrap,
+  geom_errorbar,
+  geom_hline,
+  geom_line,
+  geom_point,
+  geom_vline,
+  ggplot,
+  labs,
+  scale_x_continuous,
+  theme,
+  theme_grey
+)
 importFrom(readr,parse_number)
 importFrom(stats,
   na.omit,
-  setNames
+  rlnorm,
+  setNames,
+  var
 )
 importFrom(tidyr,
   complete,

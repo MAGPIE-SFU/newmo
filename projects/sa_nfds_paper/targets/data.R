@@ -40,14 +40,27 @@ targets_data <- list(
     )
   ),
   tar_target(group_lookup, reweighted$group_lookup),
-  tar_target(xt_grouped,   reweighted$xt),
   tar_target(group_lookup_csv,
              write_csv_output(group_lookup, file.path(results_dir, "computed_data", "group_lookup.csv")),
              format = "file"),
   tar_target(meta_clean_groups_csv,
              write_csv_output(reweighted$meta_clean_groups, file.path(results_dir, "computed_data", "meta_clean_groups.csv")),
              format = "file"),
-  tar_target(xt_grouped_csv,
-             write_csv_output(xt_grouped, file.path(results_dir, "computed_data", "xt_grouped.csv")),
+  tar_target(
+    xt_grouped_uncertainty,
+    reweight_carriage_uncertainty(
+      meta_clean, invasiveness_lookup, group_lookup,
+      tauA = REWEIGHT_TAU_A, tauU = REWEIGHT_TAU_U, k = REWEIGHT_K,
+      lambda = XT_LAMBDA, n_reps = XT_N_REPS
+    )
+  ),
+  tar_target(xt_grouped_uncertainty_csv,
+             write_csv_output(xt_grouped_uncertainty,
+                              file.path(results_dir, "computed_data", "xt_grouped_uncertainty.csv")),
+             format = "file"),
+  tar_target(xt_top_groups_pdf,
+             save_plot_output(plot_xt_top_groups(xt_grouped_uncertainty),
+                              file.path(results_dir, "plots", "xt_top_groups.pdf"),
+                              width = 12, height = 9),
              format = "file")
 )
