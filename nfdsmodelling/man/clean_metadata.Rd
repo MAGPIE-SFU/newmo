@@ -4,10 +4,18 @@
 \alias{clean_metadata}
 \title{Clean isolate metadata}
 \usage{
-clean_metadata(meta, keep_country = "South Africa", child_cutoff = 6)
+clean_metadata(
+  meta,
+  serotype_renames,
+  keep_country = "South Africa",
+  child_cutoff = 6
+)
 }
 \arguments{
 \item{meta}{Raw metadata, as read from metadata.csv.}
+
+\item{serotype_renames}{Named character vector, old label = new label.
+Renamed isolates are treated as the new serotype from here on.}
 
 \item{keep_country}{Country to keep.}
 

@@ -18,7 +18,6 @@ importFrom(dplyr,
   left_join,
   mutate,
   na_if,
-  recode,
   rename,
   select,
   tibble

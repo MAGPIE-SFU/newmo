@@ -1,6 +1,12 @@
 targets_data <- list(
   tar_target(meta_raw_file, META_RAW_PATH, format = "file"),
-  tar_target(meta_clean, clean_metadata(readr::read_csv(meta_raw_file, show_col_types = FALSE))),
+  tar_target(
+    meta_clean,
+    clean_metadata(
+      readr::read_csv(meta_raw_file, show_col_types = FALSE),
+      serotype_renames = SEROTYPE_RENAMES
+    )
+  ),
   tar_target(
     meta_clean_csv,
     write_csv_output(meta_clean, file.path(results_dir, "computed_data", "meta_clean.csv")),
@@ -14,7 +20,7 @@ targets_data <- list(
       meta_clean,
       openxlsx::read.xlsx(inv_children_file),
       openxlsx::read.xlsx(inv_adults_file),
-      SEROTYPE_SUBSTITUTIONS,
+      INVASIVENESS_DONORS,
       NON_TYPEABLE
     )
   ),

@@ -83,12 +83,12 @@ shrink_invasiveness <- function(tab) {
 
   B <- tau2 / (tau2 + se^2)
 
-  message(
-    sprintf(
-      "Shrinkage: exp(mu) = %.3e, tau = %.3f",
-      exp(mu), sqrt(tau2)
-    )
-  )
+  # message(
+  #   sprintf(
+  #     "Shrinkage: exp(mu) = %.3e, tau = %.3f",
+  #     exp(mu), sqrt(tau2)
+  #   )
+  # )
 
   result <- tab %>%
     mutate(
@@ -423,7 +423,7 @@ build_invasiveness_lookup <- function(meta_clean, inv_children, inv_adults,
     na.omit(as.character(meta_clean$serotype))
   ))
 
-  message("Children:")
+  # message("Children:")
   child <- lookup_one_age(
     inv_children,
     inv_adults,
@@ -432,7 +432,7 @@ build_invasiveness_lookup <- function(meta_clean, inv_children, inv_adults,
     non_typeable
   )
 
-  message("Adults:")
+  # message("Adults:")
   adult <- lookup_one_age(
     inv_adults,
     inv_children,
