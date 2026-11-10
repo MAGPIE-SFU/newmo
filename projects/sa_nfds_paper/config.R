@@ -82,6 +82,8 @@ FIT_MAXFEVAL      <- 20000
 FIT_REL_TOL       <- NULL     # 1e-6
 FIT_PARALLEL      <- TRUE     # parallelise the start screen
 FIT_N_WORKERS     <- max(1, parallelly::availableCores() - 1)
+# This floor is to avoiod weighting small (rare) groups insanely high
+FIT_SD_FLOOR <- 0.004   # minimum frac_sd for the fit weights (median of frac_sd)
 
 # Fit diagnostics
 DIAG_N_CORES         <- 1          # > 1 uses parallel::mclapply (Linux/macOS only)

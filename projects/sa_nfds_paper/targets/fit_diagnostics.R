@@ -5,7 +5,7 @@ targets_fit_diagnostics <- list(
   # 1D profiles through the best fit of every seed x loss
   tar_target(
     fit_profiles,
-    profile_best_fits(fit_selection$all_best, samodel, xt_grouped_uncertainty,
+    profile_best_fits(fit_selection$all_best, samodel, xt_fit,
                       tswitch = T_SWITCH, nyears = NYEARS, use_switch = FIT_USE_SWITCH,
                       n_cores = DIAG_N_CORES, profile_decades = PROFILE_DECADES,
                       n_grid = PROFILE_N_GRID)
@@ -23,7 +23,7 @@ targets_fit_diagnostics <- list(
   # Loss landscape from random starts
   tar_target(
     landscape_screen,
-    screen_landscape(samodel, xt_grouped_uncertainty, default_pars = DEFAULT_PARS,
+    screen_landscape(samodel, xt_fit, default_pars = DEFAULT_PARS,
                      seed = LANDSCAPE_SEED, tswitch = T_SWITCH, nyears = NYEARS,
                      use_switch = FIT_USE_SWITCH, n_screen = LANDSCAPE_N_SCREEN,
                      n_cores = DIAG_N_CORES)

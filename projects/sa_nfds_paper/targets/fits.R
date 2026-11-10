@@ -1,11 +1,17 @@
 fits_dir <- file.path(results_dir, "computed_data", "fits")
 
 targets_fits <- list(
+  # x(t) used for fitting: frac_sd floored, so rare groups don't dominate the weights
+  tar_target(
+    xt_fit,
+    dplyr::mutate(xt_grouped_uncertainty, frac_sd = pmax(frac_sd, FIT_SD_FLOOR))
+  ),
+
   tar_target(fit_seed, FIT_SEEDS),
   tar_target(
     seq_fit,
     run_sequential_fits(
-      samodel, xt_grouped_uncertainty,
+      samodel, xt_fit,
       seed = fit_seed, default_pars = DEFAULT_PARS,
       tswitch = T_SWITCH, nyears = NYEARS,
       use_switch = FIT_USE_SWITCH, use_log = FIT_USE_LOG,
@@ -22,7 +28,7 @@ targets_fits <- list(
              pattern = map(seq_fit), format = "file"),
   tar_target(
     fit_selection,
-    select_best_fits(seq_fit, samodel, xt_grouped_uncertainty,
+    select_best_fits(seq_fit, samodel, xt_fit,
                      tswitch = T_SWITCH, nyears = NYEARS, use_switch = FIT_USE_SWITCH)
   ),
   tar_target(all_fits_rds,
