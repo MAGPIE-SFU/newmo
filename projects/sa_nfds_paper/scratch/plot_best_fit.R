@@ -1,8 +1,6 @@
 # TEMPORARY: plots the overall best fit from the pipeline with the old plot functions.
 # Run from the repo root after tar_make().
 
-source("code/plot_functions.R")
-
 library(tidyr)
 library(tibble)
 

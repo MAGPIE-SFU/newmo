@@ -1,15 +1,9 @@
-# functional versions of the plots currently in a script (compare_sim_data.R)
 # Data = grey, simulations = coloured (one colour per simulation).
 # top_group_plot / top_sero_plot drop VT serotypes (modelpars$vaccine) when drop_vt = TRUE (frequencies are NOT renormalised).
 # vt_nvt_plot shows the VT and NVT totals in separate panels.
 
-#package needed
-if (!require("ggh4x")) {
-  install.packages("ggh4x")
-  library("ggh4x")
-}
-
 # helper: sum frequencies within a grouping variable (e.g. serotype)
+#' @importFrom dplyr distinct mutate if_else left_join group_by across all_of summarise
 agg <- function(df, by, xt, vaccine) {
   ginfo <- xt |>
     distinct(group, serotype) |>
@@ -24,6 +18,7 @@ agg <- function(df, by, xt, vaccine) {
 # colour scale for the simulations, from a ready-made palette
 # palette: a RColorBrewer name ("Set1", "Dark2", "Paired", "Set2", ...)
 #          or a viridis option ("viridis", "magma", "plasma", "inferno", "cividis", "turbo")
+#' @importFrom ggplot2 scale_colour_viridis_d scale_colour_brewer
 sim_colour_scale <- function(palette = "Dark2") {
   viridis_opts <- c("viridis", "magma", "plasma", "inferno", "cividis", "turbo")
   if (palette %in% viridis_opts) {
@@ -34,6 +29,7 @@ sim_colour_scale <- function(palette = "Dark2") {
 }
 
 # plot instructions, this goes in the ggplot call
+#' @importFrom ggplot2 geom_line aes geom_point geom_segment geom_vline labs theme unit
 compare_layers <- function(d, s, b, vax_start, prevax_years, palette = "Dark2") {
   list(
     # data: neutral grey
@@ -56,6 +52,9 @@ compare_layers <- function(d, s, b, vax_start, prevax_years, palette = "Dark2") 
   )
 }
 
+#' @importFrom tibble rownames_to_column tibble
+#' @importFrom tidyr pivot_longer
+#' @importFrom dplyr starts_with mutate select bind_rows
 make_sim_long <- function(sim, samodel, vax_start) {
   # model: rows = groups, columns = year.1 ... year.k (make sure each year sums to 1)
   sim_long <- sim |>
@@ -75,6 +74,7 @@ make_sim_long <- function(sim, samodel, vax_start) {
 
 # stack a list of simulations -- so we can compare multiple simulations on the same plot
 # sims should be a list, like list(baseline = mysim1, lowerv = mysim2) and so on
+#' @importFrom dplyr bind_rows mutate
 stack_sims <- function(sims, samodel, vax_start) {
   if (is.data.frame(sims)) sims <- list(model = sims)   # allow a single simulation too
   bind_rows(lapply(sims, make_sim_long, samodel = samodel, vax_start = vax_start), .id = "sim") |>
@@ -82,8 +82,23 @@ stack_sims <- function(sims, samodel, vax_start) {
 }
 
 
-# plot VTs and NVTs total, model and data together (data = our synth carriage sample)
-# VT and NVT now go in separate panels (colour is used for the simulations)
+#' Plot VT and NVT totals, model and data together
+#'
+#' Data = the synthetic carriage sample x(t). VT and NVT go in separate panels
+#' (colour is used for the simulations).
+#'
+#' @param vax_start First vaccine year.
+#' @param prevax_years Pre-vaccine years (for the x0 segment).
+#' @param samodel The model structure.
+#' @param xt Grouped x(t).
+#' @param sims A simulation, or a named list of simulations.
+#' @param palette RColorBrewer name or viridis option for the simulations.
+#' @param vaccine Vaccine serotypes (defines VT vs NVT).
+#' @return A ggplot.
+#' @importFrom dplyr select
+#' @importFrom tibble tibble
+#' @importFrom ggplot2 ggplot facet_wrap ggtitle
+#' @export
 vt_nvt_plot <- function(vax_start = 2010, prevax_years = 2000:2009,
                         samodel, xt, sims, palette = "Dark2", vaccine) {
   sim_long  <- stack_sims(sims, samodel, vax_start)
@@ -100,10 +115,18 @@ vt_nvt_plot <- function(vax_start = 2010, prevax_years = 2000:2009,
 }
 
 
-# plot of the top groups
-# n_groups is the number of top ST-SC groups to show
-#color facet, VT = red, NVT = blue
-
+#' Plot the most common ST-SC groups, model and data together
+#'
+#' Strip colour: VT = red, NVT = blue.
+#'
+#' @inheritParams vt_nvt_plot
+#' @param n_groups Number of top ST-SC groups to show.
+#' @param drop_vt Drop vaccine-type groups (frequencies are NOT renormalised).
+#' @return A ggplot.
+#' @importFrom dplyr select distinct filter pull group_by summarise slice_max mutate if_else arrange
+#' @importFrom tibble tibble
+#' @importFrom ggplot2 ggplot geom_errorbar aes ggtitle
+#' @export
 top_group_plot <- function(vax_start = 2010, prevax_years = 2000:2009,
                            n_groups = 12, samodel, xt, sims, drop_vt = TRUE, palette = "Dark2", vaccine) {
   sim_long  <- stack_sims(sims, samodel, vax_start)
@@ -150,6 +173,18 @@ top_group_plot <- function(vax_start = 2010, prevax_years = 2000:2009,
     ggtitle(paste("The", n_groups, "most common ST-SC groups"))
 }
 
+#' Plot the most common serotypes, model and data together
+#'
+#' Strip colour: VT = red, NVT = blue.
+#'
+#' @inheritParams vt_nvt_plot
+#' @param n_serotypes Number of top serotypes to show.
+#' @param drop_vt Drop vaccine-type serotypes (frequencies are NOT renormalised).
+#' @return A ggplot.
+#' @importFrom dplyr select filter group_by summarise slice_max pull mutate
+#' @importFrom tibble tibble
+#' @importFrom ggplot2 ggplot ggtitle
+#' @export
 top_sero_plot <- function(vax_start = 2010, prevax_years = 2000:2009,
                           n_serotypes = 12, samodel, xt, sims, drop_vt = TRUE, palette = "Dark2", vaccine) {
   sim_long  <- stack_sims(sims, samodel, vax_start)

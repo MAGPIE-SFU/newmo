@@ -14,5 +14,6 @@ c(
   targets_vaccines,
   targets_data,
   targets_fits,
-  targets_fit_diagnostics
+  targets_fit_diagnostics,
+  targets_figures
 )

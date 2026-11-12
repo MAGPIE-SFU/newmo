@@ -8,7 +8,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN install2.r --error --skipinstalled \
     targets pkgload here \
     ggplot2 dplyr tidyr stringr readr patchwork \
-    deSolve openxlsx dfoptim future future.apply parallelly gt
+    deSolve openxlsx dfoptim future future.apply parallelly gt \
+    ggh4x
 
 WORKDIR /repo
 ENV TAR_PROJECT=sa_nfds_paper

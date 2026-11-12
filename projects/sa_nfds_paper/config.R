@@ -93,3 +93,12 @@ PROFILE_YMAX         <- 10         # cap on the loss ratio
 PROFILE_RELATIVE_TO  <- "best_seed"  # or "own"
 LANDSCAPE_N_SCREEN   <- 1000       # random starts (the default start is added too)
 LANDSCAPE_SEED       <- 1337
+
+# Fit figures used to be run_and_plot.R
+FIG_SETTINGS <- list(
+  vax_start    = 2010,
+  prevax_years = 2000:2009,
+  n_groups     = 20,
+  n_serotypes  = 18,
+  vaccine      = nfdsmodelling::VACCINE_TYPES[["PCV13"]]
+)

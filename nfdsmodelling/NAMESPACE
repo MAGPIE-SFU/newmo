@@ -22,7 +22,10 @@ export(screen_landscape)
 export(select_best_fits)
 export(shrink_invasiveness)
 export(simulate_nfds)
+export(top_group_plot)
+export(top_sero_plot)
 export(vaccine_serotypes)
+export(vt_nvt_plot)
 importFrom(deSolve,ode)
 importFrom(dplyr,
   "%>%",
@@ -55,6 +58,7 @@ importFrom(dplyr,
   select,
   slice_max,
   slice_min,
+  starts_with,
   summarise,
   tibble,
   transmute,
@@ -71,11 +75,14 @@ importFrom(ggplot2,
   geom_hline,
   geom_line,
   geom_point,
+  geom_segment,
   geom_vline,
   ggplot,
+  ggtitle,
   labeller,
   labs,
   scale_colour_brewer,
+  scale_colour_viridis_d,
   scale_x_continuous,
   scale_y_log10,
   theme,
@@ -94,7 +101,9 @@ importFrom(stats,
 )
 importFrom(tibble,
   as_tibble_row,
-  column_to_rownames
+  column_to_rownames,
+  rownames_to_column,
+  tibble
 )
 importFrom(tidyr,
   complete,
