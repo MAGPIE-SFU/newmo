@@ -125,5 +125,18 @@ FIRST_SIM_CALENDAR_YEAR <- 2011   # corresponds to year.1 in the simulation
 # IPD Plot
 IPD_DOT_TOP_N <- 20   # number of serotypes in the IPD dot plot
 
+# Vaccine design
+VD_TARGET_SIZE  <- 13         # valency of the invented vaccines
+VD_N_CANDIDATES <- 18         # most invasive non-PCV7 serotypes to choose from
+VD_SCORE_YEARS  <- 6:10       # simulation years to average the IPD over
+VD_N_CORES      <- 1          # > 1 uses mclapply (Linux/macOS only)
 
-
+# Vaccine heatmap
+HEATMAP_VACCINES      <- c("PCV7", "PCV13", "PCV15", "PCV21", "PCV23")   # licensed, in display order
+HEATMAP_N_EXHAUSTIVE  <- 6     # exhaustive vaccines to show, lowest IPD first
+HEATMAP_METHOD_LABELS <- c(
+  greedy       = "Greedy",
+  exhaustive   = "Exhaustive",
+  ipdfrac      = "todo: ipdfrac",
+  mostinvasive = "todo: mostinvasive"
+)

@@ -11,11 +11,11 @@ tar_source("projects/sa_nfds_paper/R")
 tar_source("projects/sa_nfds_paper/targets")
 
 c(
-  targets_vaccines,
   targets_data,
   targets_fits,
   targets_fit_diagnostics,
   targets_figures,
   targets_sensitivity,
-  targets_projected_ipd
+  targets_projected_ipd,
+  targets_vaccine_design
 )

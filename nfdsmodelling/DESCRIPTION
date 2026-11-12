@@ -16,7 +16,9 @@ Imports:
     future.apply,
     ggh4x,
     parallelly,
+    patchwork,
     purrr,
     scales,
+    stringr,
     tibble,
     tidyr

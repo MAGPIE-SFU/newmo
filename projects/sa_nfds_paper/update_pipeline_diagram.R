@@ -5,3 +5,13 @@ writeLines(
   c("```mermaid", targets::tar_mermaid(targets_only = TRUE), "```"),
   "projects/sa_nfds_paper/pipeline.md"
 )
+
+net <- targets::tar_visnetwork(
+  targets_only     = TRUE,   # leave out the functions; much more readable
+  level_separation = 250     # horizontal space between the columns of targets
+)
+net$width  <- "100%"
+net$height <- "95vh"         # 95% of the browser window's height
+
+htmlwidgets::saveWidget(net, "projects/sa_nfds_paper/pipeline.html",
+                        selfcontained = TRUE, title = "sa_nfds_paper pipeline")
