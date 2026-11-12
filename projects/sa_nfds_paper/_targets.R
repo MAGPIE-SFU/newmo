@@ -15,5 +15,6 @@ c(
   targets_data,
   targets_fits,
   targets_fit_diagnostics,
-  targets_figures
+  targets_figures,
+  targets_sensitivity
 )

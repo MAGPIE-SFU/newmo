@@ -12,14 +12,21 @@ export(loss_functions)
 export(make_loss)
 export(plot_landscape)
 export(plot_profiles)
+export(plot_sensitivity_draws)
+export(plot_sensitivity_optimal)
+export(plot_sensitivity_ribbons)
+export(plot_sensitivity_trajectories)
+export(plot_sensitivity_vs_data)
 export(plot_xt_top_groups)
 export(profile_best_fits)
 export(reweight_carriage)
 export(reweight_carriage_uncertainty)
 export(run_model)
+export(run_sensitivity)
 export(run_sequential_fits)
 export(screen_landscape)
 export(select_best_fits)
+export(sensitivity_top_groups)
 export(shrink_invasiveness)
 export(simulate_nfds)
 export(top_group_plot)
@@ -34,12 +41,16 @@ importFrom(dplyr,
   all_of,
   any_of,
   arrange,
+  between,
+  bind_cols,
   bind_rows,
   c_across,
   case_when,
   coalesce,
   count,
+  desc,
   distinct,
+  everything,
   filter,
   first,
   full_join,
@@ -56,6 +67,7 @@ importFrom(dplyr,
   rename,
   rowwise,
   select,
+  slice_head,
   slice_max,
   slice_min,
   starts_with,
@@ -67,14 +79,17 @@ importFrom(dplyr,
 importFrom(ggplot2,
   aes,
   element_blank,
+  element_line,
   element_rect,
   element_text,
   facet_grid,
   facet_wrap,
   geom_errorbar,
+  geom_histogram,
   geom_hline,
   geom_line,
   geom_point,
+  geom_ribbon,
   geom_segment,
   geom_vline,
   ggplot,
@@ -83,6 +98,7 @@ importFrom(ggplot2,
   labs,
   scale_colour_brewer,
   scale_colour_viridis_d,
+  scale_fill_brewer,
   scale_x_continuous,
   scale_y_log10,
   theme,
@@ -90,10 +106,18 @@ importFrom(ggplot2,
   theme_grey,
   unit
 )
+importFrom(purrr,
+  discard,
+  keep,
+  list_rbind
+)
 importFrom(readr,parse_number)
 importFrom(stats,
   na.omit,
   optim,
+  pnorm,
+  qnorm,
+  quantile,
   rlnorm,
   runif,
   setNames,
