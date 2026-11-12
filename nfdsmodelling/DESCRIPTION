@@ -17,5 +17,6 @@ Imports:
     ggh4x,
     parallelly,
     purrr,
+    scales,
     tibble,
     tidyr

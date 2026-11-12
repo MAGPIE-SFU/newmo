@@ -118,4 +118,12 @@ SENS_SD_PARS    <- data.frame(
   hi  = c( Inf,     Inf,        0.99)
 )
 
+# Projected IPD
+IPD_N_REPS     <- 1000
+IPD_N_CARRIAGE <- 100000
+FIRST_SIM_CALENDAR_YEAR <- 2011   # corresponds to year.1 in the simulation
+# IPD Plot
+IPD_DOT_TOP_N <- 20   # number of serotypes in the IPD dot plot
+
+
 
