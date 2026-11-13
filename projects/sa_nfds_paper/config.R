@@ -54,6 +54,7 @@ LOCUS_PRE_YEARS  <- 2000:2008
 LOCUS_POST_YEARS <- 2012:2014
 LOCUS_ALL_YEARS  <- 2000:2014
 
+# This is for the initial conditions of the simulation
 X0_YEARS <- 2005:2009   # pre-vaccine years averaged for x0
 
 # Model time setup
