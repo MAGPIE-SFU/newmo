@@ -37,7 +37,9 @@ run_sequential_fits(
 
 \item{nyears}{Number of (final) years to fit.}
 
-\item{use_switch, use_log}{Use the vaccine switch / minimise log(loss).}
+\item{use_switch}{Use the vaccine switch.}
+
+\item{use_log}{Minimise log(loss) instead of the loss.}
 
 \item{losses}{Names of the loss functions to fit.}
 

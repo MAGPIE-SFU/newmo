@@ -12,13 +12,18 @@ Roxygen: list(markdown = TRUE)
 Imports:
     deSolve,
     dfoptim,
+    dplyr,
     future,
     future.apply,
     ggh4x,
+    ggplot2,
     parallelly,
     patchwork,
     purrr,
+    readr,
     scales,
+    stats,
     stringr,
     tibble,
-    tidyr
+    tidyr,
+    utils

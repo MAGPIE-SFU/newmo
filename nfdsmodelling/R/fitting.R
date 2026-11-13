@@ -498,7 +498,8 @@ collect_fit_results <- function(fits, use_switch, tswitch) {
 #' @param default_pars The CC_MAGIC parameters, used as the default start.
 #' @param tswitch Time of the vaccine switch.
 #' @param nyears Number of (final) years to fit.
-#' @param use_switch,use_log Use the vaccine switch / minimise log(loss).
+#' @param use_switch Use the vaccine switch.
+#' @param use_log Minimise log(loss) instead of the loss.
 #' @param losses Names of the loss functions to fit.
 #' @param chain_methods Optimizers, cycled through the rounds.
 #' @param n_rounds Rounds per chain.

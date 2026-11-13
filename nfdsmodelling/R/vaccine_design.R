@@ -79,6 +79,7 @@ score_vaccine <- function(modelpars, vseros, samodel, inv, group_lookup, years =
 #' @return One row per vaccine: ipd, vaccine (string), method.
 #' @importFrom dplyr %>% select filter group_by summarise inner_join mutate
 #'   slice_max pull tibble add_row arrange bind_rows
+#' @importFrom utils combn head
 #' @export
 design_vaccines <- function(modelpars, samodel, xt, inv, group_lookup,
                             base_vaccine, prevax_years = 2000:2009,

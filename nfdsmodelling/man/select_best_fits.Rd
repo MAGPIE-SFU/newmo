@@ -16,6 +16,8 @@ select_best_fits(seq_fits, samodel, xt, tswitch, nyears, use_switch = TRUE)
 \item{tswitch}{Time of the vaccine switch.}
 
 \item{nyears}{Number of (final) years to fit.}
+
+\item{use_switch}{Use the vaccine switch.}
 }
 \value{
 A list with \code{all_parameters} and \code{all_summary} (all fits of all

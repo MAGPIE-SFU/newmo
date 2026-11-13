@@ -30,6 +30,8 @@ screen_landscape(
 
 \item{nyears}{Number of (final) years to fit.}
 
+\item{use_switch}{Use the vaccine switch.}
+
 \item{n_screen}{Number of random starts (the default start is added too).}
 
 \item{losses}{Loss functions to evaluate.}
