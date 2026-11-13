@@ -91,6 +91,10 @@ build_gnfds <- function(G, meta_clean, xt,
     as.numeric(p_vec %*% as.matrix(Gg))
   })
 
+  # Frequencies are sums of group shares; floating-point rounding can push loci
+  # that every group carries just above 1 (e.g. 1 + 2e-16). Clamp to [0, 1].
+  locus_by_year <- pmin(pmax(locus_by_year, 0), 1)
+
   rownames(locus_by_year) <- colnames(Gg)
   colnames(locus_by_year) <- paste("t", years, sep = "")
   locus_by_year = as.data.frame(locus_by_year)
