@@ -1,0 +1,23 @@
+url: ~
+template:
+  bootstrap: 5
+
+reference:
+- title: Data preparation
+  contents: [clean_metadata, build_invasiveness_lookup, shrink_invasiveness,
+             reweight_carriage, reweight_carriage_uncertainty, plot_xt_top_groups,
+             build_gnfds, build_samodel]
+- title: Model
+  contents: [simulate_nfds, run_model, VACCINE_TYPES, vaccine_serotypes]
+- title: Fitting
+  contents: [run_sequential_fits, select_best_fits, load_fit_data, make_loss,
+             loss_functions, PAR_NAMES]
+- title: Fit diagnostics and sensitivity
+  contents: [profile_best_fits, plot_profiles, screen_landscape, plot_landscape,
+             landscape_best_starts, run_sensitivity, sensitivity_top_groups, sensitivity_plots]
+- title: Projected IPD and vaccine design
+  contents: [simulate_projected_ipd, plot_projected_ipd_check, prepare_ipd_serotypes,
+             plot_ipd_total, plot_ipd_dotplot, getIPD, score_vaccine, compress_vstring,
+             design_vaccines, plot_vaccine_heatmap]
+- title: Model vs data plots
+  contents: [top_group_plot, top_sero_plot, vt_nvt_plot]
