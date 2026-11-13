@@ -1,6 +1,8 @@
-url: ~
+url: https://magpie-sfu.github.io/newmo/
 template:
   bootstrap: 5
+  light-switch: true
+  bootswatch: flatly
 
 reference:
 - title: Data preparation
