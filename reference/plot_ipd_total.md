@@ -12,7 +12,8 @@ plot_ipd_total(ipd_sero)
 
 - ipd_sero:
 
-  From [`prepare_ipd_serotypes()`](prepare_ipd_serotypes.md).
+  From
+  [`prepare_ipd_serotypes()`](https://magpie-sfu.github.io/newmo/reference/prepare_ipd_serotypes.md).
 
 ## Value
 

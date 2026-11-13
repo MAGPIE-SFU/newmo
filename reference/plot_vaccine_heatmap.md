@@ -33,8 +33,8 @@ plot_vaccine_heatmap(
 - vaccine_data:
 
   Invented vaccines, e.g. from
-  [`design_vaccines()`](design_vaccines.md): columns ipd, vaccine
-  (string with "-" or "," separators), method.
+  [`design_vaccines()`](https://magpie-sfu.github.io/newmo/reference/design_vaccines.md):
+  columns ipd, vaccine (string with "-" or "," separators), method.
 
 - all_serotypes:
 

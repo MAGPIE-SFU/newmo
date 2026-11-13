@@ -21,7 +21,8 @@ build_invasiveness_lookup(
 
 - meta_clean:
 
-  Cleaned metadata, e.g. from [`clean_metadata()`](clean_metadata.md).
+  Cleaned metadata, e.g. from
+  [`clean_metadata()`](https://magpie-sfu.github.io/newmo/reference/clean_metadata.md).
 
 - inv_children, inv_adults:
 

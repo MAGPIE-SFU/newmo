@@ -28,7 +28,8 @@ run_sensitivity(
 
 - samodel, tswitch, nyears, use_switch:
 
-  As in [`run_model()`](run_model.md).
+  As in
+  [`run_model()`](https://magpie-sfu.github.io/newmo/reference/run_model.md).
 
 - sd_pars:
 

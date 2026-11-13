@@ -17,7 +17,8 @@ plot_profiles(
 
 - prof:
 
-  Profiles from [`profile_best_fits()`](profile_best_fits.md).
+  Profiles from
+  [`profile_best_fits()`](https://magpie-sfu.github.io/newmo/reference/profile_best_fits.md).
 
 - losses:
 

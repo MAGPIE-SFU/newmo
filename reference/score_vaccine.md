@@ -13,7 +13,8 @@ score_vaccine(modelpars, vseros, samodel, inv, group_lookup, years = 6)
 
 - modelpars:
 
-  Model parameters for [`simulate_nfds()`](simulate_nfds.md).
+  Model parameters for
+  [`simulate_nfds()`](https://magpie-sfu.github.io/newmo/reference/simulate_nfds.md).
 
 - vseros:
 

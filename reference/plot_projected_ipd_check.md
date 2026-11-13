@@ -16,7 +16,8 @@ plot_projected_ipd_check(
 
 - ipd_serotype_summary:
 
-  From [`simulate_projected_ipd()`](simulate_projected_ipd.md).
+  From
+  [`simulate_projected_ipd()`](https://magpie-sfu.github.io/newmo/reference/simulate_projected_ipd.md).
 
 - meta_clean:
 

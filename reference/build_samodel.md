@@ -17,7 +17,7 @@ build_samodel(G, xt, locus_by_year, x0_years)
 - xt:
 
   Grouped x(t), e.g. from
-  [`reweight_carriage_uncertainty()`](reweight_carriage_uncertainty.md).
+  [`reweight_carriage_uncertainty()`](https://magpie-sfu.github.io/newmo/reference/reweight_carriage_uncertainty.md).
 
 - locus_by_year:
 

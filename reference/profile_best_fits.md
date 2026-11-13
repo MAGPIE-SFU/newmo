@@ -29,7 +29,8 @@ profile_best_fits(
 
 - samodel, xt, tswitch, nyears, use_switch:
 
-  As in [`run_sequential_fits()`](run_sequential_fits.md).
+  As in
+  [`run_sequential_fits()`](https://magpie-sfu.github.io/newmo/reference/run_sequential_fits.md).
 
 - losses:
 

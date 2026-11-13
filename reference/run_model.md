@@ -21,7 +21,8 @@ run_model(model_pars = list(), use_switch, samodel, nyears, tswitch)
 
 - samodel:
 
-  The model structure, e.g. from [`build_samodel()`](build_samodel.md).
+  The model structure, e.g. from
+  [`build_samodel()`](https://magpie-sfu.github.io/newmo/reference/build_samodel.md).
 
 - nyears:
 

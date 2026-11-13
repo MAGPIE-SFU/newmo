@@ -12,11 +12,13 @@ make_loss(data, sd, loss_fn, use_switch, samodel, nyears, tswitch)
 
 - data, sd:
 
-  Data and SD matrices, from [`load_fit_data()`](load_fit_data.md).
+  Data and SD matrices, from
+  [`load_fit_data()`](https://magpie-sfu.github.io/newmo/reference/load_fit_data.md).
 
 - loss_fn:
 
-  One of [loss_functions](loss_functions.md).
+  One of
+  [loss_functions](https://magpie-sfu.github.io/newmo/reference/loss_functions.md).
 
 - use_switch:
 
@@ -24,7 +26,8 @@ make_loss(data, sd, loss_fn, use_switch, samodel, nyears, tswitch)
 
 - samodel:
 
-  The model structure, e.g. from [`build_samodel()`](build_samodel.md).
+  The model structure, e.g. from
+  [`build_samodel()`](https://magpie-sfu.github.io/newmo/reference/build_samodel.md).
 
 - nyears:
 

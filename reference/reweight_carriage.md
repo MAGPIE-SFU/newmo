@@ -24,12 +24,13 @@ reweight_carriage(
 
 - meta_clean:
 
-  Cleaned metadata, e.g. from [`clean_metadata()`](clean_metadata.md).
+  Cleaned metadata, e.g. from
+  [`clean_metadata()`](https://magpie-sfu.github.io/newmo/reference/clean_metadata.md).
 
 - inv:
 
   Invasiveness lookup, e.g. from
-  [`build_invasiveness_lookup()`](build_invasiveness_lookup.md).
+  [`build_invasiveness_lookup()`](https://magpie-sfu.github.io/newmo/reference/build_invasiveness_lookup.md).
 
 - tauA:
 

@@ -26,9 +26,11 @@ simulate_projected_ipd(
 
 - sim:
 
-  A simulation from [`run_model()`](run_model.md) /
-  [`simulate_nfds()`](simulate_nfds.md): rows = groups, columns year.1
-  ... year.n.
+  A simulation from
+  [`run_model()`](https://magpie-sfu.github.io/newmo/reference/run_model.md)
+  /
+  [`simulate_nfds()`](https://magpie-sfu.github.io/newmo/reference/simulate_nfds.md):
+  rows = groups, columns year.1 ... year.n.
 
 - samodel:
 
@@ -37,7 +39,7 @@ simulate_projected_ipd(
 - inv:
 
   Invasiveness lookup, e.g. from
-  [`build_invasiveness_lookup()`](build_invasiveness_lookup.md).
+  [`build_invasiveness_lookup()`](https://magpie-sfu.github.io/newmo/reference/build_invasiveness_lookup.md).
 
 - group_lookup:
 
@@ -45,7 +47,8 @@ simulate_projected_ipd(
 
 - meta_clean:
 
-  Cleaned metadata, e.g. from [`clean_metadata()`](clean_metadata.md).
+  Cleaned metadata, e.g. from
+  [`clean_metadata()`](https://magpie-sfu.github.io/newmo/reference/clean_metadata.md).
 
 - non_typeable:
 

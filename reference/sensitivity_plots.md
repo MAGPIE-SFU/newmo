@@ -27,11 +27,13 @@ plot_sensitivity_vs_data(
 
 - sens:
 
-  Result of [`run_sensitivity()`](run_sensitivity.md).
+  Result of
+  [`run_sensitivity()`](https://magpie-sfu.github.io/newmo/reference/run_sensitivity.md).
 
 - top_groups:
 
-  Result of [`sensitivity_top_groups()`](sensitivity_top_groups.md).
+  Result of
+  [`sensitivity_top_groups()`](https://magpie-sfu.github.io/newmo/reference/sensitivity_top_groups.md).
 
 - start_year:
 

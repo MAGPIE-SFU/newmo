@@ -17,11 +17,13 @@ select_best_fits(seq_fits, samodel, xt, tswitch, nyears, use_switch = TRUE)
 - seq_fits:
 
   List of results from
-  [`run_sequential_fits()`](run_sequential_fits.md), one per seed.
+  [`run_sequential_fits()`](https://magpie-sfu.github.io/newmo/reference/run_sequential_fits.md),
+  one per seed.
 
 - samodel:
 
-  The model structure, e.g. from [`build_samodel()`](build_samodel.md).
+  The model structure, e.g. from
+  [`build_samodel()`](https://magpie-sfu.github.io/newmo/reference/build_samodel.md).
 
 - xt:
 

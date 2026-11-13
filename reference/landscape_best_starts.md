@@ -12,7 +12,8 @@ landscape_best_starts(screen, losses = names(loss_functions))
 
 - screen:
 
-  Screen from [`screen_landscape()`](screen_landscape.md).
+  Screen from
+  [`screen_landscape()`](https://magpie-sfu.github.io/newmo/reference/screen_landscape.md).
 
 - losses:
 

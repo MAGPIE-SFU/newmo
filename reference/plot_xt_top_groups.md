@@ -13,7 +13,7 @@ plot_xt_top_groups(xt_agg, n_top = 20)
 - xt_agg:
 
   x(t) from
-  [`reweight_carriage_uncertainty()`](reweight_carriage_uncertainty.md).
+  [`reweight_carriage_uncertainty()`](https://magpie-sfu.github.io/newmo/reference/reweight_carriage_uncertainty.md).
 
 - n_top:
 

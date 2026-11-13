@@ -35,7 +35,7 @@ build_gnfds(
 - xt:
 
   Grouped x(t), e.g. from
-  [`reweight_carriage_uncertainty()`](reweight_carriage_uncertainty.md).
+  [`reweight_carriage_uncertainty()`](https://magpie-sfu.github.io/newmo/reference/reweight_carriage_uncertainty.md).
 
 - pre_years:
 

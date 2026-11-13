@@ -23,7 +23,8 @@ screen_landscape(
 
 - samodel:
 
-  The model structure, e.g. from [`build_samodel()`](build_samodel.md).
+  The model structure, e.g. from
+  [`build_samodel()`](https://magpie-sfu.github.io/newmo/reference/build_samodel.md).
 
 - xt:
 

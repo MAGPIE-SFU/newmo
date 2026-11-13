@@ -29,8 +29,9 @@ design_vaccines(
 
 - modelpars:
 
-  Model parameters for [`simulate_nfds()`](simulate_nfds.md) (vaccines
-  are set per score).
+  Model parameters for
+  [`simulate_nfds()`](https://magpie-sfu.github.io/newmo/reference/simulate_nfds.md)
+  (vaccines are set per score).
 
 - samodel:
 
