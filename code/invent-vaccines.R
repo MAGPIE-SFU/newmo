@@ -26,6 +26,9 @@ group_lookup <- read.csv("data/SouthAfrica/processed-inputs/grouplookup.csv")
 
 PCV7 = common$VACCINE_TYPES$PCV7
 PCV13 = common$VACCINE_TYPES$PCV13
+PCV15 = common$VACCINE_TYPES$PCV15
+PCV21 = common$VACCINE_TYPES$PCV21
+PCV23 = common$VACCINE_TYPES$PCV23
 
 # rds_params_fit_path <- common$ALL_BEST_FITS_PATH
 rds_params_fit_path <- common$OVERALL_BEST_FITS_PATH
@@ -94,7 +97,25 @@ direct = rbind(direct,
                tibble(vaccine = compress_vstring(top13car),
                       ipd = score_vaccine(modelpars, top13car, inv, group_lookup, years=6:10),
                       method = "mostinvasive"))
+
+#####################
+# aside (for now) 
+#####################
+# what are the top 25 most invasive strains and are pcv15, 21 adn 23 subsets of these? 
+# if not, what rank do you have to get to to get all the ones in these pcvs? 
+top25 <- compodat %>%
+  slice_max(v_child, n = 25) %>%
+  pull(serotype) %>%
+  as.character()
+setdiff(top25, PCV23) # in top25 but not pcv23
+unique (c(setdiff(top25, PCV23), setdiff(PCV23, top25))) # 
+
+# will define a new candidate set 
+
+
+#####################
 # direct
+#####################
 # ---- method 2: greedy .
 # explanation: of the top 25 invasive serotypes (NOT according to fraction in carriage, just
 # according to their estimated invasiveness in children), choose the best one
