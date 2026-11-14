@@ -111,7 +111,21 @@ setdiff(top25, PCV23) # in top25 but not pcv23
 unique (c(setdiff(top25, PCV23), setdiff(PCV23, top25))) # 
 
 # will define a new candidate set 
+compodat <- compodat %>% mutate(vax = case_when(serotype %in% PCV7 ~ "PCV7", 
+                                  serotype %in% PCV13~  "PCV13",
+                                  serotype %in% PCV15 ~ "PCV15",
+                                  serotype %in% PCV21~ "PCV21",
+                                  serotype %in% PCV23 ~ "PCV23",
+                                  .default = "NVT"))
 
+ggplot(compodat, aes(y = serotype, colour = vax)) +
+  geom_segment(aes(x = V_FLOOR, xend = v_child, yend = serotype),
+               linewidth = 4, lineend = "butt") +
+ # scale_colour_manual(values = vax_cols, name = NULL) +
+  scale_x_log10(expand = expansion(mult = c(0, 0.02))) +
+  coord_cartesian(xlim = c(V_FLOOR, max(dat$v_child))) +
+  labs(x = "invasiveness (children)", y = NULL) +
+  theme_bw()
 
 #####################
 # direct
