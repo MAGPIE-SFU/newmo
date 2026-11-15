@@ -7,6 +7,25 @@
 # first, how invasive are the strains and how prevalent are they?
 library(dplyr); library(ggplot2); library(patchwork)
 
+
+common <- new.env()
+sys.source(here::here("code", "common.R"), envir = common)
+
+xt <- read_csv(
+  common$XT_PATH,
+  show_col_types = FALSE
+)
+
+
+PCV7 = common$VACCINE_TYPES$PCV7
+PCV13 = common$VACCINE_TYPES$PCV13
+PCV15 = common$VACCINE_TYPES$PCV15
+PCV20 = common$VACCINE_TYPES$PCV20
+PCV21 = common$VACCINE_TYPES$PCV21
+PCV23 = common$VACCINE_TYPES$PCV23 
+
+
+
 # --- serotype-level carriage fraction -----------------------------------
 # averaged over years; change the filter for a single year or a period
 sero_car <- xt_agg %>%
@@ -48,11 +67,61 @@ dat <- sero_inv %>%
          serotype = factor(serotype, levels = serotype[order(v_child)]),
          ipdfrac = frac_pre*v_child)
 
-vax_cols <- c(PCV13 = "#c0392b", NVT = "grey45")
+# new 
+compodat <- xt %>%
+  filter(year %in% 2000:2009) %>%        # e.g. pre-vaccine only
+  group_by(year, serotype) %>%
+  summarise(frac = sum(frac), .groups = "drop") %>%   # over groups
+  group_by(serotype) %>%
+  summarise(frac = mean(frac), .groups = "drop")  %>%
+  inner_join(sero_inv, by = "serotype") %>%
+  mutate(ipdfrac = v_child*frac)%>% # does not sum to 1, but comparable from simulation to simulation
+  mutate(ipdshare = ipdfrac / sum(ipdfrac)) # normalized, sums to 1
+
+compodat <- compodat %>% mutate(vax = case_when(serotype %in% PCV7 ~ "PCV7", 
+                                                serotype %in% PCV13~  "PCV13",
+                                                serotype %in% PCV15 ~ "PCV15",
+                                                serotype %in% PCV20~ "PCV20", # not a childhood vaccine
+                                                serotype %in% PCV23 ~ "PCV23",
+                                                .default = "NVT"))
+vax_cols <- c(
+  PCV7  = "#440154",   # dark purple
+  PCV13 = "#414487",
+  PCV15 = "#2a788e",
+  PCV20 = "#22a884",
+  PCV23 = "#7ad151",   # bright green
+  NVT   = "grey70"
+) 
+
+
 
 V_FLOOR <- 10^floor(log10(min(dat$v_child)))   # 1e-05 here
 
-# invasiveness, for reference
+# invasiveness, for reference, new version 
+p_inv <- ggplot(compodat, aes(y = serotype, colour = vax)) +
+  geom_segment(aes(x = V_FLOOR, xend = v_child, yend = serotype),
+               linewidth = 4, lineend = "butt") +
+  scale_colour_manual(values = vax_cols, name = NULL) +
+  scale_x_log10(expand = expansion(mult = c(0, 0.02))) +
+  coord_cartesian(xlim = c(V_FLOOR, max(compodat$v_child))) +
+  labs(x = "invasiveness (children)", y = NULL) +
+  theme_bw()
+
+p_ipdfrac <- ggplot(compodat, aes( y = serotype, colour = vax)) +
+  geom_segment(aes(x = 0, xend = ipdfrac, yend = serotype),
+               linewidth = 4, lineend = "butt") +
+  scale_x_log10(expand = expansion(mult = c(0, 0.02))) +
+    scale_colour_manual(values = vax_cols, name = NULL) +
+   labs(x = "fraction of inferred pre-vaccine ipd", y = NULL) +
+  theme_bw()
+p_inv + p_ipdfrac + plot_layout(guides = "collect")
+# end new 
+# these plots illustrate the relationship between what STs are in what 
+# vaccines, and their (1) child invasiveness and (2) contribution to IPD . 
+# potentially useful supplemental figure for illustrating why we choose the candidates we do
+# in fact it would be even better to make another colour for being a new candidate ST
+
+
 p_inv <- ggplot(dat, aes(y = serotype, colour = vax)) +
   geom_segment(aes(x = V_FLOOR, xend = v_child, yend = serotype),
                linewidth = 4, lineend = "butt") +

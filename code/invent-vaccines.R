@@ -4,6 +4,7 @@
 library(dplyr)
 library(patchwork)
 library(future.apply)
+library(ggplot2) 
 
 common <- new.env()
 sys.source(here::here("code", "common.R"), envir = common)
@@ -27,8 +28,11 @@ group_lookup <- read.csv("data/SouthAfrica/processed-inputs/grouplookup.csv")
 PCV7 = common$VACCINE_TYPES$PCV7
 PCV13 = common$VACCINE_TYPES$PCV13
 PCV15 = common$VACCINE_TYPES$PCV15
+PCV20 = common$VACCINE_TYPES$PCV20
 PCV21 = common$VACCINE_TYPES$PCV21
-PCV23 = common$VACCINE_TYPES$PCV23
+PCV23 = common$VACCINE_TYPES$PCV23 
+
+
 
 # rds_params_fit_path <- common$ALL_BEST_FITS_PATH
 rds_params_fit_path <- common$OVERALL_BEST_FITS_PATH
@@ -108,46 +112,43 @@ top25 <- compodat %>%
   pull(serotype) %>%
   as.character()
 setdiff(top25, PCV23) # in top25 but not pcv23
-unique (c(setdiff(top25, PCV23), setdiff(PCV23, top25))) # 
+unique (c(setdiff(top25, PCV23), setdiff(PCV23, top25))) # lots of diffs hm 
 
 # will define a new candidate set 
 compodat <- compodat %>% mutate(vax = case_when(serotype %in% PCV7 ~ "PCV7", 
                                   serotype %in% PCV13~  "PCV13",
                                   serotype %in% PCV15 ~ "PCV15",
-                                  serotype %in% PCV21~ "PCV21",
+                                   serotype %in% PCV20~ "PCV20", # not a childhood vaccine
                                   serotype %in% PCV23 ~ "PCV23",
                                   .default = "NVT"))
+# new plots in explore-vaccine-design.R 
+in_vax <- compodat %>% filter(vax != "NVT") %>% pull(serotype)
 
-ggplot(compodat, aes(y = serotype, colour = vax)) +
-  geom_segment(aes(x = V_FLOOR, xend = v_child, yend = serotype),
-               linewidth = 4, lineend = "butt") +
- # scale_colour_manual(values = vax_cols, name = NULL) +
-  scale_x_log10(expand = expansion(mult = c(0, 0.02))) +
-  coord_cartesian(xlim = c(V_FLOOR, max(dat$v_child))) +
-  labs(x = "invasiveness (children)", y = NULL) +
-  theme_bw()
+extra <- compodat %>%
+  filter(vax == "NVT") %>%
+  filter(rank(-ipdfrac) <= 5 | rank(-v_child) <= 5) %>%
+  pull(serotype)
+
+all_candidates = union(in_vax, extra)
 
 #####################
 # direct
 #####################
 # ---- method 2: greedy .
-# explanation: of the top 25 invasive serotypes (NOT according to fraction in carriage, just
-# according to their estimated invasiveness in children), choose the best one
+# explanation: of the candidate serotypes (NOT according to fraction in carriage, just
+# according to their estimated invasiveness in children or their IPD contribution or their existence in 
+# other PCV vaccines aimed at children, choose the best one
 # to add to PCV7. Then choose the best one to add to c(PCV, firstone). Etc until
 # we get to a 13-valent vaccine. Could rank by frac IPD but didn't . Probably would
 # get very similar results
 
-candidates <- compodat %>%
-  filter(!serotype %in% PCV7) %>%
-  slice_max(v_child, n = 18) %>%
-  pull(serotype) %>%
-  as.character()
+candidates <- setdiff(all_candidates, PCV7)
 
 current   <- common$VACCINE_TYPES$PCV7
 remaining <- candidates
 trace     <- tibble(step = integer(), vaccine = character(),
                     ipd = double())
-targetsize <- 13 # valency
+targetsize <- 15 # valency
 baseIPD <- score_vaccine(modelpars, current, inv, group_lookup)
 
 tmp=PCV7
@@ -178,14 +179,11 @@ while (length(current) < targetsize && length(remaining) > 0) {
 
 plan(multisession, workers = parallel::detectCores(logical = FALSE) - 2)   # 16
 
-candidates <- compodat %>%
-  filter(!serotype %in% PCV7) %>%
-  slice_max(v_child, n = 18) %>%
-  pull(serotype) %>%
-  as.character() # same starting candidates as in method 2
+# same starting candidates as in method 2
+candidates <- setdiff(all_candidates, PCV7)
 
 # all possible 18 choose 6 combinations of the candidates
-combos <- combn(candidates, 6, simplify = FALSE)   # combos[[1]] is a character vector of things added to PCV7
+combos <- combn(candidates, 8, simplify = FALSE)   # combos[[1]] is a character vector of things added to PCV7
 
 # for each one, add those to PCV7 and compute the score
 scores <- future_vapply(combos,
@@ -215,4 +213,4 @@ all_vaccines <- bind_rows(
 )
 
 # and save (no long with commas but i'll stick to rds anyway)
-saveRDS(all_vaccines, file = "data/SouthAfrica/processed-inputs/vaccines.rds")
+saveRDS(all_vaccines, file = "data/SouthAfrica/processed-inputs/vaccines-15valent.rds")
