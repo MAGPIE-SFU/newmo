@@ -127,8 +127,10 @@ FIRST_SIM_CALENDAR_YEAR <- 2011   # corresponds to year.1 in the simulation
 IPD_DOT_TOP_N <- 20   # number of serotypes in the IPD dot plot
 
 # Vaccine design
-VD_TARGET_SIZE  <- 13         # valency of the invented vaccines
-VD_N_CANDIDATES <- 18         # most invasive non-PCV7 serotypes to choose from
+VD_CANDIDATE_VACCINES <- c("PCV7", "PCV13", "PCV15", "PCV20", "PCV23")  # in priority order
+VD_DIRECT_SIZE  <- 13         # valency of the ipdfrac / mostinvasive vaccines
+VD_TARGET_SIZE  <- 13         # valency of the greedy / exhaustive vaccines
+VD_N_EXTRA      <- 5          # top NVT serotypes (by IPD contribution, and by invasiveness) added as candidates
 VD_SCORE_YEARS  <- 6:10       # simulation years to average the IPD over
 VD_N_CORES      <- 1          # > 1 uses mclapply (Linux/macOS only)
 

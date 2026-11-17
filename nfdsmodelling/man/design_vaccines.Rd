@@ -11,9 +11,11 @@ design_vaccines(
   inv,
   group_lookup,
   base_vaccine,
+  candidate_vaccines,
   prevax_years = 2000:2009,
-  target_size = 13,
-  n_candidates = 18,
+  direct_size = 13,
+  target_size = 15,
+  n_extra = 5,
   years = 6:10,
   n_cores = 1
 )
@@ -31,11 +33,17 @@ design_vaccines(
 
 \item{base_vaccine}{Serotypes every greedy / exhaustive vaccine starts from (PCV7).}
 
+\item{candidate_vaccines}{Named list of vaccines whose serotypes are candidates,
+in priority order (see \code{\link[=vaccine_candidate_data]{vaccine_candidate_data()}}).}
+
 \item{prevax_years}{Years for the inferred pre-vaccine composition.}
 
-\item{target_size}{Valency of the invented vaccines.}
+\item{direct_size}{Valency of the method 1 vaccines.}
 
-\item{n_candidates}{Number of most invasive non-base serotypes to choose from.}
+\item{target_size}{Valency of the greedy and exhaustive vaccines.}
+
+\item{n_extra}{Number of top NVT serotypes (by IPD contribution, and by
+invasiveness) added to the candidates.}
 
 \item{years}{Simulation years to average the IPD over.}
 
@@ -45,10 +53,15 @@ design_vaccines(
 One row per vaccine: ipd, vaccine (string), method.
 }
 \description{
-Method 1 ("ipdfrac", "mostinvasive"): the top \code{target_size} serotypes by
+Method 1 ("ipdfrac", "mostinvasive"): the top \code{direct_size} serotypes by
 their contribution to IPD in the inferred pre-vaccine population, or by
 child invasiveness. Method 2 ("greedy"): starting from \code{base_vaccine}, add
 the candidate that lowers IPD most, one at a time, up to \code{target_size}.
 Method 3 ("exhaustive"): every combination of candidates added to
 \code{base_vaccine} up to \code{target_size}.
+}
+\details{
+Candidates for methods 2 and 3: every serotype in one of
+\code{candidate_vaccines}, plus the NVT serotypes in the top \code{n_extra} by IPD
+contribution or by child invasiveness, minus \code{base_vaccine}.
 }
