@@ -132,10 +132,14 @@ VD_DIRECT_SIZE  <- 13         # valency of the ipdfrac / mostinvasive vaccines
 VD_TARGET_SIZE  <- 13         # valency of the greedy / exhaustive vaccines
 VD_N_EXTRA      <- 5          # top NVT serotypes (by IPD contribution, and by invasiveness) added as candidates
 VD_SCORE_YEARS  <- 6:10       # simulation years to average the IPD over
-VD_N_CORES      <- 1          # > 1 uses mclapply (Linux/macOS only)
+# The exhaustive search takes quite a long time so using multiple cores is recommendend
+# Single core runtime probably 1-4 hours for 13 valency, likely 6-20 hours for 15 valency
+VD_N_CORES      <- parallel::detectCores() - 1  # > 1 uses mclapply (Linux/macOS only)
+VD_RANK_N_TOP     <- 100     # number of ranked vaccines to show
+VD_RANK_VALENCIES <- NULL    # e.g. 15 to rank only 15-valent vaccines; NULL = all
 
 # Vaccine heatmap
-HEATMAP_VACCINES      <- c("PCV7", "PCV13", "PCV15", "PCV21", "PCV23")   # licensed, in display order
+HEATMAP_VACCINES      <- c("PCV7", "PCV13", "PCV15", "PCV20", "PCV23")   # licensed, in display order
 HEATMAP_N_EXHAUSTIVE  <- 6     # exhaustive vaccines to show, lowest IPD first
 HEATMAP_METHOD_LABELS <- c(
   greedy       = "Greedy",

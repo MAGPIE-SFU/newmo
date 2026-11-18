@@ -36,16 +36,15 @@ simulate_nfds <- function(samodel, modelpars, nyears, stepspy = 24) {
 
     # define the differential equation
     diffxt <- function(t, x, modelpars) {
-        # create vt: 0 or parameter v, one value for each strain (row of G)
+    # create vt: 0 or parameter v, one value for each strain (row of G)
 
-        # time dependent vaccines, where we switch from vaccine1 to vaccine2 at point tswitch
-        rr <- if (t < modelpars$tswitch) rr1 else rr2
+    # time dependent vaccines, where we switch from vaccine1 to vaccine2 at point tswitch
+    rr <- if (t < modelpars$tswitch) rr1 else rr2
 
         cur_sum <- sum(x)
         if (cur_sum <= 0){
-          print(modelpars)
-          print(cur_sum)
-          stop("Sum is less than 0")
+          stop(sprintf("Sum is less than 0 (%.3g) at t = %.1f; v1 = %.4g, sigma = %.4g, portion = %.3f",
+                      cur_sum, t, modelpars$v1, modelpars$sigma, modelpars$portion))
         }
 
         with(modelpars, {
