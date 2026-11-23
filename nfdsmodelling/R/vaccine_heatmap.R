@@ -72,7 +72,8 @@ plot_vaccine_heatmap <- function(known_serotypes, known_ipd, vaccine_data, all_s
       group = "Candidate",
       method_name = coalesce(unname(method_labels[method]), method)
     ) %>%
-    arrange(method != "greedy", method != "exhaustive", method, valency, ipd) %>%
+    # This will cause NANs if new method is added without adding it here, could be an input argument
+    arrange(factor(method, levels = c("ipdfrac", "mostinvasive", "greedy", "exhaustive")), valency, ipd) %>%
     group_by(method, valency) %>%
     # Number the rows only where a method repeats a valency, best IPD first
     mutate(
@@ -111,6 +112,10 @@ plot_vaccine_heatmap <- function(known_serotypes, known_ipd, vaccine_data, all_s
   other_serotypes <- setdiff(
     union(all_serotypes, vaccine_long$serotype),
     seen_serotypes
+  )
+  other_serotypes <- setdiff(
+    other_serotypes,
+    c("rare_NVT", "Swiss_NT")
   )
 
   serotype_levels <- c(
