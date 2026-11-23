@@ -46,7 +46,10 @@ targets_vaccine_design <- list(
              format = "file"),
       tar_target(vaccine_ranks_pdf,
              save_plot_output(
-               plot_vaccine_ranks(designed_vaccines, licensed_vaccine_ipd[names(licensed_vaccine_ipd) != "PCV15"],
+               plot_vaccine_ranks(designed_vaccines,
+                # This removes the PCV15 because of overlapping labels
+                # licensed_vaccine_ipd[names(licensed_vaccine_ipd) != "PCV15"],
+                licensed_vaccine_ipd,
                                   n_top = VD_RANK_N_TOP, n_sample = VD_RANK_N_SAMPLE,
                                   method_labels = HEATMAP_METHOD_LABELS),
                file.path(results_dir, "plots", "vaccine_design", "vaccine_ranks.pdf"),
