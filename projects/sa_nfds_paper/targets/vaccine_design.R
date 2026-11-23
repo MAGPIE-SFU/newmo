@@ -44,10 +44,10 @@ targets_vaccine_design <- list(
                               file.path(results_dir, "plots", "vaccine_design", "vaccine_heatmap.pdf"),
                               width = vaccine_heatmap$width, height = vaccine_heatmap$height),
              format = "file"),
-    tar_target(vaccine_ranks_pdf,
+      tar_target(vaccine_ranks_pdf,
              save_plot_output(
-               plot_vaccine_ranks(designed_vaccines, licensed_vaccine_ipd,
-                                  n_top = VD_RANK_N_TOP, valencies = VD_RANK_VALENCIES,
+               plot_vaccine_ranks(designed_vaccines, licensed_vaccine_ipd[names(licensed_vaccine_ipd) != "PCV15"],
+                                  n_top = VD_RANK_N_TOP, n_sample = VD_RANK_N_SAMPLE,
                                   method_labels = HEATMAP_METHOD_LABELS),
                file.path(results_dir, "plots", "vaccine_design", "vaccine_ranks.pdf"),
                width = 10, height = 6),

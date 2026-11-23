@@ -8,7 +8,8 @@ plot_vaccine_ranks(
   vaccine_data,
   known_ipd,
   n_top = 100,
-  valencies = NULL,
+  n_sample = 1000,
+  other_methods = "greedy",
   method_labels = character(0),
   ipd_scale = 1e+05,
   ipd_label = "IPD per 100,000"
@@ -19,9 +20,11 @@ plot_vaccine_ranks(
 
 \item{known_ipd}{Named numeric vector: IPD score per licensed vaccine.}
 
-\item{n_top}{Number of best-ranked vaccines to show (Inf = all).}
+\item{n_top}{Number of best exhaustive vaccines shown individually.}
 
-\item{valencies}{Only rank vaccines with these valencies (NULL = all).}
+\item{n_sample}{Number of evenly spaced ranks shown from the remaining ones.}
+
+\item{other_methods}{Methods placed among the exhaustive ranks.}
 
 \item{method_labels}{Named character vector: display name per method.}
 
@@ -33,6 +36,8 @@ plot_vaccine_ranks(
 A ggplot.
 }
 \description{
-Invented vaccines sorted by the IPD they leave (rank 1 = lowest IPD),
-coloured by method. Licensed vaccines are shown as dashed horizontal lines.
+Exhaustive vaccines ranked by the IPD they leave (rank 1 = lowest IPD):
+the best \code{n_top}, then \code{n_sample} ranks evenly spread over the rest.
+Vaccines from \code{other_methods} are placed at the rank they would have among
+the exhaustive vaccines. Licensed vaccines are dashed horizontal lines.
 }

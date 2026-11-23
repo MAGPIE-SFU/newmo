@@ -135,7 +135,8 @@ VD_SCORE_YEARS  <- 6:10       # simulation years to average the IPD over
 # The exhaustive search takes quite a long time so using multiple cores is recommendend
 # Single core runtime probably 1-4 hours for 13 valency, likely 6-20 hours for 15 valency
 VD_N_CORES      <- parallel::detectCores() - 1  # > 1 uses mclapply (Linux/macOS only)
-VD_RANK_N_TOP     <- 100     # number of ranked vaccines to show
+VD_RANK_N_TOP    <- 100    # best exhaustive vaccines shown individually
+VD_RANK_N_SAMPLE <- 1000   # evenly spaced ranks from the rest
 VD_RANK_VALENCIES <- NULL    # e.g. 15 to rank only 15-valent vaccines; NULL = all
 
 # Vaccine heatmap
