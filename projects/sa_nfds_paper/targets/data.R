@@ -60,7 +60,7 @@ targets_data <- list(
              format = "file"),
   tar_target(xt_top_groups_pdf,
              save_plot_output(plot_xt_top_groups(xt_grouped_uncertainty),
-                              file.path(results_dir, "plots", "xt_top_groups.pdf"),
+                              file.path(results_dir, "plots", "fits", "xt_top_groups.pdf"),
                               width = 12, height = 9),
              format = "file"),
     tar_target(gene_matrix_raw_file, GENE_MATRIX_RAW_PATH, format = "file"),
