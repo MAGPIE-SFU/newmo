@@ -1,6 +1,6 @@
 # Invent vaccines
 
-Method 1 ("ipdfrac", "mostinvasive"): the top `target_size` serotypes by
+Method 1 ("ipdfrac", "mostinvasive"): the top `direct_size` serotypes by
 their contribution to IPD in the inferred pre-vaccine population, or by
 child invasiveness. Method 2 ("greedy"): starting from `base_vaccine`,
 add the candidate that lowers IPD most, one at a time, up to
@@ -17,9 +17,11 @@ design_vaccines(
   inv,
   group_lookup,
   base_vaccine,
+  candidate_vaccines,
   prevax_years = 2000:2009,
-  target_size = 13,
-  n_candidates = 18,
+  direct_size = 13,
+  target_size = 15,
+  n_extra = 5,
   years = 6:10,
   n_cores = 1
 )
@@ -53,17 +55,28 @@ design_vaccines(
 
   Serotypes every greedy / exhaustive vaccine starts from (PCV7).
 
+- candidate_vaccines:
+
+  Named list of vaccines whose serotypes are candidates, in priority
+  order (see
+  [`vaccine_candidate_data()`](https://magpie-sfu.github.io/newmo/reference/vaccine_candidate_data.md)).
+
 - prevax_years:
 
   Years for the inferred pre-vaccine composition.
 
+- direct_size:
+
+  Valency of the method 1 vaccines.
+
 - target_size:
 
-  Valency of the invented vaccines.
+  Valency of the greedy and exhaustive vaccines.
 
-- n_candidates:
+- n_extra:
 
-  Number of most invasive non-base serotypes to choose from.
+  Number of top NVT serotypes (by IPD contribution, and by invasiveness)
+  added to the candidates.
 
 - years:
 
@@ -77,3 +90,9 @@ design_vaccines(
 ## Value
 
 One row per vaccine: ipd, vaccine (string), method.
+
+## Details
+
+Candidates for methods 2 and 3: every serotype in one of
+`candidate_vaccines`, plus the NVT serotypes in the top `n_extra` by IPD
+contribution or by child invasiveness, minus `base_vaccine`.

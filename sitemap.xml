@@ -22,7 +22,9 @@
 <url><loc>https://magpie-sfu.github.io/newmo/reference/plot_landscape.html</loc></url>
 <url><loc>https://magpie-sfu.github.io/newmo/reference/plot_profiles.html</loc></url>
 <url><loc>https://magpie-sfu.github.io/newmo/reference/plot_projected_ipd_check.html</loc></url>
+<url><loc>https://magpie-sfu.github.io/newmo/reference/plot_vaccine_candidates.html</loc></url>
 <url><loc>https://magpie-sfu.github.io/newmo/reference/plot_vaccine_heatmap.html</loc></url>
+<url><loc>https://magpie-sfu.github.io/newmo/reference/plot_vaccine_ranks.html</loc></url>
 <url><loc>https://magpie-sfu.github.io/newmo/reference/plot_xt_top_groups.html</loc></url>
 <url><loc>https://magpie-sfu.github.io/newmo/reference/prepare_ipd_serotypes.html</loc></url>
 <url><loc>https://magpie-sfu.github.io/newmo/reference/profile_best_fits.html</loc></url>
@@ -41,6 +43,7 @@
 <url><loc>https://magpie-sfu.github.io/newmo/reference/simulate_projected_ipd.html</loc></url>
 <url><loc>https://magpie-sfu.github.io/newmo/reference/top_group_plot.html</loc></url>
 <url><loc>https://magpie-sfu.github.io/newmo/reference/top_sero_plot.html</loc></url>
+<url><loc>https://magpie-sfu.github.io/newmo/reference/vaccine_candidate_data.html</loc></url>
 <url><loc>https://magpie-sfu.github.io/newmo/reference/vaccine_serotypes.html</loc></url>
 <url><loc>https://magpie-sfu.github.io/newmo/reference/vt_nvt_plot.html</loc></url>
 </urlset>

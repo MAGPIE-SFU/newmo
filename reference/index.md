@@ -90,6 +90,14 @@
   : Invent vaccines
 - [`plot_vaccine_heatmap()`](https://magpie-sfu.github.io/newmo/reference/plot_vaccine_heatmap.md)
   : Vaccine heatmap
+- [`plot_vaccine_candidates()`](https://magpie-sfu.github.io/newmo/reference/plot_vaccine_candidates.md)
+  : Invasiveness and IPD contribution of each serotype, by vaccine
+- [`plot_vaccine_ranks()`](https://magpie-sfu.github.io/newmo/reference/plot_vaccine_ranks.md)
+  : Rank plot of invented vaccines, with licensed vaccines for
+  comparison
+- [`vaccine_candidate_data()`](https://magpie-sfu.github.io/newmo/reference/vaccine_candidate_data.md)
+  : Pre-vaccine serotype composition, invasiveness and vaccine
+  membership
 
 ## Model vs data plots
 
