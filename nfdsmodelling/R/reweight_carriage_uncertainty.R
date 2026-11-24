@@ -30,10 +30,17 @@
 #' @importFrom tidyr pivot_wider replace_na complete
 #' @importFrom stats rlnorm var
 #' @export
-reweight_carriage_uncertainty <- function(meta_clean, inv, group_lookup,
-                                          tauA, tauU, k,
-                                          lambda = 0.01, n_reps = 1000, seed = 1) {
-
+reweight_carriage_uncertainty <- function(
+  meta_clean,
+  inv,
+  group_lookup,
+  tauA,
+  tauU,
+  k,
+  lambda = 0.01,
+  n_reps = 1000,
+  seed = 1
+) {
   # set the seed
   set.seed(seed)
 
@@ -46,46 +53,54 @@ reweight_carriage_uncertainty <- function(meta_clean, inv, group_lookup,
   ######################################################
 
   yearly_counts_long <- meta_clean %>%
-    count( year, age_group, collection_type,
-           serotype, gpsc,   name = "n" )
+    count(year, age_group, collection_type, serotype, gpsc, name = "n")
 
   # make it wider by splitting IPD and carriage to cols
   yearly_counts <- yearly_counts_long %>%
     pivot_wider(
       names_from = collection_type,
       values_from = n,
-      values_fill = 0  ) %>%  rename( ipd_n = IPD,carriage_n = carriage )
+      values_fill = 0
+    ) %>%
+    rename(ipd_n = IPD, carriage_n = carriage)
 
   # connect it to the supplementary tables from Nick's paper via the inv data frame
   missing <- setdiff(unique(meta_clean$serotype), inv$serotype)
-  if (length(missing)) stop("No invasiveness for: ", paste(missing, collapse = ", "),
-                            " -- rebuild the invasiveness lookup")
+  if (length(missing)) {
+    stop(
+      "No invasiveness for: ",
+      paste(missing, collapse = ", "),
+      " -- rebuild the invasiveness lookup"
+    )
+  }
 
   # NEW   - take the log normal pars from the table before rather than moment matching
   # to Nick's ranges, because in the invasiveness lookup
   # we did "shrinkage" for the log means
   child_v_lookup <- inv %>%
-      transmute(serotype, logmean = v_child_logmean, logsd = v_child_logsd) %>%
-      filter(!is.na(logmean), !is.na(logsd))
+    transmute(serotype, logmean = v_child_logmean, logsd = v_child_logsd) %>%
+    filter(!is.na(logmean), !is.na(logsd))
 
   adult_v_lookup <- inv %>%
-      transmute(serotype, logmean = v_adult_logmean, logsd = v_adult_logsd) %>%
-      filter(!is.na(logmean), !is.na(logsd))
+    transmute(serotype, logmean = v_adult_logmean, logsd = v_adult_logsd) %>%
+    filter(!is.na(logmean), !is.na(logsd))
 
   # one draw per serotype, reused across all years within a replicate
-  draw_v <- function(lk) lk %>% mutate(v = rlnorm(n(), logmean, logsd)) %>% select(serotype, v)
-
+  draw_v <- function(lk) {
+    lk %>% mutate(v = rlnorm(n(), logmean, logsd)) %>% select(serotype, v)
+  }
 
   get_child_inv <- function(vdraw) {
     yearly_counts %>%
       filter(age_group == "child", ipd_n > 0) %>%
       inner_join(vdraw, by = "serotype") %>%
       group_by(year) %>% # CC: previously each st got a draw of v for each year? instead we want ONE draw for the ST, not one for the st for each SC and year (!)
-      mutate( r_C = (ipd_n) / v, # carriage cases you'd expect from this number of IPD
-             p_C_inv = r_C / sum(r_C)) %>%  # proportion group g in child carriage based on this IPD sample
+      mutate(
+        r_C = (ipd_n) / v, # carriage cases you'd expect from this number of IPD
+        p_C_inv = r_C / sum(r_C)
+      ) %>% # proportion group g in child carriage based on this IPD sample
       ungroup() %>%
-      select(year, serotype, gpsc,
-             ipd_n, carriage_n, v, r_C, p_C_inv)
+      select(year, serotype, gpsc, ipd_n, carriage_n, v, r_C, p_C_inv)
   }
 
   get_adult_inv <- function(vdraw) {
@@ -93,13 +108,13 @@ reweight_carriage_uncertainty <- function(meta_clean, inv, group_lookup,
       filter(age_group == "adult", ipd_n > 0) %>%
       inner_join(vdraw, by = "serotype") %>%
       group_by(year) %>%
-      mutate(r_A = (ipd_n ) / v, # carriage cases you'd expect from this number of IPD; have removed alpha - not needed
-             p_A_inv = r_A / sum(r_A)) %>%  # proportion group g in adult carriage based on this IPD sample
+      mutate(
+        r_A = (ipd_n) / v, # carriage cases you'd expect from this number of IPD; have removed alpha - not needed
+        p_A_inv = r_A / sum(r_A)
+      ) %>% # proportion group g in adult carriage based on this IPD sample
       ungroup() %>%
-      select(year, serotype, gpsc,
-             ipd_n, carriage_n, v, r_A, p_A_inv)
+      select(year, serotype, gpsc, ipd_n, carriage_n, v, r_A, p_A_inv)
   }
-
 
   # unknowns: i treat them as if they are kids from the point of view of invasiveness. but we don't know.
   #  ??? might want to average 0.8*kid invasiveness + 0.2* adult invasiveness later
@@ -108,49 +123,46 @@ reweight_carriage_uncertainty <- function(meta_clean, inv, group_lookup,
       filter(age_group == "unknown", ipd_n > 0) %>%
       inner_join(vdraw, by = "serotype") %>%
       group_by(year) %>%
-      mutate(r_U = (ipd_n ) / v,
-             p_U_proxy = r_U / sum(r_U)) %>%
+      mutate(r_U = (ipd_n) / v, p_U_proxy = r_U / sum(r_U)) %>%
       ungroup() %>%
-      select(year, serotype, gpsc,
-             ipd_n, carriage_n, v, r_U, p_U_proxy)
+      select(year, serotype, gpsc, ipd_n, carriage_n, v, r_U, p_U_proxy)
   }
-
 
   # i want to also include the carriage data we do have, such as it is..
   # here are the raw carriage fractions by group in kids
 
   child_carriage_counts <- yearly_counts %>%
     filter(age_group == "child") %>%
-    select(year, serotype, gpsc,  carriage_n)
+    select(year, serotype, gpsc, carriage_n)
 
   # this is the data frame that is going to be turned into my final sythn population:
   components_yearly <- lapply(1:n_reps, function(x) {
-      vc <- draw_v(child_v_lookup)      # child AND unknown share this draw
-      va <- draw_v(adult_v_lookup)
+    vc <- draw_v(child_v_lookup) # child AND unknown share this draw
+    va <- draw_v(adult_v_lookup)
 
-      get_child_inv(vc) %>%
-    select(year, serotype, gpsc,  p_C_inv) %>%
-    full_join(
-      get_adult_inv(va) %>%
-        select(year, serotype, gpsc,  p_A_inv),
-      by = c("year", "serotype", "gpsc")
-    ) %>%
-    full_join(
-      get_unknown_proxy(vc) %>%
-        select(year, serotype, gpsc,  p_U_proxy),
-      by = c("year", "serotype", "gpsc")
-    ) %>%
-    full_join(
-      child_carriage_counts,
-      by = c("year", "serotype", "gpsc")
-    ) %>%
-    mutate(
-      p_C_inv = replace_na(p_C_inv, 0),
-      p_A_inv = replace_na(p_A_inv, 0),
-      p_U_proxy = replace_na(p_U_proxy, 0),
-      carriage_n = replace_na(carriage_n, 0)
-    ) %>%
-    ungroup()
+    get_child_inv(vc) %>%
+      select(year, serotype, gpsc, p_C_inv) %>%
+      full_join(
+        get_adult_inv(va) %>%
+          select(year, serotype, gpsc, p_A_inv),
+        by = c("year", "serotype", "gpsc")
+      ) %>%
+      full_join(
+        get_unknown_proxy(vc) %>%
+          select(year, serotype, gpsc, p_U_proxy),
+        by = c("year", "serotype", "gpsc")
+      ) %>%
+      full_join(
+        child_carriage_counts,
+        by = c("year", "serotype", "gpsc")
+      ) %>%
+      mutate(
+        p_C_inv = replace_na(p_C_inv, 0),
+        p_A_inv = replace_na(p_A_inv, 0),
+        p_U_proxy = replace_na(p_U_proxy, 0),
+        carriage_n = replace_na(carriage_n, 0)
+      ) %>%
+      ungroup()
   })
 
   ######################################################################
@@ -186,10 +198,10 @@ reweight_carriage_uncertainty <- function(meta_clean, inv, group_lookup,
         wU = tauU_eff / tau_total,
 
         p_C_aug = wC * p_C_inv + wA * p_A_inv + wU * p_U_proxy,
-        N_car      = sum(carriage_n),                               # child carriage swabs this year
-        omega_t    = N_car / (N_car + k)                           # weight on carriage (0 if none)
-    # CC: removed the p_final and p_final_sd lines here, pseudocount was pulling too far towards uniform by x 84 in the denominator
-       ) %>%
+        N_car = sum(carriage_n), # child carriage swabs this year
+        omega_t = N_car / (N_car + k) # weight on carriage (0 if none)
+        # CC: removed the p_final and p_final_sd lines here, pseudocount was pulling too far towards uniform by x 84 in the denominator
+      ) %>%
       ungroup()
   })
 
@@ -198,54 +210,79 @@ reweight_carriage_uncertainty <- function(meta_clean, inv, group_lookup,
   # mean and prior strength k (in equivalent carriage samples)."
 
   # 3. apply the groups, then build xt
-  final_yearly <- lapply(final_yearly, function(x){
+  final_yearly <- lapply(final_yearly, function(x) {
     x %>%
-      left_join(select(group_lookup, serotype, gpsc, group), by = c("serotype", "gpsc"))
+      left_join(
+        select(group_lookup, serotype, gpsc, group),
+        by = c("serotype", "gpsc")
+      )
   })
 
   meta_clean <- meta_clean %>%
-      select(-any_of("group")) %>% # in case group was already in there i guess?
-      left_join(select(group_lookup, serotype, gpsc, group), by = c("serotype", "gpsc"))
+    select(-any_of("group")) %>% # in case group was already in there i guess?
+    left_join(
+      select(group_lookup, serotype, gpsc, group),
+      by = c("serotype", "gpsc")
+    )
 
-  stopifnot(!any(sapply(final_yearly, function(x) any(is.na(x$group)))), !any(is.na(meta_clean$group)))
+  stopifnot(
+    !any(sapply(final_yearly, function(x) any(is.na(x$group)))),
+    !any(is.na(meta_clean$group))
+  )
 
   ###########################################################################
   # make x(t). but keep st in xt
   ###########################################################################
   group_sero <- group_lookup %>%
     group_by(group) %>%
-    summarise(serotype     = if (n_distinct(serotype) == 1) first(serotype) else first(group),
-              vaccine_type = first(vaccine_type),
-              .groups = "drop")
+    summarise(
+      serotype = if (n_distinct(serotype) == 1) {
+        first(serotype)
+      } else {
+        first(group)
+      },
+      vaccine_type = first(vaccine_type),
+      .groups = "drop"
+    )
 
   all_groups <- sort(unique(group_lookup$group))
-  all_years  <- sort(unique(final_yearly[[1]]$year))
+  all_years <- sort(unique(final_yearly[[1]]$year))
 
   # uses lambda to smooth the prior ps, not the counts
   xt <- lapply(final_yearly, function(x) {
-      x %>%
-          group_by(year, group) %>%
-          summarise(p_tilde_g  = sum(p_C_aug),       # sums to 1 over groups
-                    carriage_g = sum(carriage_n),    # sums to N_car
-                    .groups = "drop") %>%
-          complete(year = all_years, group = all_groups,
-                   fill = list(p_tilde_g = 0, carriage_g = 0)) %>%
-          group_by(year) %>%
-          mutate(N_car     = sum(carriage_g),
-                 p_tilde   = (1 - lambda) * p_tilde_g + lambda / n(),   # n() == 84
-                 alpha     = carriage_g + k * p_tilde,
-                 frac_mean = alpha / sum(alpha),                        # sum(alpha) == N_car + k
-                 frac_var  = frac_mean * (1 - frac_mean) / (N_car + k + 1)) %>%
-          ungroup() %>%
-          left_join(group_sero, by = "group") %>%
-          select(year, group, serotype, vaccine_type, frac_mean, frac_var)
+    x %>%
+      group_by(year, group) %>%
+      summarise(
+        p_tilde_g = sum(p_C_aug), # sums to 1 over groups
+        carriage_g = sum(carriage_n), # sums to N_car
+        .groups = "drop"
+      ) %>%
+      complete(
+        year = all_years,
+        group = all_groups,
+        fill = list(p_tilde_g = 0, carriage_g = 0)
+      ) %>%
+      group_by(year) %>%
+      mutate(
+        N_car = sum(carriage_g),
+        p_tilde = (1 - lambda) * p_tilde_g + lambda / n(), # n() == 84
+        alpha = carriage_g + k * p_tilde,
+        frac_mean = alpha / sum(alpha), # sum(alpha) == N_car + k
+        frac_var = frac_mean * (1 - frac_mean) / (N_car + k + 1)
+      ) %>%
+      ungroup() %>%
+      left_join(group_sero, by = "group") %>%
+      select(year, group, serotype, vaccine_type, frac_mean, frac_var)
   })
 
   # aggregate results and compute the new standard deviation
   bind_rows(xt) %>%
     group_by(year, group, serotype, vaccine_type) %>%
-    summarise(frac = mean(frac_mean),
-              frac_sd = sqrt(mean(frac_var) + var(frac_mean)), .groups="drop")
+    summarise(
+      frac = mean(frac_mean),
+      frac_sd = sqrt(mean(frac_var) + var(frac_mean)),
+      .groups = "drop"
+    )
 }
 
 
@@ -264,7 +301,6 @@ reweight_carriage_uncertainty <- function(meta_clean, inv, group_lookup,
 #'   element_rect element_blank
 #' @export
 plot_xt_top_groups <- function(xt_agg, n_top = 20) {
-
   # Select the most common groups
   top_groups <- xt_agg %>%
     group_by(group) %>%
@@ -324,7 +360,7 @@ plot_xt_top_groups <- function(xt_agg, n_top = 20) {
       linewidth = 0.5
     ) +
 
-    facet_wrap(~ group, scales = "free_y", ncol = 5) +
+    facet_wrap(~group, scales = "free_y", ncol = 5) +
 
     scale_x_continuous(
       breaks = seq(2000, 2020, 5)

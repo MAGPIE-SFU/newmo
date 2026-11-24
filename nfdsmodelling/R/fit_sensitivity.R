@@ -5,18 +5,22 @@
 
 # Display names for the loss functions in the plots
 LOSS_LABELS <- c(
-  SSE                           = "SSE",
+  SSE = "SSE",
   weighted_composition_distance = "Weighted composition",
-  weighted_SSE                  = "Weighted SSE"
+  weighted_SSE = "Weighted SSE"
 )
-loss_labeller <- function(x) ifelse(x %in% names(LOSS_LABELS), LOSS_LABELS[x], x)
+loss_labeller <- function(x) {
+  ifelse(x %in% names(LOSS_LABELS), LOSS_LABELS[x], x)
+}
 
 # default theme for the plots
 #' @importFrom ggplot2 theme element_rect element_line
 clean_theme <- function() {
-  theme(panel.background = element_rect(fill="white", colour="black"),
-        panel.grid.major = element_line("grey85"),
-        panel.grid.minor = element_line('grey95'))
+  theme(
+    panel.background = element_rect(fill = "white", colour = "black"),
+    panel.grid.major = element_line("grey85"),
+    panel.grid.minor = element_line('grey95')
+  )
 }
 
 #' Largest groups at the start of the simulation
@@ -29,10 +33,10 @@ clean_theme <- function() {
 #' @export
 sensitivity_top_groups <- function(samodel, n_groups) {
   data.frame(IC = samodel$x0) |>
-    rownames_to_column(var="group") |>
+    rownames_to_column(var = "group") |>
     mutate(frac = IC / sum(IC)) |>
     arrange(desc(frac)) |>
-    slice_head(n=n_groups)
+    slice_head(n = n_groups)
 }
 
 #' Sensitivity of the model to its parameters around the fitted optima
@@ -57,25 +61,44 @@ sensitivity_top_groups <- function(samodel, n_groups) {
 #' @importFrom purrr list_rbind keep discard
 #' @importFrom stats runif pnorm qnorm
 #' @export
-run_sensitivity <- function(opt_pars, samodel, tswitch, nyears, sd_pars,
-                            use_switch = TRUE, n_sims = 100, n_cores = 1) {
-
+run_sensitivity <- function(
+  opt_pars,
+  samodel,
+  tswitch,
+  nyears,
+  sd_pars,
+  use_switch = TRUE,
+  n_sims = 100,
+  n_cores = 1
+) {
   # pull out initial conditions
   IC <- data.frame(value = samodel$x0) |>
-    rownames_to_column(var="group") |>
-    bind_cols(year=0)
+    rownames_to_column(var = "group") |>
+    bind_cols(year = 0)
 
   # Optimal trajectories
   # ==============================================================================
 
   # process results for each of the optimal parameter settings
   opt_traj <- lapply(seq_len(nrow(opt_pars)), function(i) {
-    run_model(as.list(unlist(opt_pars[i, PAR_NAMES])), use_switch, samodel, nyears, tswitch) |>
-      rownames_to_column(var="group") |>
-      pivot_longer(-group, names_to="year", names_prefix="year.", names_transform = as.numeric) |>
+    run_model(
+      as.list(unlist(opt_pars[i, PAR_NAMES])),
+      use_switch,
+      samodel,
+      nyears,
+      tswitch
+    ) |>
+      rownames_to_column(var = "group") |>
+      pivot_longer(
+        -group,
+        names_to = "year",
+        names_prefix = "year.",
+        names_transform = as.numeric
+      ) |>
       bind_rows(IC) |>
       bind_cols(loss = opt_pars$loss[i])
-  }) |> list_rbind()
+  }) |>
+    list_rbind()
 
   # Perturbations
   # ==============================================================================
@@ -84,31 +107,40 @@ run_sensitivity <- function(opt_pars, samodel, tswitch, nyears, sd_pars,
   #  equal to the optimized values and standard deviation loosely based on the
   #  loss function profiles
 
-  par_lookup <- lapply(seq_len(nrow(opt_pars)), function(i) {as.data.frame(opt_pars[i,]) |>
-      mutate(logv1 = log(v1),
-             logsigma = log(sigma),
-             portion = portion,
-             .keep = "none") |>
-      pivot_longer(everything(), names_to="par") |>
-      left_join(sd_pars, by="par")
-    }
-  )
+  par_lookup <- lapply(seq_len(nrow(opt_pars)), function(i) {
+    as.data.frame(opt_pars[i, ]) |>
+      mutate(
+        logv1 = log(v1),
+        logsigma = log(sigma),
+        portion = portion,
+        .keep = "none"
+      ) |>
+      pivot_longer(everything(), names_to = "par") |>
+      left_join(sd_pars, by = "par")
+  })
 
   # draw from a normal truncated to [lo, hi] via the inverse CDF
-  sim_pars <- Vectorize(function(lookup, par_name){
-    row <- lookup[lookup$par == par_name, ]
-    p <- runif(1, pnorm(row$lo, row$value, row$SD), pnorm(row$hi, row$value, row$SD))
-    qnorm(p, row$value, row$SD)},
-    vectorize.args="par_name")
+  sim_pars <- Vectorize(
+    function(lookup, par_name) {
+      row <- lookup[lookup$par == par_name, ]
+      p <- runif(
+        1,
+        pnorm(row$lo, row$value, row$SD),
+        pnorm(row$hi, row$value, row$SD)
+      )
+      qnorm(p, row$value, row$SD)
+    },
+    vectorize.args = "par_name"
+  )
 
   par_df <- lapply(seq_len(nrow(opt_pars)), function(j) {
-    lapply(1:n_sims, function(i){
+    lapply(1:n_sims, function(i) {
       data.frame(par = sd_pars$par) |>
         mutate(val = sim_pars(par_lookup[[j]], par)) |>
-        bind_cols(rep=i)
+        bind_cols(rep = i)
     }) |>
       list_rbind() |>
-      bind_cols(loss=opt_pars$loss[j])
+      bind_cols(loss = opt_pars$loss[j])
   }) |>
     list_rbind()
 
@@ -117,13 +149,12 @@ run_sensitivity <- function(opt_pars, samodel, tswitch, nyears, sd_pars,
     par_lookup[[i]] |>
       select(par, value) |>
       bind_cols(loss = opt_pars$loss[i])
-  }) |> list_rbind()
+  }) |>
+    list_rbind()
 
   sim_par_sets <- par_df |>
-    pivot_wider(names_from="par", values_from = "val") |>
-    mutate(sigma = exp(logsigma),
-           v1 = exp(logv1),
-           .keep = "unused")
+    pivot_wider(names_from = "par", values_from = "val") |>
+    mutate(sigma = exp(logsigma), v1 = exp(logv1), .keep = "unused")
 
   stopifnot(all(between(sim_par_sets$portion, 0, 1)))
 
@@ -133,13 +164,28 @@ run_sensitivity <- function(opt_pars, samodel, tswitch, nyears, sd_pars,
     pars_k <- sim_par_sets[k, ]
     # a bad parameter draw shouldn't kill the whole batch; drop it and record why
     tryCatch(
-      run_model(as.list(select(pars_k, -rep, -loss)), use_switch, samodel, nyears, tswitch) |>
-        rownames_to_column(var="group") |>
-        pivot_longer(-group, names_to="year", names_prefix="year.", names_transform = as.numeric) |>
+      run_model(
+        as.list(select(pars_k, -rep, -loss)),
+        use_switch,
+        samodel,
+        nyears,
+        tswitch
+      ) |>
+        rownames_to_column(var = "group") |>
+        pivot_longer(
+          -group,
+          names_to = "year",
+          names_prefix = "year.",
+          names_transform = as.numeric
+        ) |>
         bind_rows(IC) |>
         bind_cols(select(pars_k, rep, loss)),
       error = function(e) {
-        data.frame(rep = pars_k$rep, loss = pars_k$loss, error = conditionMessage(e))
+        data.frame(
+          rep = pars_k$rep,
+          loss = pars_k$loss,
+          error = conditionMessage(e)
+        )
       }
     )
   }
@@ -147,8 +193,12 @@ run_sensitivity <- function(opt_pars, samodel, tswitch, nyears, sd_pars,
   # ODE solve times vary a lot across parameter draws, so hand out one job at a
   #  time (no prescheduling) rather than one fixed block per core
   sim_res <- if (n_cores > 1) {
-    parallel::mclapply(seq_len(nrow(sim_par_sets)), run_one,
-                       mc.cores = n_cores, mc.preschedule = FALSE)
+    parallel::mclapply(
+      seq_len(nrow(sim_par_sets)),
+      run_one,
+      mc.cores = n_cores,
+      mc.preschedule = FALSE
+    )
   } else {
     lapply(seq_len(nrow(sim_par_sets)), run_one)
   }
@@ -157,18 +207,22 @@ run_sensitivity <- function(opt_pars, samodel, tswitch, nyears, sd_pars,
   if (NROW(failed) > 0) {
     warning(nrow(failed), " parameter sets failed; see `failed`")
   } else {
-    failed <- data.frame(rep = integer(), loss = character(), error = character())
+    failed <- data.frame(
+      rep = integer(),
+      loss = character(),
+      error = character()
+    )
   }
 
   sim_out <- discard(sim_res, \(x) "error" %in% names(x)) |>
     list_rbind()
 
   list(
-    opt_traj     = opt_traj,
-    par_df       = par_df,
+    opt_traj = opt_traj,
+    par_df = par_df,
     opt_settings = opt_settings,
-    sim_out      = sim_out,
-    failed       = failed
+    sim_out = sim_out,
+    failed = failed
   )
 }
 
@@ -187,10 +241,12 @@ sensitivity_summary <- function(sens, top_groups, start_year, qtile) {
   sens$sim_out |>
     filter(group %in% top_groups$group) |>
     group_by(group, year, loss) |>
-    summarise(L = quantile(value, probs=(1-qtile)/2),
-              med = quantile(value, probs=0.5),
-              U = quantile(value, probs=1-(1-qtile)/2),
-              .groups = "drop") |>
+    summarise(
+      L = quantile(value, probs = (1 - qtile) / 2),
+      med = quantile(value, probs = 0.5),
+      U = quantile(value, probs = 1 - (1 - qtile) / 2),
+      .groups = "drop"
+    ) |>
     mutate(year = start_year + year)
 }
 
@@ -215,13 +271,13 @@ NULL
 plot_sensitivity_optimal <- function(sens, top_groups) {
   sens$opt_traj |>
     filter(group %in% top_groups$group) |>
-    ggplot(aes(x=year, y=value, colour=loss)) +
+    ggplot(aes(x = year, y = value, colour = loss)) +
     geom_point() +
     geom_line() +
-    facet_wrap(~group, ncol=4, scales="free_y") +
-    scale_colour_brewer(palette="Dark2", labels = loss_labeller) +
+    facet_wrap(~group, ncol = 4, scales = "free_y") +
+    scale_colour_brewer(palette = "Dark2", labels = loss_labeller) +
     clean_theme() +
-    theme(legend.position="bottom")
+    theme(legend.position = "bottom")
 }
 
 #' @describeIn sensitivity_plots Range of the simulated parameters (sampling scale).
@@ -229,10 +285,15 @@ plot_sensitivity_optimal <- function(sens, top_groups) {
 #' @export
 plot_sensitivity_draws <- function(sens) {
   sens$par_df |>
-    ggplot(aes(x=val)) +
-    geom_histogram(aes(fill=loss), colour="black") +
-    facet_grid(loss~par, scales="free") +
-    geom_vline(data=sens$opt_settings, aes(xintercept=value), linewidth=1, linetype="dashed") +
+    ggplot(aes(x = val)) +
+    geom_histogram(aes(fill = loss), colour = "black") +
+    facet_grid(loss ~ par, scales = "free") +
+    geom_vline(
+      data = sens$opt_settings,
+      aes(xintercept = value),
+      linewidth = 1,
+      linetype = "dashed"
+    ) +
     clean_theme()
 }
 
@@ -243,16 +304,30 @@ plot_sensitivity_draws <- function(sens) {
 plot_sensitivity_ribbons <- function(sens, top_groups, start_year, qtile) {
   opt_fit <- sensitivity_opt_fit(sens, top_groups, start_year)
   sensitivity_summary(sens, top_groups, start_year, qtile) |>
-    ggplot(aes(x=year, colour=loss)) +
-    geom_ribbon(aes(ymin=L, ymax=U, fill=loss), alpha=0.25, colour=NA) +
-    geom_line(aes(y=med), linewidth=1) +
-    geom_line(data=opt_fit, aes(y=value), linetype="dashed", linewidth=1) +
-    facet_wrap(~group, ncol=4, scales="free_y") +
-    labs(x="Year", y="ST-SC group frequency", colour="Loss function", fill="Loss function") +
-    scale_colour_brewer(palette="Dark2", labels = loss_labeller) +
-    scale_fill_brewer(palette="Dark2", labels = loss_labeller) +
+    ggplot(aes(x = year, colour = loss)) +
+    geom_ribbon(
+      aes(ymin = L, ymax = U, fill = loss),
+      alpha = 0.25,
+      colour = NA
+    ) +
+    geom_line(aes(y = med), linewidth = 1) +
+    geom_line(
+      data = opt_fit,
+      aes(y = value),
+      linetype = "dashed",
+      linewidth = 1
+    ) +
+    facet_wrap(~group, ncol = 4, scales = "free_y") +
+    labs(
+      x = "Year",
+      y = "ST-SC group frequency",
+      colour = "Loss function",
+      fill = "Loss function"
+    ) +
+    scale_colour_brewer(palette = "Dark2", labels = loss_labeller) +
+    scale_fill_brewer(palette = "Dark2", labels = loss_labeller) +
     clean_theme() +
-    theme(legend.position="bottom")
+    theme(legend.position = "bottom")
 }
 
 #' @describeIn sensitivity_plots All simulated trajectories, for all or some losses.
@@ -260,7 +335,12 @@ plot_sensitivity_ribbons <- function(sens, top_groups, start_year, qtile) {
 #' @importFrom ggplot2 ggplot aes geom_line facet_wrap labs scale_colour_brewer
 #'   scale_fill_brewer theme
 #' @export
-plot_sensitivity_trajectories <- function(sens, top_groups, start_year, losses = NULL) {
+plot_sensitivity_trajectories <- function(
+  sens,
+  top_groups,
+  start_year,
+  losses = NULL
+) {
   opt_fit <- sensitivity_opt_fit(sens, top_groups, start_year)
   d <- sens$sim_out |> filter(group %in% top_groups$group)
   if (!is.null(losses)) {
@@ -269,15 +349,28 @@ plot_sensitivity_trajectories <- function(sens, top_groups, start_year, losses =
   }
   d |>
     mutate(year = start_year + year) |>
-    ggplot(aes(x=year, colour=loss)) +
-    geom_line(aes(y=value, colour=loss, group=interaction(rep,loss)), alpha=0.1) +
-    geom_line(data=opt_fit, aes(y=value), linetype="dashed", linewidth=1) +
-    facet_wrap(~group, ncol=4, scales="free_y") +
-    labs(x="Year", y="ST-SC group frequency", colour="Loss function", fill="Loss function") +
-    scale_colour_brewer(palette="Dark2", labels = loss_labeller) +
-    scale_fill_brewer(palette="Dark2", labels = loss_labeller) +
+    ggplot(aes(x = year, colour = loss)) +
+    geom_line(
+      aes(y = value, colour = loss, group = interaction(rep, loss)),
+      alpha = 0.1
+    ) +
+    geom_line(
+      data = opt_fit,
+      aes(y = value),
+      linetype = "dashed",
+      linewidth = 1
+    ) +
+    facet_wrap(~group, ncol = 4, scales = "free_y") +
+    labs(
+      x = "Year",
+      y = "ST-SC group frequency",
+      colour = "Loss function",
+      fill = "Loss function"
+    ) +
+    scale_colour_brewer(palette = "Dark2", labels = loss_labeller) +
+    scale_fill_brewer(palette = "Dark2", labels = loss_labeller) +
     clean_theme() +
-    theme(legend.position="bottom")
+    theme(legend.position = "bottom")
 }
 
 #' @describeIn sensitivity_plots The data with the optimal fits and the
@@ -286,41 +379,80 @@ plot_sensitivity_trajectories <- function(sens, top_groups, start_year, losses =
 #' @importFrom ggplot2 ggplot aes geom_point geom_line geom_segment geom_ribbon
 #'   labs scale_colour_brewer scale_fill_brewer facet_wrap theme
 #' @export
-plot_sensitivity_vs_data <- function(sens, xt, top_groups, start_year, qtile, best_loss = NULL) {
-  opt_fit  <- sensitivity_opt_fit(sens, top_groups, start_year)
+plot_sensitivity_vs_data <- function(
+  sens,
+  xt,
+  top_groups,
+  start_year,
+  qtile,
+  best_loss = NULL
+) {
+  opt_fit <- sensitivity_opt_fit(sens, top_groups, start_year)
   sim_summ <- sensitivity_summary(sens, top_groups, start_year, qtile)
   n_groups <- nrow(top_groups)
 
   base <- xt |>
     filter(group %in% top_groups$group) |>
-    ggplot(aes(x=year)) +
-    geom_point(aes(y=frac), size=1) +
-    geom_line(aes(y=frac), linewidth=0.5, linetype="dashed") +
-    geom_segment(aes(y=frac-frac_sd*1.96, yend=frac+frac_sd*1.96))
+    ggplot(aes(x = year)) +
+    geom_point(aes(y = frac), size = 1) +
+    geom_line(aes(y = frac), linewidth = 0.5, linetype = "dashed") +
+    geom_segment(aes(y = frac - frac_sd * 1.96, yend = frac + frac_sd * 1.96))
 
   if (is.null(best_loss)) {
     # summarise sensitivity for all loss functions
     base +
-      geom_line(data=opt_fit, aes(y=value, colour=loss), linewidth=1) +
-      geom_ribbon(data=sim_summ, aes(ymin=L, ymax=U, fill=loss), alpha=0.2) +
-      labs(x="Year", y="ST-SC group frequency", colour="Loss function", fill="Loss function",
-           title=paste0("Top ",n_groups, " ST-GPSC groups. Ribbons show ", qtile*100, "% trajectory band.")) +
-      scale_colour_brewer(palette="Dark2", labels = loss_labeller) +
-      scale_fill_brewer(palette="Dark2", labels = loss_labeller) +
-      facet_wrap(~group, scales="free_y") +
+      geom_line(data = opt_fit, aes(y = value, colour = loss), linewidth = 1) +
+      geom_ribbon(
+        data = sim_summ,
+        aes(ymin = L, ymax = U, fill = loss),
+        alpha = 0.2
+      ) +
+      labs(
+        x = "Year",
+        y = "ST-SC group frequency",
+        colour = "Loss function",
+        fill = "Loss function",
+        title = paste0(
+          "Top ",
+          n_groups,
+          " ST-GPSC groups. Ribbons show ",
+          qtile * 100,
+          "% trajectory band."
+        )
+      ) +
+      scale_colour_brewer(palette = "Dark2", labels = loss_labeller) +
+      scale_fill_brewer(palette = "Dark2", labels = loss_labeller) +
+      facet_wrap(~group, scales = "free_y") +
       clean_theme() +
-      theme(legend.position="bottom")
+      theme(legend.position = "bottom")
   } else {
     # summarise sensitivity for just the chosen loss function
     base +
-      geom_line(data=filter(opt_fit, loss==best_loss), aes(y=value), linewidth=1) +
-      geom_ribbon(data=filter(sim_summ, loss==best_loss), aes(ymin=L, ymax=U), alpha=0.2) +
-      labs(x="Year", y="ST-SC group frequency",
-           title=paste0("Top ",n_groups, " ST-GPSC groups. Ribbons show ", qtile*100, "% range."),
-           subtitle=paste("Based on fit", best_loss)) +
-      facet_wrap(~group, scales="free_y") +
+      geom_line(
+        data = filter(opt_fit, loss == best_loss),
+        aes(y = value),
+        linewidth = 1
+      ) +
+      geom_ribbon(
+        data = filter(sim_summ, loss == best_loss),
+        aes(ymin = L, ymax = U),
+        alpha = 0.2
+      ) +
+      labs(
+        x = "Year",
+        y = "ST-SC group frequency",
+        title = paste0(
+          "Top ",
+          n_groups,
+          " ST-GPSC groups. Ribbons show ",
+          qtile * 100,
+          "% range."
+        ),
+        subtitle = paste("Based on fit", best_loss)
+      ) +
+      facet_wrap(~group, scales = "free_y") +
       clean_theme() +
-      theme(legend.position="bottom")
+      theme(legend.position = "bottom")
   }
 }
 
@@ -340,27 +472,45 @@ plot_sensitivity_vs_data <- function(sens, xt, top_groups, start_year, qtile, be
 #' @importFrom ggplot2 geom_ribbon aes
 #' @importFrom stats quantile
 #' @export
-add_sensitivity_ribbon <- function(p, sens, key, vax_start, qtile = 0.95,
-                                   fill = "#1B9E77", alpha = 0.25) {
+add_sensitivity_ribbon <- function(
+  p,
+  sens,
+  key,
+  vax_start,
+  qtile = 0.95,
+  fill = "#1B9E77",
+  alpha = 0.25
+) {
   # the groups shown in the plot (the first layer of top_group_plot() is the data error bars)
   plot_groups <- levels(p$layers[[1]]$data$group)
 
   # top_group_plot() shows simulations as frequencies, with model year k at vax_start - 1 + k
   ribbon <- sens$sim_out %>%
-    filter(loss == key, year > 0) %>%                 # year 0 = x0, shown separately
+    filter(loss == key, year > 0) %>% # year 0 = x0, shown separately
     group_by(rep, year) %>%
-    mutate(frac = value / sum(value)) %>%             # normalise within each draw and year
+    mutate(frac = value / sum(value)) %>% # normalise within each draw and year
     ungroup() %>%
     filter(group %in% plot_groups) %>%
     group_by(group, year) %>%
-    summarise(L = quantile(frac, (1 - qtile) / 2),
-              U = quantile(frac, 1 - (1 - qtile) / 2),
-              .groups = "drop") %>%
-    mutate(year  = vax_start - 1 + year,
-           group = factor(group, levels = plot_groups))
+    summarise(
+      L = quantile(frac, (1 - qtile) / 2),
+      U = quantile(frac, 1 - (1 - qtile) / 2),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      year = vax_start - 1 + year,
+      group = factor(group, levels = plot_groups)
+    )
 
-  p$layers <- c(list(geom_ribbon(data = ribbon, aes(x = year, ymin = L, ymax = U),
-                                 fill = fill, alpha = alpha, inherit.aes = FALSE)),
-                p$layers)
+  p$layers <- c(
+    list(geom_ribbon(
+      data = ribbon,
+      aes(x = year, ymin = L, ymax = U),
+      fill = fill,
+      alpha = alpha,
+      inherit.aes = FALSE
+    )),
+    p$layers
+  )
   p
 }

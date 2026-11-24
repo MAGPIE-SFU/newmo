@@ -9,7 +9,6 @@
 # Output: G for the NFDS model, with columns in order of stability (stablest first) and
 #         only those genes that are at intermediate frequency.
 
-
 # what is G?
 # In a "raw" matrix G, each row corresponds to an isolate, and the corresponding
 # metadata tells us information about that isolate.
@@ -54,12 +53,18 @@
 #'   c_across all_of ungroup
 #' @importFrom stats setNames var
 #' @export
-build_gnfds <- function(G, meta_clean, xt,
-                        pre_years, post_years, all_years,
-                        min_freq = 0.05, max_freq = 0.95) {
-
+build_gnfds <- function(
+  G,
+  meta_clean,
+  xt,
+  pre_years,
+  post_years,
+  all_years,
+  min_freq = 0.05,
+  max_freq = 0.95
+) {
   # reorder rows of G
-  G <- as.matrix(G[match(meta_clean$Sample_accession, rownames(G)),]) # G, reordered .
+  G <- as.matrix(G[match(meta_clean$Sample_accession, rownames(G)), ]) # G, reordered .
 
   stopifnot(all(rownames(G) == meta_clean$Sample_accession)) # should be true
 
@@ -75,7 +80,7 @@ build_gnfds <- function(G, meta_clean, xt,
   # We want Gg[j,l] to be the mean prevalence of each locus; values in [0,1]
   Gg <- G_sum / as.numeric(groupcounts)
 
-  grp_order <- xt$group[xt$year == min(xt$year)]     # group order as xt has it
+  grp_order <- xt$group[xt$year == min(xt$year)] # group order as xt has it
   Gg <- Gg[grp_order, , drop = FALSE]
   stopifnot(identical(rownames(Gg), grp_order))
 
@@ -85,7 +90,7 @@ build_gnfds <- function(G, meta_clean, xt,
   years <- sort(unique(xt$year))
 
   locus_by_year <- sapply(years, function(y) {
-    p_df  <- xt %>% filter(year == y) %>% select(group, frac)
+    p_df <- xt %>% filter(year == y) %>% select(group, frac)
     p_vec <- setNames(p_df$frac, p_df$group)[rownames(Gg)]
     p_vec[is.na(p_vec)] <- 0
     as.numeric(p_vec %*% as.matrix(Gg))
@@ -97,7 +102,7 @@ build_gnfds <- function(G, meta_clean, xt,
 
   rownames(locus_by_year) <- colnames(Gg)
   colnames(locus_by_year) <- paste("t", years, sep = "")
-  locus_by_year = as.data.frame(locus_by_year)
+  locus_by_year <- as.data.frame(locus_by_year)
 
   # Corander et al defined Delta as (f - e)^2 / (1 - e(1-e))
   # where e is the frequency before vaccination and f is the frequency after vaccination
@@ -113,9 +118,9 @@ build_gnfds <- function(G, meta_clean, xt,
 
   locus_by_year <- locus_by_year %>%
     mutate(
-      pre2009  = rowMeans(across(num_range("t", pre_years))),
+      pre2009 = rowMeans(across(num_range("t", pre_years))),
       post2011 = rowMeans(across(num_range("t", post_years))),
-      delta = (post2011 - pre2009)^2/(1-pre2009*(1-pre2009))
+      delta = (post2011 - pre2009)^2 / (1 - pre2009 * (1 - pre2009))
     )
 
   # looked into correlations
@@ -130,65 +135,75 @@ build_gnfds <- function(G, meta_clean, xt,
 
   # what if we think about the variance over years,
   # but we make it less dependent on the frequency?
-  n_year   <- table(meta_clean$year)
-  n_pre    <- sum(n_year[as.character(pre_years)])
-  n_post   <- sum(n_year[as.character(post_years)])
+  n_year <- table(meta_clean$year)
+  n_pre <- sum(n_year[as.character(pre_years)])
+  n_post <- sum(n_year[as.character(post_years)])
   n_allyrs <- as.numeric(n_year[as.character(all_years)])
   n_preyrs <- as.numeric(n_year[as.character(pre_years)])
 
-  rowvar <- function(m) { m <- as.matrix(m); rowSums((m - rowMeans(m))^2) / (ncol(m) - 1) }
-  rowexp <- function(m, n) { m <- as.matrix(m); rowMeans(sweep(m * (1 - m), 2, n, "/")) }
+  rowvar <- function(m) {
+    m <- as.matrix(m)
+    rowSums((m - rowMeans(m))^2) / (ncol(m) - 1)
+  }
+  rowexp <- function(m, n) {
+    m <- as.matrix(m)
+    rowMeans(sweep(m * (1 - m), 2, n, "/"))
+  }
 
-  logit <- function(x) log(x/(1-x))
+  logit <- function(x) log(x / (1 - x))
 
   locus_by_year <- locus_by_year %>%
     mutate(
-      locus    = rownames(locus_by_year),          # keep gene names through mutate
-      pre2009  = rowMeans(across(num_range("t", pre_years))),
+      locus = rownames(locus_by_year), # keep gene names through mutate
+      pre2009 = rowMeans(across(num_range("t", pre_years))),
       post2011 = rowMeans(across(num_range("t", post_years))),
-      delta    = (post2011 - pre2009)^2 / (1 - pre2009 * (1 - pre2009)),
+      delta = (post2011 - pre2009)^2 / (1 - pre2009 * (1 - pre2009)),
 
       # standardised pre-to-post change: how many standard errors the locus moved
       z = (post2011 - pre2009) /
-        sqrt(pre2009 * (1 - pre2009) / n_pre + post2011 * (1 - post2011) / n_post),
+        sqrt(
+          pre2009 * (1 - pre2009) / n_pre + post2011 * (1 - post2011) / n_post
+        ),
 
       # year-to-year variation compared to whta is expected due to sampling noise with n-ish samples, all years
-      obs_var  = rowvar(across(num_range("t", all_years))),
-      exp_var  = rowexp(across(num_range("t", all_years)), n_allyrs),
+      obs_var = rowvar(across(num_range("t", all_years))),
+      exp_var = rowexp(across(num_range("t", all_years)), n_allyrs),
       overdisp = obs_var / exp_var,
 
       # the same, pre-vaccine only -- kind of a noise model: variance compared to expected variance
-      obs_pre      = rowvar(across(num_range("t", pre_years))),
-      exp_pre      = rowexp(across(num_range("t", pre_years)), n_preyrs),
+      obs_pre = rowvar(across(num_range("t", pre_years))),
+      exp_pre = rowexp(across(num_range("t", pre_years)), n_preyrs),
       overdisp_pre = obs_pre / exp_pre,
 
       # logit comparison - new choice for how to rank the genes!
-      logitdiff  = abs(logit(pre2009)-logit(post2011)) ,
+      logitdiff = abs(logit(pre2009) - logit(post2011)),
       # log ratio - another choice, similar to logitdiff but not quite
-      lograt = abs(log(pre2009/post2011))
+      lograt = abs(log(pre2009 / post2011))
     )
 
   stopifnot(all(rownames(locus_by_year) == colnames(Gg))) # TRUE
 
   locus_by_year <- locus_by_year %>%
     mutate(in_model = pre2009 > min_freq & pre2009 < max_freq & !is.na(z)) %>%
-    arrange(logitdiff)                    # NaN z sorts to the bottom
+    arrange(logitdiff) # NaN z sorts to the bottom
 
   Greord <- Gg[, locus_by_year$locus[locus_by_year$in_model]]
 
-  stopifnot(identical(colnames(Greord),
-                      locus_by_year$locus[locus_by_year$in_model]))
+  stopifnot(identical(
+    colnames(Greord),
+    locus_by_year$locus[locus_by_year$in_model]
+  ))
 
   # --- adding some extra info to locus_by_year for pre-vaccine gene orderings
   # to see if they work in the model
   pre_cols <- paste0("t", pre_years)
   locus_by_year <- locus_by_year %>%
-      rowwise() %>%
-      mutate(varlogitpre = var(logit(c_across(all_of(pre_cols))))) %>%
-      ungroup()
+    rowwise() %>%
+    mutate(varlogitpre = var(logit(c_across(all_of(pre_cols))))) %>%
+    ungroup()
 
   list(
-    G             = Greord,
+    G = Greord,
     locus_by_year = locus_by_year
   )
 }

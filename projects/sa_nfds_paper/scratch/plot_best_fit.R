@@ -9,8 +9,8 @@ pkgload::load_all("nfdsmodelling", quiet = TRUE)
 source("projects/sa_nfds_paper/config.R")
 
 # Load information from the pipeline
-samodel  <- targets::tar_read(samodel)
-xt       <- targets::tar_read(xt_grouped_uncertainty)
+samodel <- targets::tar_read(samodel)
+xt <- targets::tar_read(xt_grouped_uncertainty)
 best_fit <- targets::tar_read(fit_selection)$overall_best
 
 nyears <- NYEARS
@@ -19,14 +19,17 @@ nyears <- NYEARS
 simulations <- list(
   "Best Parameter Fit" = run_model(
     as.list(unlist(best_fit[PAR_NAMES])),
-    use_switch = FIT_USE_SWITCH, samodel = samodel,
-    nyears = nyears, tswitch = T_SWITCH
+    use_switch = FIT_USE_SWITCH,
+    samodel = samodel,
+    nyears = nyears,
+    tswitch = T_SWITCH
   )
 )
 
 # plot the top groups
 top_group_plot(
-  vax_start = 2010, prevax_years = 2000:2009,
+  vax_start = 2010,
+  prevax_years = 2000:2009,
   n_groups = 20,
   samodel,
   xt,
@@ -36,7 +39,13 @@ top_group_plot(
 )
 
 # plot the top serotypes
-top_sero_plot(vax_start = 2010, prevax_years = 2000:2009,
-              n_serotypes = 18, samodel, xt, simulations,
-              drop_vt = F,
-              vaccine = VACCINE_TYPES[["PCV13"]])
+top_sero_plot(
+  vax_start = 2010,
+  prevax_years = 2000:2009,
+  n_serotypes = 18,
+  samodel,
+  xt,
+  simulations,
+  drop_vt = F,
+  vaccine = VACCINE_TYPES[["PCV13"]]
+)

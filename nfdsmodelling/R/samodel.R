@@ -13,17 +13,19 @@
 #' @importFrom stats setNames
 #' @export
 build_samodel <- function(G, xt, locus_by_year, x0_years) {
-
   x0 <- xt %>%
     filter(year %in% x0_years) %>%
     group_by(group) %>%
     summarise(frac = mean(frac), .groups = "drop")
 
-  x0 <- setNames(x0$frac, x0$group)[rownames(G)]   # align to G's rows
+  x0 <- setNames(x0$frac, x0$group)[rownames(G)] # align to G's rows
   stopifnot(!anyNA(x0), abs(sum(x0) - 1) < 1e-8)
 
-  xt$serotype <- ifelse(xt$group == "rare_NVT", "rare_NVT",
-                        sub("_[^_]+$", "", xt$group))
+  xt$serotype <- ifelse(
+    xt$group == "rare_NVT",
+    "rare_NVT",
+    sub("_[^_]+$", "", xt$group)
+  )
 
   st_year <- min(xt$year)
   stopifnot(identical(rownames(G), xt$group[xt$year == st_year]))
@@ -33,9 +35,10 @@ build_samodel <- function(G, xt, locus_by_year, x0_years) {
   # criterion (z, or logratio, or delta, or whatever) then you can see that in the
   # parameter generator now
 
-  list(G  = G,
-       st = xt$serotype[xt$year == st_year], # serotype for each strain (ie each row of G)
-       x0 = x0,  # use mean pre-vaccine and just fit to post-vaccine?
-       el = as.numeric(locus_by_year$pre2009[locus_by_year$in_model]) # equilibrium frequencies
+  list(
+    G = G,
+    st = xt$serotype[xt$year == st_year], # serotype for each strain (ie each row of G)
+    x0 = x0, # use mean pre-vaccine and just fit to post-vaccine?
+    el = as.numeric(locus_by_year$pre2009[locus_by_year$in_model]) # equilibrium frequencies
   )
 }

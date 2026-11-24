@@ -114,10 +114,14 @@ run_model <- function(
   pars$migr <- FIXED_MIGR
   pars$tswitch <- if (use_switch) tswitch else 0
 
-  pars <- c(pars,
-            list(vaccine1 = VACCINE_TYPES[["PCV7"]],
-                 vaccine2 = VACCINE_TYPES[["PCV13"]]),
-            list(K = sum(samodel$x0)))
+  pars <- c(
+    pars,
+    list(
+      vaccine1 = VACCINE_TYPES[["PCV7"]],
+      vaccine2 = VACCINE_TYPES[["PCV13"]]
+    ),
+    list(K = sum(samodel$x0))
+  )
 
   simulate_nfds(samodel, pars, nyears)
 }
@@ -219,8 +223,7 @@ log_loss <- function(fn, penalty = 1e10) {
 START_LOWER <- c(v1 = 0.001, sigma = 0.001, portion = 0.01)
 START_UPPER <- c(v1 = 1, sigma = 10000, portion = 0.99)
 
-START_LOG <- c(v1 = TRUE, sigma = TRUE, portion = FALSE
-)
+START_LOG <- c(v1 = TRUE, sigma = TRUE, portion = FALSE)
 
 # Latin hypercube on [0,1]^k: one point in each of n strata per dimension
 #' @importFrom stats runif
@@ -315,8 +318,8 @@ lbfgsb <- function(par, fn, lower, upper, control = list(maxfeval = 20000)) {
 
 # Wrapped in functions so dfoptim is looked up when called, not when the package is built
 OPTIMIZERS <- list(
-  nmkb   = function(...) dfoptim::nmkb(...),
-  hjkb   = function(...) dfoptim::hjkb(...),
+  nmkb = function(...) dfoptim::nmkb(...),
+  hjkb = function(...) dfoptim::hjkb(...),
   lbfgsb = function(...) lbfgsb(...)
 )
 
@@ -518,19 +521,25 @@ collect_fit_results <- function(fits, use_switch, tswitch) {
 #' @importFrom tibble as_tibble_row
 #' @importFrom stats setNames
 #' @export
-run_sequential_fits <- function(samodel, xt, seed, default_pars, tswitch, nyears,
-                                use_switch    = TRUE,
-                                use_log       = TRUE,
-                                losses        = names(loss_functions),
-                                chain_methods = c("nmkb", "lbfgsb", "hjkb"),
-                                n_rounds      = 6,
-                                start_from    = "screen",
-                                n_screen      = 20000,
-                                maxfeval      = 20000,
-                                rel_tol       = NULL,
-                                parallel      = TRUE,
-                                n_workers     = max(1, parallelly::availableCores() - 1)) {
-
+run_sequential_fits <- function(
+  samodel,
+  xt,
+  seed,
+  default_pars,
+  tswitch,
+  nyears,
+  use_switch = TRUE,
+  use_log = TRUE,
+  losses = names(loss_functions),
+  chain_methods = c("nmkb", "lbfgsb", "hjkb"),
+  n_rounds = 6,
+  start_from = "screen",
+  n_screen = 20000,
+  maxfeval = 20000,
+  rel_tol = NULL,
+  parallel = TRUE,
+  n_workers = max(1, parallelly::availableCores() - 1)
+) {
   # ------------------------------------------------------------
   # Setup
   # ------------------------------------------------------------
@@ -540,19 +549,32 @@ run_sequential_fits <- function(samodel, xt, seed, default_pars, tswitch, nyears
   screen <- NULL
 
   if (identical(start_from, "screen")) {
-
-    screen_starts <- make_starts(n_random = n_screen, default_pars = default_pars)   # includes "default"
+    screen_starts <- make_starts(
+      n_random = n_screen,
+      default_pars = default_pars
+    ) # includes "default"
 
     # One start -> vector of losses (one per loss function)
     # simulate once per start, apply every loss to that simulation
     screen_one <- function(s) {
-      sim <- tryCatch(run_model(as.list(s), use_switch, samodel, nyears, tswitch),
-                      error = function(e) NULL)
-      vapply(loss_functions, function(f) {
-        if (is.null(sim)) return(Inf)
-        v <- tryCatch(f(sim, fit_data$data, fit_data$sd), error = function(e) Inf)
-        if (is.finite(v)) v else Inf
-      }, numeric(1))
+      sim <- tryCatch(
+        run_model(as.list(s), use_switch, samodel, nyears, tswitch),
+        error = function(e) NULL
+      )
+      vapply(
+        loss_functions,
+        function(f) {
+          if (is.null(sim)) {
+            return(Inf)
+          }
+          v <- tryCatch(
+            f(sim, fit_data$data, fit_data$sd),
+            error = function(e) Inf
+          )
+          if (is.finite(v)) v else Inf
+        },
+        numeric(1)
+      )
     }
 
     # losses x starts
@@ -567,31 +589,47 @@ run_sequential_fits <- function(samodel, xt, seed, default_pars, tswitch, nyears
 
       t_screen <- system.time(
         screen <- future.apply::future_sapply(
-          screen_starts, screen_one,
-          future.seed       = TRUE,
+          screen_starts,
+          screen_one,
+          future.seed = TRUE,
           future.chunk.size = ceiling(length(screen_starts) / (n_workers * 4))
         )
       )[["elapsed"]]
 
       future::plan(future::sequential)
-      message("Screened ", length(screen_starts), " starts on ", n_workers, " workers (",
-              if (use_fork) "multicore" else "multisession", ") in ", round(t_screen), " s")
+      message(
+        "Screened ",
+        length(screen_starts),
+        " starts on ",
+        n_workers,
+        " workers (",
+        if (use_fork) "multicore" else "multisession",
+        ") in ",
+        round(t_screen),
+        " s"
+      )
     } else {
       t_screen <- system.time(
         screen <- sapply(screen_starts, screen_one)
       )[["elapsed"]]
-      message("Screened ", length(screen_starts), " starts sequentially in ",
-              round(t_screen), " s")
+      message(
+        "Screened ",
+        length(screen_starts),
+        " starts sequentially in ",
+        round(t_screen),
+        " s"
+      )
     }
 
-    best_idx <- apply(screen, 1, which.min)    # best start per loss function
-
+    best_idx <- apply(screen, 1, which.min) # best start per loss function
   } else {
     start <- if (is.numeric(start_from)) {
       clamp_to_bounds(start_from[PAR_NAMES])
     } else {
-      starts <- make_starts(n_random = as.integer(start_from == "random"),
-                            default_pars = default_pars)
+      starts <- make_starts(
+        n_random = as.integer(start_from == "random"),
+        default_pars = default_pars
+      )
       starts[[length(starts)]]
     }
   }
@@ -599,18 +637,33 @@ run_sequential_fits <- function(samodel, xt, seed, default_pars, tswitch, nyears
   # ------------------------------------------------------------
   # Chains: round r starts where round r-1 ended
   # ------------------------------------------------------------
-  fits         <- list()
-  chain_starts <- list()   # starting parameters for each loss (for the report)
+  fits <- list()
+  chain_starts <- list() # starting parameters for each loss (for the report)
 
   for (loss_name in losses) {
-    fn <- make_loss(fit_data$data, fit_data$sd, loss_functions[[loss_name]],
-                    use_switch, samodel, nyears, tswitch)
+    fn <- make_loss(
+      fit_data$data,
+      fit_data$sd,
+      loss_functions[[loss_name]],
+      use_switch,
+      samodel,
+      nyears,
+      tswitch
+    )
     current <- if (identical(start_from, "screen")) {
-        message("  best screened start: ", names(screen_starts)[best_idx[[loss_name]]],
-                " (loss ", signif(screen[loss_name, best_idx[[loss_name]]], 4),
-                "; default start: ", signif(screen[loss_name, "default"], 4), ")")
-        screen_starts[[best_idx[[loss_name]]]]
-      } else start
+      message(
+        "  best screened start: ",
+        names(screen_starts)[best_idx[[loss_name]]],
+        " (loss ",
+        signif(screen[loss_name, best_idx[[loss_name]]], 4),
+        "; default start: ",
+        signif(screen[loss_name, "default"], 4),
+        ")"
+      )
+      screen_starts[[best_idx[[loss_name]]]]
+    } else {
+      start
+    }
 
     # remember where this chain starts
     chain_starts[[loss_name]] <- clamp_to_bounds(current)
@@ -620,9 +673,12 @@ run_sequential_fits <- function(samodel, xt, seed, default_pars, tswitch, nyears
       message("Fitting: ", loss_name, " / round ", r, " / ", method)
 
       fit <- fit_one(
-        fn, loss_name, method, sprintf("round_%02d", r),
-        initial  = current,
-        use_log  = use_log,
+        fn,
+        loss_name,
+        method,
+        sprintf("round_%02d", r),
+        initial = current,
+        use_log = use_log,
         maxfeval = maxfeval
       )
       fits[[fit$fit_id]] <- fit
@@ -648,7 +704,9 @@ run_sequential_fits <- function(samodel, xt, seed, default_pars, tswitch, nyears
   # ------------------------------------------------------------
   # Collect
   # ------------------------------------------------------------
-  stopifnot("No fits were produced - check the chain loop above" = length(fits) > 0)
+  stopifnot(
+    "No fits were produced - check the chain loop above" = length(fits) > 0
+  )
 
   results <- collect_fit_results(fits, use_switch, tswitch)
 
@@ -659,35 +717,44 @@ run_sequential_fits <- function(samodel, xt, seed, default_pars, tswitch, nyears
   start_summary <- results$summary |>
     filter(start_id == "round_01") |>
     transmute(
-      fit_id      = paste0(loss, "__start"),
+      fit_id = paste0(loss, "__start"),
       loss,
-      start_id    = "round_00",
-      method      = "start",
+      start_id = "round_00",
+      method = "start",
       initial,
-      fitted      = initial,
+      fitted = initial,
       convergence = NA,
-      n_feval     = 0L
+      n_feval = 0L
     )
 
   start_pars <- bind_rows(lapply(names(chain_starts), function(l) {
     as_tibble_row(as.list(chain_starts[[l]][PAR_NAMES])) |>
-      mutate(fit_id = paste0(l, "__start"), loss = l,
-             method = "start", start_id = "round_00", .before = 1)
+      mutate(
+        fit_id = paste0(l, "__start"),
+        loss = l,
+        method = "start",
+        start_id = "round_00",
+        .before = 1
+      )
   }))
 
-  summary_with_start    <- bind_rows(start_summary, results$summary)    |> arrange(loss, start_id)
-  parameters_with_start <- bind_rows(start_pars,    results$parameters) |> arrange(loss, start_id)
+  summary_with_start <- bind_rows(start_summary, results$summary) |>
+    arrange(loss, start_id)
+  parameters_with_start <- bind_rows(start_pars, results$parameters) |>
+    arrange(loss, start_id)
 
   # Tag every row with the seed, so runs can be stacked and compared later
-  summary_with_start    <- summary_with_start    |> mutate(seed = seed_value, .before = 1)
-  parameters_with_start <- parameters_with_start |> mutate(seed = seed_value, .before = 1)
+  summary_with_start <- summary_with_start |>
+    mutate(seed = seed_value, .before = 1)
+  parameters_with_start <- parameters_with_start |>
+    mutate(seed = seed_value, .before = 1)
 
   list(
-    seed       = seed_value,
-    summary    = summary_with_start,
+    seed = seed_value,
+    summary = summary_with_start,
     parameters = parameters_with_start,
-    screen     = screen,
-    fits       = fits
+    screen = screen,
+    fits = fits
   )
 }
 
@@ -713,10 +780,16 @@ run_sequential_fits <- function(samodel, xt, seed, default_pars, tswitch, nyears
 #' @importFrom dplyr bind_rows filter group_by slice_min ungroup select left_join mutate
 #' @importFrom stats setNames
 #' @export
-select_best_fits <- function(seq_fits, samodel, xt, tswitch, nyears, use_switch = TRUE) {
-
+select_best_fits <- function(
+  seq_fits,
+  samodel,
+  xt,
+  tswitch,
+  nyears,
+  use_switch = TRUE
+) {
   summary_all <- bind_rows(lapply(seq_fits, `[[`, "summary"))
-  params_all  <- bind_rows(lapply(seq_fits, `[[`, "parameters"))
+  params_all <- bind_rows(lapply(seq_fits, `[[`, "parameters"))
 
   # ---- Best fit per seed x loss (excluding the round_00 starting points) --------
   best <- summary_all |>
@@ -725,31 +798,42 @@ select_best_fits <- function(seq_fits, samodel, xt, tswitch, nyears, use_switch 
     slice_min(fitted, n = 1, with_ties = FALSE) |>
     ungroup() |>
     select(seed, fit_id, loss, method, start_id, fitted) |>
-    left_join(params_all |> select(-loss, -method, -start_id),
-              by = c("seed", "fit_id")) |>
-    mutate(key = paste0("seed", seed, "_", fit_id))   # fit_id repeats across seeds
+    left_join(
+      params_all |> select(-loss, -method, -start_id),
+      by = c("seed", "fit_id")
+    ) |>
+    mutate(key = paste0("seed", seed, "_", fit_id)) # fit_id repeats across seeds
 
   # ---- Simulate every candidate --------------------------------------------------
   # Same parameters as parameter_generator() built before: the fitted PAR_NAMES
   # plus the fixed values, tswitch and PCV7 -> PCV13.
-  simulations <- setNames(lapply(seq_len(nrow(best)), function(i) {
-    run_model(as.list(unlist(best[i, PAR_NAMES])), use_switch, samodel, nyears, tswitch)
-  }), best$key)
+  simulations <- setNames(
+    lapply(seq_len(nrow(best)), function(i) {
+      run_model(
+        as.list(unlist(best[i, PAR_NAMES])),
+        use_switch,
+        samodel,
+        nyears,
+        tswitch
+      )
+    }),
+    best$key
+  )
 
   # ---- Cross-evaluate every candidate on every loss -----------------------------
   data_sd <- load_fit_data(xt, nyears)
-  errors <- t(sapply(simulations, function(sim)
+  errors <- t(sapply(simulations, function(sim) {
     sapply(loss_functions, function(f) f(sim, data_sd$data, data_sd$sd))
-  ))
-  rel <- sweep(errors, 2, apply(errors, 2, min), "/")   # relative to best across ALL seeds
+  }))
+  rel <- sweep(errors, 2, apply(errors, 2, min), "/") # relative to best across ALL seeds
   best$score <- rowSums(rel)[best$key]
 
   best_params <- best |> slice_min(score, n = 1, with_ties = FALSE)
 
   list(
     all_parameters = params_all,
-    all_summary    = summary_all,
-    all_best       = best,
-    overall_best   = best_params
+    all_summary = summary_all,
+    all_best = best,
+    overall_best = best_params
   )
 }

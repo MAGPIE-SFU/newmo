@@ -36,12 +36,16 @@
 #'   scale_colour_identity
 #' @importFrom patchwork plot_layout
 #' @export
-plot_vaccine_heatmap <- function(known_serotypes, known_ipd, vaccine_data, all_serotypes,
-                                 n_exhaustive = 6,
-                                 method_labels = character(0),
-                                 ipd_scale = 1e5,
-                                 ipd_label = "IPD per\n100,000") {
-
+plot_vaccine_heatmap <- function(
+  known_serotypes,
+  known_ipd,
+  vaccine_data,
+  all_serotypes,
+  n_exhaustive = 6,
+  method_labels = character(0),
+  ipd_scale = 1e5,
+  ipd_label = "IPD per\n100,000"
+) {
   # Stops here if the scores are anything other than one number each
   stopifnot(is.numeric(known_ipd), length(known_ipd) == length(known_serotypes))
 
@@ -73,7 +77,14 @@ plot_vaccine_heatmap <- function(known_serotypes, known_ipd, vaccine_data, all_s
       method_name = coalesce(unname(method_labels[method]), method)
     ) %>%
     # This will cause NANs if new method is added without adding it here, could be an input argument
-    arrange(factor(method, levels = c("ipdfrac", "mostinvasive", "greedy", "exhaustive")), valency, ipd) %>%
+    arrange(
+      factor(
+        method,
+        levels = c("ipdfrac", "mostinvasive", "greedy", "exhaustive")
+      ),
+      valency,
+      ipd
+    ) %>%
     group_by(method, valency) %>%
     # Number the rows only where a method repeats a valency, best IPD first
     mutate(
@@ -105,7 +116,10 @@ plot_vaccine_heatmap <- function(known_serotypes, known_ipd, vaccine_data, all_s
   serotype_blocks <- list()
   seen_serotypes <- character(0)
   for (v in names(known_serotypes)) {
-    serotype_blocks[[v]] <- sort_serotypes(setdiff(known_serotypes[[v]], seen_serotypes))
+    serotype_blocks[[v]] <- sort_serotypes(setdiff(
+      known_serotypes[[v]],
+      seen_serotypes
+    ))
     seen_serotypes <- union(seen_serotypes, known_serotypes[[v]])
   }
 
@@ -134,7 +148,9 @@ plot_vaccine_heatmap <- function(known_serotypes, known_ipd, vaccine_data, all_s
   # Horizontal: between candidate methods. Rows are counted from the bottom.
   candidate_methods <- vaccine_table$method[vaccine_table$group == "Candidate"]
   n_candidates <- length(candidate_methods)
-  method_changes <- which(candidate_methods[-1] != candidate_methods[-n_candidates])
+  method_changes <- which(
+    candidate_methods[-1] != candidate_methods[-n_candidates]
+  )
 
   method_lines <- data.frame(
     group = factor("Candidate", levels = c("Licensed", "Candidate")),
@@ -156,12 +172,22 @@ plot_vaccine_heatmap <- function(known_serotypes, known_ipd, vaccine_data, all_s
       group = factor(group, levels = c("Licensed", "Candidate"))
     )
 
-  serotype_plot <- ggplot(plot_data, aes(serotype, vaccine_label, fill = included)) +
+  serotype_plot <- ggplot(
+    plot_data,
+    aes(serotype, vaccine_label, fill = included)
+  ) +
     geom_tile(colour = "white", linewidth = 0.5) +
-    geom_vline(xintercept = serotype_lines, colour = line_colour, linewidth = line_width) +
+    geom_vline(
+      xintercept = serotype_lines,
+      colour = line_colour,
+      linewidth = line_width
+    ) +
     geom_hline(
-      data = method_lines, aes(yintercept = y), inherit.aes = FALSE,
-      colour = line_colour, linewidth = line_width
+      data = method_lines,
+      aes(yintercept = y),
+      inherit.aes = FALSE,
+      colour = line_colour,
+      linewidth = line_width
     ) +
     scale_fill_manual(
       values = c(`TRUE` = "#1F6F8B", `FALSE` = "#ECEFF1"),
@@ -177,7 +203,12 @@ plot_vaccine_heatmap <- function(known_serotypes, known_ipd, vaccine_data, all_s
     theme(
       panel.grid = element_blank(),
       panel.spacing.y = unit(0.6, "lines"),
-      axis.text.x.top = element_text(angle = 90, vjust = 0.5, hjust = 0, margin = margin(b = 2)),
+      axis.text.x.top = element_text(
+        angle = 90,
+        vjust = 0.5,
+        hjust = 0,
+        margin = margin(b = 2)
+      ),
       axis.text.y = element_blank(),
       strip.text.y = element_blank(),
       legend.position = "bottom"
@@ -196,7 +227,11 @@ plot_vaccine_heatmap <- function(known_serotypes, known_ipd, vaccine_data, all_s
 
   ipd_data <- ipd_data %>%
     mutate(
-      value_label = if_else(is.na(ipd_scaled), "n/a", sprintf("%.1f", ipd_scaled)),
+      value_label = if_else(
+        is.na(ipd_scaled),
+        "n/a",
+        sprintf("%.1f", ipd_scaled)
+      ),
       text_colour = case_when(
         is.na(ipd_scaled) ~ "#6B7280",
         ipd_scaled > ipd_midpoint ~ "white",
@@ -207,12 +242,19 @@ plot_vaccine_heatmap <- function(known_serotypes, known_ipd, vaccine_data, all_s
   ipd_plot <- ggplot(ipd_data, aes(column, vaccine_label, fill = ipd_scaled)) +
     geom_tile(colour = "white", linewidth = 0.5) +
     geom_hline(
-      data = method_lines, aes(yintercept = y), inherit.aes = FALSE,
-      colour = line_colour, linewidth = line_width
+      data = method_lines,
+      aes(yintercept = y),
+      inherit.aes = FALSE,
+      colour = line_colour,
+      linewidth = line_width
     ) +
     geom_text(aes(label = value_label, colour = text_colour), size = 3.2) +
     # A different hue from the heatmap, as this shows a value rather than yes/no
-    scale_fill_gradient(low = "#FBE9DD", high = "#B4541A", na.value = "#ECEFF1") +
+    scale_fill_gradient(
+      low = "#FBE9DD",
+      high = "#B4541A",
+      na.value = "#ECEFF1"
+    ) +
     scale_colour_identity() +
     scale_x_discrete(position = "top", expand = c(0, 0)) +
     scale_y_discrete(expand = c(0, 0)) +
@@ -229,12 +271,13 @@ plot_vaccine_heatmap <- function(known_serotypes, known_ipd, vaccine_data, all_s
 
   # Combine ----------------------------------------------------------------------
 
-  heatmap_plot <- ipd_plot + serotype_plot +
+  heatmap_plot <- ipd_plot +
+    serotype_plot +
     plot_layout(widths = c(3, length(serotype_levels)))
 
   list(
-    plot   = heatmap_plot,
-    width  = max(8, 3.2 + 0.22 * length(serotype_levels)),
+    plot = heatmap_plot,
+    width = max(8, 3.2 + 0.22 * length(serotype_levels)),
     height = 2 + 0.3 * n_distinct(plot_data$vaccine_label)
   )
 }

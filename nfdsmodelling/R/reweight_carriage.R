@@ -41,90 +41,102 @@
 #'   case_when rename
 #' @importFrom tidyr pivot_wider replace_na complete nesting
 #' @export
-reweight_carriage <- function(meta_clean, inv,
-                              tauA, tauU, k,
-                              prevax_years, min_sero_frac, min_sg_frac) {
-
+reweight_carriage <- function(
+  meta_clean,
+  inv,
+  tauA,
+  tauU,
+  k,
+  prevax_years,
+  min_sero_frac,
+  min_sg_frac
+) {
   ######################################################
   # Begin: count all the stuff and figure out what portion of the carriage population each group
   # contributes in each year. this will eventually be x(t) for the NFDS model.
   ######################################################
 
   yearly_counts_long <- meta_clean %>%
-      count( year, age_group, collection_type,
-          serotype, gpsc,   name = "n" )
+    count(year, age_group, collection_type, serotype, gpsc, name = "n")
 
   # make it wider by splitting IPD and carriage to cols
   yearly_counts <- yearly_counts_long %>%
-      pivot_wider(
-          names_from = collection_type,
-          values_from = n,
-          values_fill = 0  ) %>%  rename( ipd_n = IPD,carriage_n = carriage )
+    pivot_wider(
+      names_from = collection_type,
+      values_from = n,
+      values_fill = 0
+    ) %>%
+    rename(ipd_n = IPD, carriage_n = carriage)
 
   # connect it to the supplementary tables from Nick's paper via the inv data frame
   missing <- setdiff(unique(meta_clean$serotype), inv$serotype)
-  if (length(missing)) stop("No invasiveness for: ", paste(missing, collapse = ", "),
-                            " -- rebuild the invasiveness lookup")
+  if (length(missing)) {
+    stop(
+      "No invasiveness for: ",
+      paste(missing, collapse = ", "),
+      " -- rebuild the invasiveness lookup"
+    )
+  }
 
   child_v_lookup <- inv %>% transmute(serotype, v = v_child)
   adult_v_lookup <- inv %>% transmute(serotype, v = v_adult)
 
-
   child_inv <- yearly_counts %>%
-      filter(age_group == "child", ipd_n > 0) %>%
-      left_join(child_v_lookup, by = "serotype") %>%
-      filter(!is.na(v)) %>%
-      group_by(year) %>%
-      mutate(        r_C = (ipd_n) / v, # carriage cases you'd expect from this number of IPD
-          p_C_inv = r_C / sum(r_C)    ) %>%  # proportion group g in child carriage based on this IPD sample
-      ungroup() %>%
-      select( year, serotype, gpsc,
-          ipd_n, carriage_n, v, r_C, p_C_inv    )
+    filter(age_group == "child", ipd_n > 0) %>%
+    left_join(child_v_lookup, by = "serotype") %>%
+    filter(!is.na(v)) %>%
+    group_by(year) %>%
+    mutate(
+      r_C = (ipd_n) / v, # carriage cases you'd expect from this number of IPD
+      p_C_inv = r_C / sum(r_C)
+    ) %>% # proportion group g in child carriage based on this IPD sample
+    ungroup() %>%
+    select(year, serotype, gpsc, ipd_n, carriage_n, v, r_C, p_C_inv)
 
   adult_inv <- yearly_counts %>%
-      filter(age_group == "adult", ipd_n > 0) %>%
-      left_join(adult_v_lookup, by = "serotype") %>%
-      filter(!is.na(v)) %>%
-      group_by(year) %>%
-      mutate( r_A = (ipd_n ) / v, # carriage cases you'd expect from this number of IPD; have removed alpha - not needed
-          p_A_inv = r_A / sum(r_A)    ) %>%  # proportion group g in adult carriage based on this IPD sample
-      ungroup() %>%
-      select( year, serotype, gpsc,
-          ipd_n, carriage_n, v, r_A, p_A_inv    )
+    filter(age_group == "adult", ipd_n > 0) %>%
+    left_join(adult_v_lookup, by = "serotype") %>%
+    filter(!is.na(v)) %>%
+    group_by(year) %>%
+    mutate(
+      r_A = (ipd_n) / v, # carriage cases you'd expect from this number of IPD; have removed alpha - not needed
+      p_A_inv = r_A / sum(r_A)
+    ) %>% # proportion group g in adult carriage based on this IPD sample
+    ungroup() %>%
+    select(year, serotype, gpsc, ipd_n, carriage_n, v, r_A, p_A_inv)
 
   # unknowns: i treat them as if they are kids from the point of view of invasiveness. but we don't know.
   #  ??? might want to average 0.8*kid invasiveness + 0.2* adult invasiveness later
   unknown_proxy <- yearly_counts %>%
-      filter(age_group == "unknown", ipd_n > 0) %>%
-      left_join(child_v_lookup, by = "serotype") %>%
-      filter(!is.na(v)) %>%
-      group_by(year) %>%
-      mutate(
-          r_U = (ipd_n ) / v,
-          p_U_proxy = r_U / sum(r_U)
-      ) %>%
-      ungroup() %>%
-      select(year, serotype, gpsc,
-          ipd_n, carriage_n, v, r_U, p_U_proxy)
+    filter(age_group == "unknown", ipd_n > 0) %>%
+    left_join(child_v_lookup, by = "serotype") %>%
+    filter(!is.na(v)) %>%
+    group_by(year) %>%
+    mutate(
+      r_U = (ipd_n) / v,
+      p_U_proxy = r_U / sum(r_U)
+    ) %>%
+    ungroup() %>%
+    select(year, serotype, gpsc, ipd_n, carriage_n, v, r_U, p_U_proxy)
 
   # i want to also include the carriage data we do have, such as it is..
   # here are the raw carriage fractions by group in kids
 
   child_carriage_counts <- yearly_counts %>%
     filter(age_group == "child") %>%
-    select(year, serotype, gpsc,  carriage_n)
+    select(year, serotype, gpsc, carriage_n)
 
   # this is the data frame that is going to be turned into my final sythn population:
   components_yearly <- child_inv %>%
-    select(year, serotype, gpsc,  p_C_inv) %>%
+    select(year, serotype, gpsc, p_C_inv) %>%
     full_join(
       adult_inv %>%
-        select(year, serotype, gpsc,  p_A_inv),
+        select(year, serotype, gpsc, p_A_inv),
       by = c("year", "serotype", "gpsc")
     ) %>%
     full_join(
       unknown_proxy %>%
-        select(year, serotype, gpsc,  p_U_proxy),
+        select(year, serotype, gpsc, p_U_proxy),
       by = c("year", "serotype", "gpsc")
     ) %>%
     full_join(
@@ -137,7 +149,7 @@ reweight_carriage <- function(meta_clean, inv,
       p_U_proxy = replace_na(p_U_proxy, 0),
       carriage_n = replace_na(carriage_n, 0)
     ) %>%
-     ungroup()
+    ungroup()
 
   ######################################################################
   # create the final weighted composition accounting for all the various things
@@ -171,11 +183,11 @@ reweight_carriage <- function(meta_clean, inv,
       wU = tauU_eff / tau_total,
 
       p_C_aug = wC * p_C_inv + wA * p_A_inv + wU * p_U_proxy,
-      N_car      = sum(carriage_n),                               # child carriage swabs this year
-      omega_t    = N_car / (N_car + k),                           # weight on carriage (0 if none)
-      p_final    = (carriage_n + k * p_C_aug) / (N_car + k),      # Dirichlet posterior mean
+      N_car = sum(carriage_n), # child carriage swabs this year
+      omega_t = N_car / (N_car + k), # weight on carriage (0 if none)
+      p_final = (carriage_n + k * p_C_aug) / (N_car + k), # Dirichlet posterior mean
       p_final_sd = sqrt(p_final * (1 - p_final) / (N_car + k + 1)) # posterior SD (optional)
-        ) %>%
+    ) %>%
     ungroup()
 
   # "Child carriage counts were combined with the IPD-derived carriage estimate
@@ -186,7 +198,7 @@ reweight_carriage <- function(meta_clean, inv,
   # were isolates of a low-inv type? also i don't want rareNVT to be conditioned on being rare after vaccination
   # because hte NFDS model will not be able to fit that - see notes on the github from Oct 2 (CC).
 
-  pcv7_types  <- VACCINE_TYPES$PCV7
+  pcv7_types <- VACCINE_TYPES$PCV7
   pcv13_extra <- setdiff(VACCINE_TYPES$PCV13, VACCINE_TYPES$PCV7)
 
   pre_yrs <- intersect(prevax_years, unique(final_yearly$year))
@@ -205,33 +217,50 @@ reweight_carriage <- function(meta_clean, inv,
 
   # 2. a group for every serotype-GPSC pair seen at any time
   sero_tab <- distinct(pre_sg, serotype, p_pre_sero)
-  sg_tab   <- select(pre_sg, serotype, gpsc, p_pre_sg)
+  sg_tab <- select(pre_sg, serotype, gpsc, p_pre_sg)
 
-  group_lookup <- bind_rows(distinct(meta_clean, serotype, gpsc),
-                            distinct(final_yearly, serotype, gpsc)) %>%
+  group_lookup <- bind_rows(
+    distinct(meta_clean, serotype, gpsc),
+    distinct(final_yearly, serotype, gpsc)
+  ) %>%
     distinct() %>%
     left_join(sero_tab, by = "serotype") %>%
-    left_join(sg_tab,   by = c("serotype", "gpsc")) %>%
-    mutate(across(c(p_pre_sero, p_pre_sg), ~ coalesce(.x, 0)),      # not seen pre-vaccine -> 0
-           vaccine_type = case_when(serotype %in% pcv7_types  ~ "PCV7",
-                                    serotype %in% pcv13_extra ~ "PCV13",
-                                    TRUE                      ~ "NVT"),
-           group = case_when(
-             vaccine_type == "NVT" & p_pre_sero < min_sero_frac ~ "rare_NVT",
-             is.na(gpsc) | p_pre_sg < min_sg_frac             ~ paste(serotype, "other", sep = "_"),
-             TRUE                                             ~ paste(serotype, gpsc, sep = "_")))
+    left_join(sg_tab, by = c("serotype", "gpsc")) %>%
+    mutate(
+      across(c(p_pre_sero, p_pre_sg), ~ coalesce(.x, 0)), # not seen pre-vaccine -> 0
+      vaccine_type = case_when(
+        serotype %in% pcv7_types ~ "PCV7",
+        serotype %in% pcv13_extra ~ "PCV13",
+        TRUE ~ "NVT"
+      ),
+      group = case_when(
+        vaccine_type == "NVT" & p_pre_sero < min_sero_frac ~ "rare_NVT",
+        is.na(gpsc) | p_pre_sg < min_sg_frac ~ paste(
+          serotype,
+          "other",
+          sep = "_"
+        ),
+        TRUE ~ paste(serotype, gpsc, sep = "_")
+      )
+    )
 
   # 3. apply the new groups, then build xt exactly as before
   final_yearly <- final_yearly %>%
-    left_join(select(group_lookup, serotype, gpsc, group), by = c("serotype", "gpsc"))
+    left_join(
+      select(group_lookup, serotype, gpsc, group),
+      by = c("serotype", "gpsc")
+    )
   meta_clean <- meta_clean %>%
-    left_join(select(group_lookup, serotype, gpsc, group), by = c("serotype", "gpsc"))
+    left_join(
+      select(group_lookup, serotype, gpsc, group),
+      by = c("serotype", "gpsc")
+    )
 
   stopifnot(!any(is.na(final_yearly$group)), !any(is.na(meta_clean$group)))
 
   list(
-    group_lookup      = group_lookup,
+    group_lookup = group_lookup,
     meta_clean_groups = meta_clean,
-    final_yearly      = final_yearly
+    final_yearly = final_yearly
   )
 }

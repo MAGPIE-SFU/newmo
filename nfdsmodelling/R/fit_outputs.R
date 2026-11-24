@@ -12,8 +12,12 @@ REPORT_ID_COLS <- c("fit_id", "loss", "method", "start_id")
 #   baseline  : one-row data frame of parameters (e.g. from format_parameters())
 #               or NULL for no baseline rows
 #   best_only : keep only the best start per loss x method
-build_combined_table <- function(fit_summary, parameters,
-                                 baseline = NULL, best_only = FALSE) {
+build_combined_table <- function(
+  fit_summary,
+  parameters,
+  baseline = NULL,
+  best_only = FALSE
+) {
   parameter_cols <- setdiff(names(parameters), REPORT_ID_COLS)
 
   # Baseline loss = loss at the default start, taken before any filtering
@@ -32,8 +36,17 @@ build_combined_table <- function(fit_summary, parameters,
 
   fits <- fit_summary |>
     select(
-      fit_id, loss, method, start_id, initial, fitted, improvement,
-      pct_change, convergence, n_feval, runtime_seconds
+      fit_id,
+      loss,
+      method,
+      start_id,
+      initial,
+      fitted,
+      improvement,
+      pct_change,
+      convergence,
+      n_feval,
+      runtime_seconds
     ) |>
     left_join(
       parameters |> select(fit_id, all_of(parameter_cols)),
@@ -50,33 +63,42 @@ build_combined_table <- function(fit_summary, parameters,
 
   baseline_rows <- baseline_loss |>
     mutate(
-      fit_id          = paste(loss, "CC_MAGIC", sep = "__"),
-      method          = "CC_MAGIC",
-      start_id        = NA_character_,
-      fitted          = initial,
-      improvement     = 0,
-      pct_change      = 0,
-      convergence     = NA_integer_,
-      n_feval         = NA_integer_,
+      fit_id = paste(loss, "CC_MAGIC", sep = "__"),
+      method = "CC_MAGIC",
+      start_id = NA_character_,
+      fitted = initial,
+      improvement = 0,
+      pct_change = 0,
+      convergence = NA_integer_,
+      n_feval = NA_integer_,
       runtime_seconds = NA_real_
     ) |>
     bind_cols(baseline)
 
   bind_rows(fits, baseline_rows) |>
     mutate(is_baseline = method == "CC_MAGIC") |>
-    arrange(loss, !is_baseline, fitted) |>   # baseline first, then best fit first
+    arrange(loss, !is_baseline, fitted) |> # baseline first, then best fit first
     select(-is_baseline)
 }
 
 make_combined_gt <- function(combined_table, parameter_cols) {
   labels <- list(
-    method = "Method", start_id = "Start",
-    initial = "Initial loss", fitted = "Fitted loss",
-    improvement = "Improvement", pct_change = "Improvement (%)",
-    convergence = "Convergence", n_feval = "Evaluations",
+    method = "Method",
+    start_id = "Start",
+    initial = "Initial loss",
+    fitted = "Fitted loss",
+    improvement = "Improvement",
+    pct_change = "Improvement (%)",
+    convergence = "Convergence",
+    n_feval = "Evaluations",
     runtime_seconds = "Runtime (s)",
-    v1 = "v1", v2 = "v2", sigma = "Sigma", migr = "Migration",
-    portion = "Portion", whigh = "w_high", wlow = "w_low",
+    v1 = "v1",
+    v2 = "v2",
+    sigma = "Sigma",
+    migr = "Migration",
+    portion = "Portion",
+    whigh = "w_high",
+    wlow = "w_low",
     tswitch = "Switch time"
   )
   labels <- labels[names(labels) %in% names(combined_table)]
@@ -92,28 +114,47 @@ make_combined_gt <- function(combined_table, parameter_cols) {
     fmt_number(columns = pct_change, decimals = 2) |>
     fmt_number(columns = runtime_seconds, decimals = 1) |>
     fmt_number(columns = n_feval, decimals = 0) |>
-    fmt_number(columns = any_of(setdiff(parameter_cols, "migr")), decimals = 4) |>
-    fmt_scientific(columns = any_of("migr"), decimals = 2) |>   # migr is ~1e-5
+    fmt_number(
+      columns = any_of(setdiff(parameter_cols, "migr")),
+      decimals = 4
+    ) |>
+    fmt_scientific(columns = any_of("migr"), decimals = 2) |> # migr is ~1e-5
     sub_missing(missing_text = "-") |>
     cols_label(.list = labels) |>
     tab_options(table.font.size = px(11))
 }
 
 # Build, save (html + csv) and return the paths of the two files.
-write_fit_report <- function(fit_summary, parameters, output_dir, use_switch,
-                             baseline = NULL, best_only = FALSE, name = NULL) {
+write_fit_report <- function(
+  fit_summary,
+  parameters,
+  output_dir,
+  use_switch,
+  baseline = NULL,
+  best_only = FALSE,
+  name = NULL
+) {
   suffix <- if (use_switch) "_switch" else ""
   if (is.null(name)) {
-    name <- if (best_only) "combined_fit_comparison_best" else "combined_fit_comparison"
+    name <- if (best_only) {
+      "combined_fit_comparison_best"
+    } else {
+      "combined_fit_comparison"
+    }
   }
   parameter_cols <- setdiff(names(parameters), REPORT_ID_COLS)
 
-  combined_table <- build_combined_table(fit_summary, parameters, baseline, best_only)
-  combined_gt    <- make_combined_gt(combined_table, parameter_cols)
+  combined_table <- build_combined_table(
+    fit_summary,
+    parameters,
+    baseline,
+    best_only
+  )
+  combined_gt <- make_combined_gt(combined_table, parameter_cols)
 
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
   html_file <- file.path(output_dir, paste0(name, suffix, ".html"))
-  csv_file  <- file.path(output_dir, paste0(name, suffix, ".csv"))
+  csv_file <- file.path(output_dir, paste0(name, suffix, ".csv"))
   gtsave(combined_gt, html_file)
   readr::write_csv(combined_table, csv_file)
 
@@ -127,22 +168,26 @@ write_seed_fit_outputs <- function(seq_fit, fits_dir, use_switch) {
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
   rds_files <- c(
-    summary    = file.path(out_dir, paste0("summary_with_start_", tag, ".rds")),
-    parameters = file.path(out_dir, paste0("parameters_with_start_", tag, ".rds")),
-    screen     = file.path(out_dir, paste0("screen_losses_", tag, ".rds")),
-    fits       = file.path(out_dir, paste0("all_fit_objects_", tag, ".rds"))
+    summary = file.path(out_dir, paste0("summary_with_start_", tag, ".rds")),
+    parameters = file.path(
+      out_dir,
+      paste0("parameters_with_start_", tag, ".rds")
+    ),
+    screen = file.path(out_dir, paste0("screen_losses_", tag, ".rds")),
+    fits = file.path(out_dir, paste0("all_fit_objects_", tag, ".rds"))
   )
-  saveRDS(seq_fit$summary,    rds_files[["summary"]])
+  saveRDS(seq_fit$summary, rds_files[["summary"]])
   saveRDS(seq_fit$parameters, rds_files[["parameters"]])
-  saveRDS(seq_fit$screen,     rds_files[["screen"]])
-  saveRDS(seq_fit$fits,       rds_files[["fits"]])
+  saveRDS(seq_fit$screen, rds_files[["screen"]])
+  saveRDS(seq_fit$fits, rds_files[["fits"]])
 
   report_files <- write_fit_report(
-    seq_fit$summary, seq_fit$parameters,
+    seq_fit$summary,
+    seq_fit$parameters,
     output_dir = out_dir,
     use_switch = use_switch,
-    baseline   = NULL,
-    name       = paste0("sequential_fit_comparison_", tag)
+    baseline = NULL,
+    name = paste0("sequential_fit_comparison_", tag)
   )
 
   unname(c(rds_files, report_files))

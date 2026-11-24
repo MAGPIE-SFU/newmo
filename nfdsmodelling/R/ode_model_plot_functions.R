@@ -30,7 +30,14 @@ sim_colour_scale <- function(palette = "Dark2") {
 
 # plot instructions, this goes in the ggplot call
 #' @importFrom ggplot2 geom_line aes geom_point geom_segment geom_vline labs theme unit
-compare_layers <- function(d, s, b, vax_start, prevax_years, palette = "Dark2") {
+compare_layers <- function(
+  d,
+  s,
+  b,
+  vax_start,
+  prevax_years,
+  palette = "Dark2"
+) {
   list(
     # data: neutral grey
     geom_line(data = d, aes(year, frac), colour = "grey40", alpha = 0.3),
@@ -40,14 +47,23 @@ compare_layers <- function(d, s, b, vax_start, prevax_years, palette = "Dark2") 
     geom_line(data = s, aes(year, frac, colour = sim), linewidth = 1),
 
     # x0 (pre-vaccine mean): neutral dashed segment
-    geom_segment(data = b, aes(y = frac, yend = frac),
-                 x = min(prevax_years), xend = vax_start - 0.5,
-                 colour = "black", linetype = "dashed"),
+    geom_segment(
+      data = b,
+      aes(y = frac, yend = frac),
+      x = min(prevax_years),
+      xend = vax_start - 0.5,
+      colour = "black",
+      linetype = "dashed"
+    ),
     geom_vline(xintercept = vax_start - 0.5, linetype = "dotted"),
 
     sim_colour_scale(palette),
-    labs(x = NULL, y = "Frequency", colour = "Simulation",
-         caption = "Points: data. Coloured lines: simulations. Dashed: x0 (pre-vaccine mean)."),
+    labs(
+      x = NULL,
+      y = "Frequency",
+      colour = "Simulation",
+      caption = "Points: data. Coloured lines: simulations. Dashed: x0 (pre-vaccine mean)."
+    ),
     theme(legend.key.width = unit(1.5, "cm"))
   )
 }
@@ -61,14 +77,20 @@ make_sim_long <- function(sim, samodel, vax_start) {
     sweep(2, colSums(sim), "/") |>
     as.data.frame() |>
     rownames_to_column("group") |>
-    pivot_longer(starts_with("year."), names_to = "k",
-                 names_prefix = "year.", values_to = "frac") |>
+    pivot_longer(
+      starts_with("year."),
+      names_to = "k",
+      names_prefix = "year.",
+      values_to = "frac"
+    ) |>
     mutate(year = vax_start - 1 + as.integer(k)) |>
     select(group, year, frac)
 
   # x0 as frequencies (the pre-vaccine mean the model starts from)
-  x0_df <- tibble(group = rownames(samodel$G),
-                  frac  = as.numeric(samodel$x0) / sum(samodel$x0))
+  x0_df <- tibble(
+    group = rownames(samodel$G),
+    frac = as.numeric(samodel$x0) / sum(samodel$x0)
+  )
   bind_rows(x0_df |> mutate(year = vax_start - 0.5), sim_long)
 }
 
@@ -76,8 +98,13 @@ make_sim_long <- function(sim, samodel, vax_start) {
 # sims should be a list, like list(baseline = mysim1, lowerv = mysim2) and so on
 #' @importFrom dplyr bind_rows mutate
 stack_sims <- function(sims, samodel, vax_start) {
-  if (is.data.frame(sims)) sims <- list(model = sims)   # allow a single simulation too
-  bind_rows(lapply(sims, make_sim_long, samodel = samodel, vax_start = vax_start), .id = "sim") |>
+  if (is.data.frame(sims)) {
+    sims <- list(model = sims)
+  } # allow a single simulation too
+  bind_rows(
+    lapply(sims, make_sim_long, samodel = samodel, vax_start = vax_start),
+    .id = "sim"
+  ) |>
     mutate(sim = factor(sim, levels = unique(sim)))
 }
 
@@ -99,18 +126,32 @@ stack_sims <- function(sims, samodel, vax_start) {
 #' @importFrom tibble tibble
 #' @importFrom ggplot2 ggplot facet_wrap ggtitle
 #' @export
-vt_nvt_plot <- function(vax_start = 2010, prevax_years = 2000:2009,
-                        samodel, xt, sims, palette = "Dark2", vaccine) {
-  sim_long  <- stack_sims(sims, samodel, vax_start)
+vt_nvt_plot <- function(
+  vax_start = 2010,
+  prevax_years = 2000:2009,
+  samodel,
+  xt,
+  sims,
+  palette = "Dark2",
+  vaccine
+) {
+  sim_long <- stack_sims(sims, samodel, vax_start)
   data_long <- xt |> select(group, year, frac, frac_sd)
-  x0_df     <- tibble(group = rownames(samodel$G),
-                      frac  = as.numeric(samodel$x0) / sum(samodel$x0))
+  x0_df <- tibble(
+    group = rownames(samodel$G),
+    frac = as.numeric(samodel$x0) / sum(samodel$x0)
+  )
 
   ggplot() +
-    compare_layers(agg(data_long, "vt", xt, vaccine), agg(sim_long, "vt", xt, vaccine), agg(x0_df, "vt", xt, vaccine),
-                   vax_start = vax_start, prevax_years = prevax_years,
-                   palette = palette) +
-    facet_wrap(~ vt, scales = "free_y") +
+    compare_layers(
+      agg(data_long, "vt", xt, vaccine),
+      agg(sim_long, "vt", xt, vaccine),
+      agg(x0_df, "vt", xt, vaccine),
+      vax_start = vax_start,
+      prevax_years = prevax_years,
+      palette = palette
+    ) +
+    facet_wrap(~vt, scales = "free_y") +
     ggtitle("Vaccine-type vs non-vaccine-type frequency")
 }
 
@@ -127,17 +168,30 @@ vt_nvt_plot <- function(vax_start = 2010, prevax_years = 2000:2009,
 #' @importFrom tibble tibble
 #' @importFrom ggplot2 ggplot geom_errorbar aes ggtitle
 #' @export
-top_group_plot <- function(vax_start = 2010, prevax_years = 2000:2009,
-                           n_groups = 12, samodel, xt, sims, drop_vt = TRUE, palette = "Dark2", vaccine) {
-  sim_long  <- stack_sims(sims, samodel, vax_start)
+top_group_plot <- function(
+  vax_start = 2010,
+  prevax_years = 2000:2009,
+  n_groups = 12,
+  samodel,
+  xt,
+  sims,
+  drop_vt = TRUE,
+  palette = "Dark2",
+  vaccine
+) {
+  sim_long <- stack_sims(sims, samodel, vax_start)
   data_long <- xt |> select(group, year, frac, frac_sd)
-  x0_df     <- tibble(group = rownames(samodel$G),
-                      frac  = as.numeric(samodel$x0) / sum(samodel$x0))
+  x0_df <- tibble(
+    group = rownames(samodel$G),
+    frac = as.numeric(samodel$x0) / sum(samodel$x0)
+  )
 
   # optionally drop vaccine-type groups
   if (drop_vt) {
-    keep <- xt |> distinct(group, serotype) |>
-      filter(!serotype %in% vaccine) |> pull(group)
+    keep <- xt |>
+      distinct(group, serotype) |>
+      filter(!serotype %in% vaccine) |>
+      pull(group)
     data_long <- data_long |> filter(group %in% keep)
   }
 
@@ -157,19 +211,39 @@ top_group_plot <- function(vax_start = 2010, prevax_years = 2000:2009,
     arrange(match(group, grp_levels)) |>
     pull(col)
 
-  d_g <- data_long |> filter(group %in% top_groups) |> mutate(group = factor(group, levels = grp_levels))
-  s_g <- sim_long  |> filter(group %in% top_groups) |> mutate(group = factor(group, levels = grp_levels))
-  b_g <- x0_df     |> filter(group %in% top_groups) |> mutate(group = factor(group, levels = grp_levels))
+  d_g <- data_long |>
+    filter(group %in% top_groups) |>
+    mutate(group = factor(group, levels = grp_levels))
+  s_g <- sim_long |>
+    filter(group %in% top_groups) |>
+    mutate(group = factor(group, levels = grp_levels))
+  b_g <- x0_df |>
+    filter(group %in% top_groups) |>
+    mutate(group = factor(group, levels = grp_levels))
 
   ggplot() +
-    geom_errorbar(data = d_g, aes(year, ymin = pmax(frac - frac_sd, 0),
-                                  ymax = frac + frac_sd),
-                  colour = "grey40", width = 0, alpha = 0.4) +
-    compare_layers(d_g, s_g, b_g, vax_start = vax_start, prevax_years = prevax_years,
-                   palette = palette) +
-    ggh4x::facet_wrap2(~ group, scales = "free_y",
-                       strip = ggh4x::strip_themed(
-                         text_x = ggh4x::elem_list_text(colour = strip_cols))) +
+    geom_errorbar(
+      data = d_g,
+      aes(year, ymin = pmax(frac - frac_sd, 0), ymax = frac + frac_sd),
+      colour = "grey40",
+      width = 0,
+      alpha = 0.4
+    ) +
+    compare_layers(
+      d_g,
+      s_g,
+      b_g,
+      vax_start = vax_start,
+      prevax_years = prevax_years,
+      palette = palette
+    ) +
+    ggh4x::facet_wrap2(
+      ~group,
+      scales = "free_y",
+      strip = ggh4x::strip_themed(
+        text_x = ggh4x::elem_list_text(colour = strip_cols)
+      )
+    ) +
     ggtitle(paste("The", n_groups, "most common ST-SC groups"))
 }
 
@@ -185,15 +259,28 @@ top_group_plot <- function(vax_start = 2010, prevax_years = 2000:2009,
 #' @importFrom tibble tibble
 #' @importFrom ggplot2 ggplot ggtitle
 #' @export
-top_sero_plot <- function(vax_start = 2010, prevax_years = 2000:2009,
-                          n_serotypes = 12, samodel, xt, sims, drop_vt = TRUE, palette = "Dark2", vaccine) {
-  sim_long  <- stack_sims(sims, samodel, vax_start)
+top_sero_plot <- function(
+  vax_start = 2010,
+  prevax_years = 2000:2009,
+  n_serotypes = 12,
+  samodel,
+  xt,
+  sims,
+  drop_vt = TRUE,
+  palette = "Dark2",
+  vaccine
+) {
+  sim_long <- stack_sims(sims, samodel, vax_start)
   data_long <- xt |> select(group, year, frac, frac_sd)
-  x0_df     <- tibble(group = rownames(samodel$G),
-                      frac  = as.numeric(samodel$x0) / sum(samodel$x0))
+  x0_df <- tibble(
+    group = rownames(samodel$G),
+    frac = as.numeric(samodel$x0) / sum(samodel$x0)
+  )
 
   d_st <- agg(data_long, "serotype", xt, vaccine)
-  if (drop_vt) d_st <- d_st |> filter(!serotype %in% vaccine)
+  if (drop_vt) {
+    d_st <- d_st |> filter(!serotype %in% vaccine)
+  }
   top_st <- d_st |>
     group_by(serotype) |>
     summarise(m = mean(frac)) |>
@@ -202,19 +289,29 @@ top_sero_plot <- function(vax_start = 2010, prevax_years = 2000:2009,
 
   # facet order + strip text colour: VT = red, NVT = blue
   sero_levels <- sort(top_st)
-  strip_cols  <- ifelse(sero_levels %in% vaccine, "red", "blue")
+  strip_cols <- ifelse(sero_levels %in% vaccine, "red", "blue")
 
-  fac <- function(df) df |> filter(serotype %in% top_st) |>
-    mutate(serotype = factor(serotype, levels = sero_levels))
+  fac <- function(df) {
+    df |>
+      filter(serotype %in% top_st) |>
+      mutate(serotype = factor(serotype, levels = sero_levels))
+  }
 
   ggplot() +
-    compare_layers(fac(d_st),
-                   fac(agg(sim_long, "serotype", xt, vaccine)),
-                   fac(agg(x0_df,    "serotype", xt, vaccine)),
-                   vax_start = vax_start, prevax_years = prevax_years,
-                   palette = palette) +
-    ggh4x::facet_wrap2(~ serotype, scales = "free_y",
-                       strip = ggh4x::strip_themed(
-                         text_x = ggh4x::elem_list_text(colour = strip_cols))) +
+    compare_layers(
+      fac(d_st),
+      fac(agg(sim_long, "serotype", xt, vaccine)),
+      fac(agg(x0_df, "serotype", xt, vaccine)),
+      vax_start = vax_start,
+      prevax_years = prevax_years,
+      palette = palette
+    ) +
+    ggh4x::facet_wrap2(
+      ~serotype,
+      scales = "free_y",
+      strip = ggh4x::strip_themed(
+        text_x = ggh4x::elem_list_text(colour = strip_cols)
+      )
+    ) +
     ggtitle(paste("The", n_serotypes, "most common serotypes"))
 }

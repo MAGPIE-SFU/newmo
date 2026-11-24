@@ -19,49 +19,60 @@
 
 meta_clean <- read_csv("data/SouthAfrica/meta_clean.csv")
 
-G <- as.matrix(G[match(meta_clean$Sample_accession, rownames(G)),]) # G, reordered .
+G <- as.matrix(G[match(meta_clean$Sample_accession, rownames(G)), ]) # G, reordered .
 all(rownames(G) == meta_clean$Sample_accession) # should be true
 
-locus_by_year <- read.csv("data/SouthAfrica/locus_freqs_deltas.csv", check.names = FALSE)
-rownames(locus_by_year) <- locus_by_year$locus      # only if something downstream wants them
-
+locus_by_year <- read.csv(
+  "data/SouthAfrica/locus_freqs_deltas.csv",
+  check.names = FALSE
+)
+rownames(locus_by_year) <- locus_by_year$locus # only if something downstream wants them
 
 
 ipd_logOR <- function(G, group, is_ipd, min_n = 10) {
-  lev  <- sort(unique(group))
-  ni   <- table(factor(group[is_ipd],  levels = lev))
-  nc   <- table(factor(group[!is_ipd], levels = lev))
+  lev <- sort(unique(group))
+  ni <- table(factor(group[is_ipd], levels = lev))
+  nc <- table(factor(group[!is_ipd], levels = lev))
   keep <- lev[ni >= min_n & nc >= min_n]
   stopifnot(length(keep) > 0)
 
-  prev <- function(rows) {                       # prevalence per kept lineage
+  prev <- function(rows) {
+    # prevalence per kept lineage
     gr <- group[rows]
-    s  <- rowsum(G[rows, , drop = FALSE], gr)
+    s <- rowsum(G[rows, , drop = FALSE], gr)
     s[keep, , drop = FALSE] / as.numeric(table(gr)[keep])
   }
-  pI <- prev(is_ipd); pC <- prev(!is_ipd)
-  nI <- as.numeric(ni[keep]); nC <- as.numeric(nc[keep])
+  pI <- prev(is_ipd)
+  pC <- prev(!is_ipd)
+  nI <- as.numeric(ni[keep])
+  nC <- as.numeric(nc[keep])
 
-  a <- pI * nI + 0.5; b <- (1 - pI) * nI + 0.5   # +0.5 continuity correction
-  d <- pC * nC + 0.5; e <- (1 - pC) * nC + 0.5
+  a <- pI * nI + 0.5
+  b <- (1 - pI) * nI + 0.5 # +0.5 continuity correction
+  d <- pC * nC + 0.5
+  e <- (1 - pC) * nC + 0.5
   n <- a + b + d + e
 
-  data.frame(locus = colnames(G),
-             logOR = log(colSums(a * e / n) / colSums(b * d / n)),
-             ngrp  = colSums((pI*nI + pC*nC) >= 1 & ((1-pI)*nI + (1-pC)*nC) >= 1),
-             row.names = NULL)
+  data.frame(
+    locus = colnames(G),
+    logOR = log(colSums(a * e / n) / colSums(b * d / n)),
+    ngrp = colSums(
+      (pI * nI + pC * nC) >= 1 & ((1 - pI) * nI + (1 - pC) * nC) >= 1
+    ),
+    row.names = NULL
+  )
 }
 
 lor <- ipd_logOR(G, meta_clean$group, meta_clean$collection_type == "IPD")
 
 locus_by_year <- locus_by_year %>%
   mutate(
-    locus    = rownames(locus_by_year),
-    ... ,
+    locus = rownames(locus_by_year),
+    ...,
     logitdiff = abs(logit(pre2009) - logit(post2011)),
 
-    logOR_ipd  = lor$logOR[match(locus, lor$locus)],
-    logOR_ngrp = lor$ngrp [match(locus, lor$locus)]
+    logOR_ipd = lor$logOR[match(locus, lor$locus)],
+    logOR_ngrp = lor$ngrp[match(locus, lor$locus)]
   )
 
 # i did not do anything with this and full disclosure claude wrote the function above

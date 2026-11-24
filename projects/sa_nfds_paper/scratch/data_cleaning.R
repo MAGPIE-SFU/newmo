@@ -5,7 +5,7 @@
 #    see OL notes for rationale on the substitutions. Note: if i used the
 #    rate for a different sero I created a col to indicate which one so the
 #    original In_silico sero is maintained. new cols match the cols in nicks
-#    dataset `invasiveness` and upper/lower. 
+#    dataset `invasiveness` and upper/lower.
 # 2. Gets the collection months from GPS/belman and adds them to the metadata.
 # 3. Computes an age for each observation based on Age_Year, Age_Month, Age_Day
 #    i also made an age indicator for adult/child
@@ -34,7 +34,6 @@ south_africa_metadata_raw <- read_csv(
 )
 
 
-
 # ------------------------------
 # clean nicks progression rates
 # ------------------------------
@@ -44,8 +43,6 @@ south_africa_metadata_raw <- read_csv(
 # note that nick has sperate ones for adults so we would have to
 # get those and match them if we want to include adults.
 # right now everyone gets the child rates
-
-
 
 clean_serotype <- function(x) {
   x |>
@@ -112,12 +109,12 @@ serotypes_to_exclude <- c(
 # These South African labels use the progression rate from a related
 # serotype.
 serotype_progression_crosswalk <- c(
-  "6G"      = "6B",
-  "35D"     = "35B",
-  "33D"     = "33A",
-  "24"      = "24F",
-  "23B1"    = "23B",
-  "20A"     = "20",
+  "6G" = "6B",
+  "35D" = "35B",
+  "33D" = "33A",
+  "24" = "24F",
+  "23B1" = "23B",
+  "20A" = "20",
   "33A/33F" = "33F"
 )
 
@@ -217,7 +214,6 @@ south_africa_with_progression |>
 south_africa_progression_data <- south_africa_with_progression
 
 
-
 # I download all SA samples from GPS between 2000 and 2014 and
 # the carriage data in the Belman paper.
 
@@ -239,7 +235,7 @@ south_africa_with_month <- south_africa_metadata_raw |>
     by = c("Sample_accession" = "ERS")
   )
 
-# check how many have months 
+# check how many have months
 south_africa_with_month |>
   summarise(
     n_total = n(),
@@ -326,10 +322,10 @@ south_africa_data_age <- south_africa_data |>
     Age_Day_num = readr::parse_number(na_if(as.character(Age_Day), ".")),
 
     age_at_collection_years = case_when(
-      !is.na(Age_Year_num)  ~ Age_Year_num,
+      !is.na(Age_Year_num) ~ Age_Year_num,
       !is.na(Age_Month_num) ~ Age_Month_num / 12,
-      !is.na(Age_Day_num)   ~ Age_Day_num / 365.25,
-      TRUE                  ~ NA_real_
+      !is.na(Age_Day_num) ~ Age_Day_num / 365.25,
+      TRUE ~ NA_real_
     )
   ) |>
   select(-Age_Year_num, -Age_Month_num, -Age_Day_num)
@@ -362,4 +358,3 @@ south_africa_data_age <- south_africa_data_age |>
 
 # ok now we are nice and squeaky clean :)
 write_csv(south_africa_data_age, "data/meta_age_rates_clean.csv")
-

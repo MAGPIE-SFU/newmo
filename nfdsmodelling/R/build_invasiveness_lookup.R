@@ -19,7 +19,6 @@
 #' @importFrom dplyr %>% mutate
 #' @export
 shrink_invasiveness <- function(tab) {
-
   required <- c(
     "Serotype",
     "invasiveness",
@@ -59,10 +58,9 @@ shrink_invasiveness <- function(tab) {
 
   y <- log(tab$invasiveness)
 
-  se <- (
-    log(tab$invasiveness_upper) -
-      log(tab$invasiveness_lower)
-  ) / (2 * 1.96)
+  se <- (log(tab$invasiveness_upper) -
+    log(tab$invasiveness_lower)) /
+    (2 * 1.96)
 
   w <- 1 / se^2
 
@@ -92,14 +90,14 @@ shrink_invasiveness <- function(tab) {
 
   result <- tab %>%
     mutate(
-      logmean  = mu + B * (y - mu),   # posterior mean of log v
-      logsd    = sqrt(B) * se,        # posterior sd of log v
+      logmean = mu + B * (y - mu), # posterior mean of log v
+      logsd = sqrt(B) * se, # posterior sd of log v
       v_shrunk = exp(mu + B * (y - mu))
     )
 
   attr(result, "overall_mean") <- exp(mu)
-  attr(result, "mu")           <- mu
-  attr(result, "tau")          <- sqrt(tau2)
+  attr(result, "mu") <- mu
+  attr(result, "tau") <- sqrt(tau2)
   result
 }
 
@@ -118,9 +116,13 @@ serogroup_of <- function(s) {
 
 #' @importFrom dplyr bind_rows tibble
 #' @importFrom stats setNames
-lookup_one_age <- function(tab, other_tab, serotypes,
-                           serotype_substitutions, non_typeable) {
-
+lookup_one_age <- function(
+  tab,
+  other_tab,
+  serotypes,
+  serotype_substitutions,
+  non_typeable
+) {
   t1 <- shrink_invasiveness(tab)
   t2 <- shrink_invasiveness(other_tab)
 
@@ -129,23 +131,33 @@ lookup_one_age <- function(tab, other_tab, serotypes,
   raw1 <- setNames(t1$invasiveness, t1$Serotype)
   lower1 <- setNames(t1$invasiveness_lower, t1$Serotype)
   upper1 <- setNames(t1$invasiveness_upper, t1$Serotype)
-  lm1 <- setNames(t1$logmean, t1$Serotype);  ls1 <- setNames(t1$logsd, t1$Serotype)
+  lm1 <- setNames(t1$logmean, t1$Serotype)
+  ls1 <- setNames(t1$logsd, t1$Serotype)
   # Other age table
   v2 <- setNames(t2$v_shrunk, t2$Serotype)
   raw2 <- setNames(t2$invasiveness, t2$Serotype)
   lower2 <- setNames(t2$invasiveness_lower, t2$Serotype)
   upper2 <- setNames(t2$invasiveness_upper, t2$Serotype)
-  lm2 <- setNames(t2$logmean, t2$Serotype);  ls2 <- setNames(t2$logsd, t2$Serotype)
+  lm2 <- setNames(t2$logmean, t2$Serotype)
+  ls2 <- setNames(t2$logsd, t2$Serotype)
 
   # Shrinkage constants, used as the uncertainty for imputed serotypes
-  mu_1  <- attr(t1, "mu")
+  mu_1 <- attr(t1, "mu")
   tau_1 <- attr(t1, "tau")
   tau_2 <- attr(t2, "tau")
 
   # Create an output row
-  make_row <- function(s, donor, v, raw, lower, upper, source,
-                       logmean = NA_real_, logsd = NA_real_) {
-
+  make_row <- function(
+    s,
+    donor,
+    v,
+    raw,
+    lower,
+    upper,
+    source,
+    logmean = NA_real_,
+    logsd = NA_real_
+  ) {
     tibble(
       serotype = s,
       v = as.numeric(v),
@@ -161,9 +173,7 @@ lookup_one_age <- function(tab, other_tab, serotypes,
 
   # Copy all values directly from a donor row
   copy_donor <- function(s, donor, age_table, source) {
-
     if (age_table == 1) {
-
       make_row(
         s = s,
         donor = donor,
@@ -175,9 +185,7 @@ lookup_one_age <- function(tab, other_tab, serotypes,
         logmean = lm1[[donor]],
         logsd = ls1[[donor]]
       )
-
     } else {
-
       make_row(
         s = s,
         donor = donor,
@@ -195,7 +203,6 @@ lookup_one_age <- function(tab, other_tab, serotypes,
   # Geometric mean for ordinary serogroup fallback
   # Does not invent confidence intervals
   sg_mean <- function(v, sg) {
-
     x <- v[serogroup_of(names(v)) == sg]
 
     if (length(x)) {
@@ -206,7 +213,6 @@ lookup_one_age <- function(tab, other_tab, serotypes,
   }
 
   bind_rows(lapply(serotypes, function(s) {
-
     s <- as.character(s)
     sg <- serogroup_of(s)
 
@@ -215,10 +221,13 @@ lookup_one_age <- function(tab, other_tab, serotypes,
     # --------------------------------------------------------------------------
 
     if (s %in% non_typeable) {
-
       return(make_row(
-        s, NA_character_,
-        NA_real_, NA_real_, NA_real_, NA_real_,
+        s,
+        NA_character_,
+        NA_real_,
+        NA_real_,
+        NA_real_,
+        NA_real_,
         "non-typeable"
       ))
     }
@@ -229,28 +238,31 @@ lookup_one_age <- function(tab, other_tab, serotypes,
     # --------------------------------------------------------------------------
 
     if (s %in% names(serotype_substitutions)) {
-
       donor <- unname(serotype_substitutions[[s]])
 
       if (donor %in% names(v1)) {
-
         return(copy_donor(
-          s, donor, 1,
+          s,
+          donor,
+          1,
           paste("substituted", donor)
         ))
       }
 
       if (donor %in% names(v2)) {
-
         return(copy_donor(
-          s, donor, 2,
+          s,
+          donor,
+          2,
           paste("substituted", donor, "other age table")
         ))
       }
 
       stop(
         "Hard-coded substitution donor not found: ",
-        s, " -> ", donor
+        s,
+        " -> ",
+        donor
       )
     }
 
@@ -259,9 +271,11 @@ lookup_one_age <- function(tab, other_tab, serotypes,
     # --------------------------------------------------------------------------
 
     if (s %in% names(v1)) {
-
       return(copy_donor(
-        s, s, 1, "exact"
+        s,
+        s,
+        1,
+        "exact"
       ))
     }
 
@@ -270,21 +284,23 @@ lookup_one_age <- function(tab, other_tab, serotypes,
     # --------------------------------------------------------------------------
 
     if (s %in% names(v2)) {
-
       return(copy_donor(
-        s, s, 2, "other age table"
+        s,
+        s,
+        2,
+        "other age table"
       ))
     }
-
 
     # --------------------------------------------------------------------------
     # 4. Actual serogroup row in current age table
     # --------------------------------------------------------------------------
 
     if (sg %in% names(v1)) {
-
       return(copy_donor(
-        s, sg, 1,
+        s,
+        sg,
+        1,
         paste("serogroup", sg)
       ))
     }
@@ -296,12 +312,16 @@ lookup_one_age <- function(tab, other_tab, serotypes,
     m <- sg_mean(v1, sg)
 
     if (!is.na(m)) {
-
       return(make_row(
-        s, paste0("serogroup ", sg),
-        m, NA_real_, NA_real_, NA_real_,
+        s,
+        paste0("serogroup ", sg),
+        m,
+        NA_real_,
+        NA_real_,
+        NA_real_,
         paste("serogroup mean", sg),
-        logmean = log(m), logsd = tau_1
+        logmean = log(m),
+        logsd = tau_1
       ))
     }
 
@@ -310,9 +330,10 @@ lookup_one_age <- function(tab, other_tab, serotypes,
     # --------------------------------------------------------------------------
 
     if (sg %in% names(v2)) {
-
       return(copy_donor(
-        s, sg, 2,
+        s,
+        sg,
+        2,
         paste("other age table, serogroup", sg)
       ))
     }
@@ -324,12 +345,16 @@ lookup_one_age <- function(tab, other_tab, serotypes,
     m <- sg_mean(v2, sg)
 
     if (!is.na(m)) {
-
       return(make_row(
-        s, paste0("serogroup ", sg),
-        m, NA_real_, NA_real_, NA_real_,
+        s,
+        paste0("serogroup ", sg),
+        m,
+        NA_real_,
+        NA_real_,
+        NA_real_,
         paste("other age table, serogroup mean", sg),
-        logmean = log(m), logsd = tau_2
+        logmean = log(m),
+        logsd = tau_2
       ))
     }
 
@@ -338,11 +363,15 @@ lookup_one_age <- function(tab, other_tab, serotypes,
     # --------------------------------------------------------------------------
 
     make_row(
-      s, NA_character_,
+      s,
+      NA_character_,
       attr(t1, "overall_mean"),
-      NA_real_, NA_real_, NA_real_,
+      NA_real_,
+      NA_real_,
+      NA_real_,
       "overall mean",
-      logmean = mu_1, logsd = tau_1
+      logmean = mu_1,
+      logsd = tau_1
     )
   }))
 }
@@ -352,9 +381,13 @@ lookup_one_age <- function(tab, other_tab, serotypes,
 # ------------------------------------------------------------------------------
 
 #' @importFrom dplyr %>% mutate filter
-check_substitutions <- function(result, primary, secondary,
-                                prefix, serotype_substitutions) {
-
+check_substitutions <- function(
+  result,
+  primary,
+  secondary,
+  prefix,
+  serotype_substitutions
+) {
   primary <- primary %>%
     mutate(Serotype = as.character(Serotype))
 
@@ -365,7 +398,6 @@ check_substitutions <- function(result, primary, secondary,
     names(serotype_substitutions),
     result$serotype
   )) {
-
     donor <- unname(serotype_substitutions[[s]])
 
     source_row <- primary %>%
@@ -416,9 +448,13 @@ check_substitutions <- function(result, primary, secondary,
 #' @importFrom dplyr %>% rename left_join
 #' @importFrom stats na.omit
 #' @export
-build_invasiveness_lookup <- function(meta_clean, inv_children, inv_adults,
-                                      serotype_substitutions, non_typeable) {
-
+build_invasiveness_lookup <- function(
+  meta_clean,
+  inv_children,
+  inv_adults,
+  serotype_substitutions,
+  non_typeable
+) {
   serotypes <- sort(unique(
     na.omit(as.character(meta_clean$serotype))
   ))
@@ -469,14 +505,16 @@ build_invasiveness_lookup <- function(meta_clean, inv_children, inv_adults,
 
   check_substitutions(
     invasiveness_lookup,
-    inv_children, inv_adults,
+    inv_children,
+    inv_adults,
     "v_child",
     serotype_substitutions
   )
 
   check_substitutions(
     invasiveness_lookup,
-    inv_adults, inv_children,
+    inv_adults,
+    inv_children,
     "v_adult",
     serotype_substitutions
   )

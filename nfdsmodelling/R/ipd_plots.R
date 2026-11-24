@@ -14,10 +14,13 @@
 #' @importFrom dplyr %>% mutate filter group_by summarise arrange desc pull
 #' @export
 prepare_ipd_serotypes <- function(ipd_serotype_summary, non_typeable) {
-
   required <- c(
-    "year", "serotype", "ipd_mean",
-    "frac", "frac_lower", "frac_upper"
+    "year",
+    "serotype",
+    "ipd_mean",
+    "frac",
+    "frac_lower",
+    "frac_upper"
   )
 
   missing_cols <- setdiff(required, names(ipd_serotype_summary))
@@ -74,7 +77,6 @@ prepare_ipd_serotypes <- function(ipd_serotype_summary, non_typeable) {
 #'   element_blank element_text
 #' @export
 plot_ipd_total <- function(ipd_sero) {
-
   # Identify serotypes contributing the most IPD overall
   top_seros <- ipd_sero %>%
     group_by(serotype) %>%
@@ -192,7 +194,6 @@ plot_ipd_total <- function(ipd_sero) {
 #'   element_text
 #' @export
 plot_ipd_dotplot <- function(ipd_sero, top_n = 20) {
-
   # Identify top serotypes by total expected IPD
   sero_order <- ipd_sero %>%
     group_by(serotype) %>%
@@ -258,7 +259,8 @@ plot_ipd_dotplot <- function(ipd_sero, top_n = 20) {
       colour = "Simulation year",
       title = "Predicted serotype contribution to IPD",
       subtitle = paste0(
-        "Top ", length(top_seros),
+        "Top ",
+        length(top_seros),
         " serotypes by total expected IPD"
       )
     ) +

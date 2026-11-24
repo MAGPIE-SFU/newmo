@@ -1,9 +1,9 @@
 library(targets)
 
-pkgload::load_all("nfdsmodelling", quiet=TRUE)
+pkgload::load_all("nfdsmodelling", quiet = TRUE)
 tar_option_set(
   packages = c("ggplot2", "dplyr", "gt"),
-  imports  = "nfdsmodelling"
+  imports = "nfdsmodelling"
 )
 
 source("projects/sa_nfds_paper/config.R")
