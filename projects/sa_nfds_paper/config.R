@@ -108,7 +108,7 @@ FIG_SETTINGS <- list(
 SENS_N_GROUPS   <- 16       # number of groups to plot
 SENS_QTILE      <- 0.95     # summary quantile for the ribbons
 SENS_N_SIMS     <- 100      # parameter draws per loss function
-SENS_START_YEAR <- 2007.5   # year prior to start of model evaluation
+SENS_START_YEAR <- 2008     # year prior to start of model evaluation
 SENS_BEST_LOSS  <- "SSE"    # loss of the chosen optimal fit, for the last plot
 SENS_N_CORES    <- 3        # > 1 uses mclapply (Linux/macOS only)
 SENS_SD_PARS    <- data.frame(
