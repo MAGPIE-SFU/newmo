@@ -375,3 +375,69 @@ plot_vaccine_candidates <- function(
 
   p_inv + p_ipdfrac + plot_layout(guides = "collect")
 }
+
+#' Select the best designed vaccine for each method
+#'
+#' Selects the lowest-scoring vaccine from each specified design method
+#' and optionally includes licensed vaccine compositions.
+#'
+#' @param designed_vaccines A data frame containing vaccine design results,
+#'   with columns `vaccine`, `method`, and the specified score column.
+#' @param score Character string specifying the score column to minimize.
+#'   Defaults to `"ipd"`.
+#' @param methods Character vector of vaccine design methods to include.
+#'   Defaults to `c("greedy", "exhaustive")`.
+#' @param target_size Integer specifying the desired valency of designed
+#'   vaccines. If `NULL`, all valencies are considered.
+#' @param licensed_vaccines Optional named list of character vectors
+#'   containing licensed vaccine compositions.
+#'
+#' @details
+#' Vaccine compositions are parsed using hyphen or comma delimiters.
+#' Vaccines with non-finite scores are excluded, and ties are resolved
+#' by selecting the first vaccine.
+#' Licensed vaccines are included regardless of their valency.
+#'
+#' @return A named list of character vectors, where each vector contains
+#'   the serotypes included in a selected vaccine.
+#'
+#' @seealso [design_vaccines()], [score_vaccine()]
+#' @export
+select_best_vaccines <- function(
+    designed_vaccines,
+    score = "ipd",
+    methods = c("greedy", "exhaustive"),
+    target_size = NULL,
+    licensed_vaccines = NULL
+) {
+
+  best <- designed_vaccines %>%
+    dplyr::filter(
+      method %in% methods,
+      is.finite(.data[[score]])
+    ) %>%
+    dplyr::mutate(
+      serotypes = stringr::str_split(vaccine, "[-,]"),
+      serotypes = purrr::map(serotypes, trimws),
+      n_serotypes = lengths(serotypes)
+    ) %>%
+    dplyr::filter(
+      is.null(target_size) | n_serotypes %in% target_size
+    ) %>%
+    dplyr::group_by(method) %>%
+    dplyr::slice_min(
+      order_by = .data[[score]],
+      n = 1,
+      with_ties = FALSE
+    ) %>%
+    dplyr::ungroup()
+
+  # Named list of designed vaccine compositions
+  selected <- setNames(
+    best$serotypes,
+    paste0("best_", best$method)
+  )
+
+  # Append licensed vaccine compositions
+  c(selected, licensed_vaccines)
+}

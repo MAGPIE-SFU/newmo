@@ -176,59 +176,77 @@ plot_ipd_total <- function(ipd_sero) {
     )
 }
 
-# ============================================================
-# PANEL B: Dot plot with 95% uncertainty intervals
-# ============================================================
 
 #' Predicted serotype contribution to IPD, with uncertainty intervals
+#' Compares projected serotype-specific IPD composition across vaccines.
+#' Serotypes are selected by total expected IPD and ordered by child
+#' invasiveness.
 #'
-#' Intervals represent uncertainty in invasiveness, not Poisson predictive
-#' intervals. All years in one panel, coloured and dodged by year.
+#' @param dat Data frame containing cumulative IPD projections by vaccine
+#'   and serotype.
+#' @param invasiveness_lookup Data frame containing serotype-specific
+#'   child invasiveness estimates (`v_child`).
+#' @param top_n Number of serotypes to display, selected by total
+#'   expected IPD. If NULL, all serotypes are displayed.
 #'
-#' @param ipd_sero From [prepare_ipd_serotypes()].
-#' @param top_n Number of serotypes (by total expected IPD) to show.
-#' @return A ggplot.
-#' @importFrom dplyr %>% group_by summarise arrange desc pull filter mutate
-#' @importFrom ggplot2 ggplot aes geom_errorbar geom_point position_dodge
-#'   scale_colour_viridis_d scale_x_continuous labs theme_bw theme element_blank
-#'   element_text
+#' @return A ggplot object.
 #' @export
-plot_ipd_dotplot <- function(ipd_sero, top_n = 20) {
-  # Identify top serotypes by total expected IPD
-  sero_order <- ipd_sero %>%
-    group_by(serotype) %>%
-    summarise(
-      total_ipd = sum(ipd_mean, na.rm = TRUE),
+plot_vaccine_ipd_dotplot <- function(
+    dat,
+    invasiveness_lookup,
+    top_n = 20L
+) {
+
+  # Select serotypes by total expected IPD
+  serotype_ranks <- dat %>%
+    dplyr::group_by(serotype) %>%
+    dplyr::summarise(
+      total_ipd = sum(ipd_mean),
       .groups = "drop"
     ) %>%
-    arrange(desc(total_ipd)) %>%
-    pull(serotype)
+    dplyr::arrange(dplyr::desc(total_ipd))
 
-  top_seros <- head(sero_order, top_n)
+  top_seros <- serotype_ranks$serotype
 
-  dot_data <- ipd_sero %>%
-    filter(serotype %in% top_seros) %>%
-    mutate(
-      serotype = factor(serotype, levels = rev(top_seros)),
-      year = factor(year, levels = sort(unique(year)))
+  if (!is.null(top_n)) {
+    top_seros <- head(top_seros, top_n)
+  }
+
+  # Order selected serotypes by child invasiveness
+  serotype_order <- invasiveness_lookup %>%
+    dplyr::filter(serotype %in% top_seros) %>%
+    dplyr::arrange(v_child) %>%
+    dplyr::pull(serotype)
+
+  # Prepare plotting data
+  dot_data <- dat %>%
+    dplyr::filter(serotype %in% top_seros) %>%
+    dplyr::mutate(
+      serotype = factor(
+        serotype,
+        levels = serotype_order
+      ),
+      vaccine = dplyr::recode(
+        vaccine,
+        "best_greedy" = "Greedy",
+        "best_exhaustive" = "Exhaustive"
+      ),
+      vaccine = factor(vaccine)
     )
 
-  dodge <- position_dodge(
-    width = 0.75,
-    reverse = TRUE
-  )
+  dodge <- ggplot2::position_dodge(width = 0.7)
 
-  ggplot(
+  ggplot2::ggplot(
     dot_data,
-    aes(
+    ggplot2::aes(
       x = 100 * frac,
       y = serotype,
-      colour = year,
-      group = year
+      colour = vaccine,
+      group = vaccine
     )
   ) +
-    geom_errorbar(
-      aes(
+    ggplot2::geom_errorbar(
+      ggplot2::aes(
         xmin = 100 * frac_lower,
         xmax = 100 * frac_upper
       ),
@@ -238,36 +256,188 @@ plot_ipd_dotplot <- function(ipd_sero, top_n = 20) {
       linewidth = 0.6,
       alpha = 0.35
     ) +
-    geom_point(
+    ggplot2::geom_point(
       position = dodge,
       size = 2.2,
       alpha = 0.9
     ) +
-    scale_colour_viridis_d(
+    ggplot2::scale_colour_viridis_d(
       option = "mako",
       begin = 0.8,
       end = 0.1,
       direction = 1
     ) +
-    scale_x_continuous(
+    ggplot2::scale_x_continuous(
       labels = scales::label_number(suffix = "%"),
       limits = c(0, NA)
     ) +
-    labs(
+    ggplot2::labs(
       x = "Proportion of total predicted IPD (%)",
       y = "Serotype",
-      colour = "Simulation year",
+      colour = "Vaccine",
       title = "Predicted serotype contribution to IPD",
       subtitle = paste0(
         "Top ",
         length(top_seros),
-        " serotypes by total expected IPD"
+        " serotypes by expected IPD, ordered by invasiveness"
       )
     ) +
-    theme_bw(base_size = 11) +
-    theme(
-      panel.grid.minor = element_blank(),
+    ggplot2::theme_bw(base_size = 11) +
+    ggplot2::theme(
+      panel.grid.minor = ggplot2::element_blank(),
       legend.position = "right",
-      plot.title = element_text(face = "bold")
+      plot.title = ggplot2::element_text(face = "bold")
+    )
+}
+
+
+#' Plot projected total IPD across vaccine formulations
+#'
+#' Produces stacked-area plots of annual expected IPD, with
+#' serotype-specific contributions and a line indicating total IPD.
+#' Each vaccine is displayed in a separate panel with common axis scales.
+#'
+#' @param dat Data frame containing annual IPD projections by vaccine,
+#'   year and serotype, including `ipd_mean`.
+#' @param invasiveness_lookup Data frame containing serotype-specific
+#'   child invasiveness estimates (`v_child`).
+#' @param top_n Number of serotypes displayed individually, ranked by
+#'   total expected IPD across vaccines and years. Remaining serotypes
+#'   are combined into an "Other" category.
+#'
+#' @return A ggplot object.
+#' @export
+plot_vaccine_total_ipd <- function(
+    dat,
+    invasiveness_lookup,
+    top_n = 20L
+) {
+
+  # 1. Select the top serotypes ------------------------------------------
+
+  top_seros <- dat %>%
+    dplyr::group_by(serotype) %>%
+    dplyr::summarise(
+      total_ipd = sum(ipd_mean),
+      .groups = "drop"
+    ) %>%
+    dplyr::arrange(dplyr::desc(total_ipd)) %>%
+    dplyr::slice_head(n = top_n) %>%
+    dplyr::pull(serotype)
+
+  # 2. Order serotypes by invasiveness -----------------------------------
+
+  serotype_order <- invasiveness_lookup %>%
+    dplyr::filter(serotype %in% top_seros) %>%
+    dplyr::arrange(dplyr::desc(v_child)) %>%
+    dplyr::pull(serotype)
+
+  serotype_order <- unique(c(
+    serotype_order,
+    setdiff(top_seros, serotype_order),
+    "Other"
+  ))
+
+  # 3. Vaccine labels ---------------------------------------------------
+
+  dat <- dat %>%
+    dplyr::mutate(
+      vaccine = dplyr::recode(
+        vaccine,
+        "best_greedy" = "Greedy",
+        "best_exhaustive" = "Exhaustive"
+      )
+    )
+
+  # 4. Stacked serotype-specific IPD -------------------------------------
+
+  ipd_stacked <- dat %>%
+    dplyr::mutate(
+      serotype_plot = dplyr::if_else(
+        serotype %in% top_seros,
+        as.character(serotype),
+        "Other"
+      ),
+      serotype_plot = factor(
+        serotype_plot,
+        levels = serotype_order
+      )
+    ) %>%
+    dplyr::group_by(vaccine, year, serotype_plot) %>%
+    dplyr::summarise(
+      ipd_mean = sum(ipd_mean),
+      .groups = "drop"
+    )
+
+  # 5. Total expected IPD ------------------------------------------------
+
+  total_ipd <- dat %>%
+    dplyr::group_by(vaccine, year) %>%
+    dplyr::summarise(
+      total = sum(ipd_mean),
+      .groups = "drop"
+    )
+
+  # 6. Plot -------------------------------------------------------------
+
+  ggplot2::ggplot() +
+    ggplot2::geom_area(
+      data = ipd_stacked,
+      ggplot2::aes(
+        x = year,
+        y = ipd_mean,
+        fill = serotype_plot
+      ),
+      position = "stack",
+      alpha = 0.85
+    ) +
+    ggplot2::geom_line(
+      data = total_ipd,
+      ggplot2::aes(
+        x = year,
+        y = total
+      ),
+      colour = "black",
+      linewidth = 1.1
+    ) +
+    ggplot2::geom_point(
+      data = total_ipd,
+      ggplot2::aes(
+        x = year,
+        y = total
+      ),
+      colour = "black",
+      size = 2
+    ) +
+    ggplot2::facet_wrap(
+      ~ vaccine,
+      nrow = 1,
+      scales = "fixed"
+    ) +
+    ggplot2::scale_fill_viridis_d(
+      option = "mako",
+      begin = 0.15,
+      end = 0.9
+    ) +
+    ggplot2::scale_x_continuous(
+      breaks = sort(unique(ipd_stacked$year))
+    ) +
+    ggplot2::scale_y_continuous(
+      expand = ggplot2::expansion(
+        mult = c(0, 0.05)
+      )
+    ) +
+    ggplot2::labs(
+      x = "Simulation year",
+      y = "Expected IPD cases per 100,000 carriage events",
+      fill = "Serotype",
+      title = "Predicted invasive pneumococcal disease",
+      subtitle = "Total IPD and serotype-specific contributions by vaccine"
+    ) +
+    ggplot2::theme_bw(base_size = 12) +
+    ggplot2::theme(
+      panel.grid.minor = ggplot2::element_blank(),
+      legend.position = "right",
+      plot.title = ggplot2::element_text(face = "bold")
     )
 }

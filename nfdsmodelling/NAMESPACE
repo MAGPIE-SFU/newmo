@@ -9,12 +9,12 @@ export(build_samodel)
 export(clean_metadata)
 export(compress_vstring)
 export(design_vaccines)
+export(evaluate_vaccine_ipd)
 export(getIPD)
 export(landscape_best_starts)
 export(load_fit_data)
 export(loss_functions)
 export(make_loss)
-export(plot_ipd_dotplot)
 export(plot_ipd_total)
 export(plot_landscape)
 export(plot_profiles)
@@ -26,7 +26,9 @@ export(plot_sensitivity_trajectories)
 export(plot_sensitivity_vs_data)
 export(plot_vaccine_candidates)
 export(plot_vaccine_heatmap)
+export(plot_vaccine_ipd_dotplot)
 export(plot_vaccine_ranks)
+export(plot_vaccine_total_ipd)
 export(plot_xt_top_groups)
 export(prepare_ipd_serotypes)
 export(profile_best_fits)
@@ -38,6 +40,7 @@ export(run_sequential_fits)
 export(score_vaccine)
 export(screen_landscape)
 export(select_best_fits)
+export(select_best_vaccines)
 export(sensitivity_top_groups)
 export(shrink_invasiveness)
 export(simulate_nfds)
@@ -118,7 +121,6 @@ importFrom(ggplot2,
   labeller,
   labs,
   margin,
-  position_dodge,
   scale_colour_brewer,
   scale_colour_identity,
   scale_colour_manual,
