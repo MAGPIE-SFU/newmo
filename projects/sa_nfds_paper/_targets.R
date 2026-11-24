@@ -16,5 +16,7 @@ c(
   targets_fit_diagnostics,
   targets_sensitivity,
   targets_projected_ipd,
-  targets_vaccine_design
+  targets_vaccine_design,
+  # Supplementary
+  targets_no_nfds
 )
