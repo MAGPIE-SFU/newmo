@@ -1,4 +1,5 @@
 Package: nfdsmodelling
+URL: https://magpie-sfu.github.io/newmo/
 Title: Negative Frequency-Dependent Selection Models for Pneumo
 Version: 0.0.1
 Authors@R:

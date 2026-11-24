@@ -20,6 +20,6 @@ reference:
 - title: Projected IPD and vaccine design
   contents: [simulate_projected_ipd, plot_projected_ipd_check, prepare_ipd_serotypes,
              plot_ipd_total, plot_ipd_dotplot, getIPD, score_vaccine, compress_vstring,
-             design_vaccines, plot_vaccine_heatmap]
+             design_vaccines, plot_vaccine_heatmap, plot_vaccine_candidates, plot_vaccine_ranks, vaccine_candidate_data]
 - title: Model vs data plots
   contents: [top_group_plot, top_sero_plot, vt_nvt_plot]
