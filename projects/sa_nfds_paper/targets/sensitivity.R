@@ -52,5 +52,20 @@ targets_sensitivity <- list(
                                                  ") with ", SENS_QTILE * 100, "% sensitivity band")),
                file.path(sens_dir, "overall_best_with_sensitivity.pdf"),
                width = 14, height = 10),
+             format = "file"),
+  tar_target(sensitivity_per_fit_groups_pdf,
+             save_plots_pdf(
+               lapply(fit_selection$all_best$key, function(k)
+                 add_sensitivity_ribbon(
+                   top_group_plot(FIG_SETTINGS$vax_start, FIG_SETTINGS$prevax_years,
+                                  FIG_SETTINGS$n_groups, samodel, xt_grouped_uncertainty,
+                                  sims_all_best[k],
+                                  drop_vt = FALSE, vaccine = FIG_SETTINGS$vaccine),
+                   sensitivity, k,
+                   vax_start = FIG_SETTINGS$vax_start, qtile = SENS_QTILE) +
+                   ggplot2::labs(subtitle = paste0("Fit ", k, " with ",
+                                                   SENS_QTILE * 100, "% sensitivity band"))),
+               file.path(sens_dir, "per_fit_with_sensitivity.pdf"),
+               width = 14, height = 10),
              format = "file")
 )

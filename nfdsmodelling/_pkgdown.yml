@@ -16,7 +16,7 @@ reference:
              loss_functions, PAR_NAMES]
 - title: Fit diagnostics and sensitivity
   contents: [profile_best_fits, plot_profiles, screen_landscape, plot_landscape,
-             landscape_best_starts, run_sensitivity, sensitivity_top_groups, sensitivity_plots]
+             landscape_best_starts, run_sensitivity, sensitivity_top_groups, sensitivity_plots, add_sensitivity_ribbon]
 - title: Projected IPD and vaccine design
   contents: [simulate_projected_ipd, plot_projected_ipd_check, prepare_ipd_serotypes,
              plot_ipd_total, plot_ipd_dotplot, getIPD, score_vaccine, compress_vstring,
