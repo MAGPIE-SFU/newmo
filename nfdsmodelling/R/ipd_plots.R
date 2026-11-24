@@ -194,6 +194,7 @@ plot_ipd_total <- function(ipd_sero) {
 plot_vaccine_ipd_dotplot <- function(
     dat,
     invasiveness_lookup,
+    vaccine_colours,
     top_n = 20L
 ) {
 
@@ -218,6 +219,13 @@ plot_vaccine_ipd_dotplot <- function(
     dplyr::arrange(v_child) %>%
     dplyr::pull(serotype)
 
+  # Set vaccine ordering
+  vaccine_order <- c(
+    "PCV13",
+    "Greedy",
+    "Exhaustive"
+  )
+
   # Prepare plotting data
   dot_data <- dat %>%
     dplyr::filter(serotype %in% top_seros) %>%
@@ -231,7 +239,10 @@ plot_vaccine_ipd_dotplot <- function(
         "best_greedy" = "Greedy",
         "best_exhaustive" = "Exhaustive"
       ),
-      vaccine = factor(vaccine)
+      vaccine = factor(
+        vaccine,
+        levels = vaccine_order
+      )
     )
 
   dodge <- ggplot2::position_dodge(width = 0.7)
@@ -261,11 +272,9 @@ plot_vaccine_ipd_dotplot <- function(
       size = 2.2,
       alpha = 0.9
     ) +
-    ggplot2::scale_colour_viridis_d(
-      option = "mako",
-      begin = 0.8,
-      end = 0.1,
-      direction = 1
+    ggplot2::scale_colour_manual(
+      values = vaccine_colours,
+      breaks = vaccine_order
     ) +
     ggplot2::scale_x_continuous(
       labels = scales::label_number(suffix = "%"),
@@ -274,22 +283,16 @@ plot_vaccine_ipd_dotplot <- function(
     ggplot2::labs(
       x = "Proportion of total predicted IPD (%)",
       y = "Serotype",
-      colour = "Vaccine",
-      title = "Predicted serotype contribution to IPD",
-      subtitle = paste0(
-        "Top ",
-        length(top_seros),
-        " serotypes by expected IPD, ordered by invasiveness"
-      )
+      colour = "Vaccine"
     ) +
-    ggplot2::theme_bw(base_size = 11) +
-    ggplot2::theme(
-      panel.grid.minor = ggplot2::element_blank(),
-      legend.position = "right",
-      plot.title = ggplot2::element_text(face = "bold")
+    theme_paper2(legend_position = "bottom") +
+    ggplot2::guides(
+      colour = ggplot2::guide_legend(
+        nrow = 1,
+        byrow = TRUE
+      )
     )
 }
-
 
 #' Plot projected total IPD across vaccine formulations
 #'
@@ -338,16 +341,20 @@ plot_vaccine_total_ipd <- function(
     "Other"
   ))
 
-  # 3. Vaccine labels ---------------------------------------------------
+  # 3. Vaccine labels and panel ordering ---------------------------------
 
-  dat <- dat %>%
-    dplyr::mutate(
-      vaccine = dplyr::recode(
-        vaccine,
-        "best_greedy" = "Greedy",
-        "best_exhaustive" = "Exhaustive"
-      )
+dat <- dat %>%
+  dplyr::mutate(
+    vaccine = dplyr::recode(
+      vaccine,
+      "best_greedy" = "Greedy",
+      "best_exhaustive" = "Exhaustive"
+    ),
+    vaccine = factor(
+      vaccine,
+      levels = c("PCV13", "Greedy", "Exhaustive")
     )
+  )
 
   # 4. Stacked serotype-specific IPD -------------------------------------
 
@@ -379,6 +386,30 @@ plot_vaccine_total_ipd <- function(
     )
 
   # 6. Plot -------------------------------------------------------------
+
+# Discrete blue palette
+blue_palette <- grDevices::colorRampPalette(
+  c("#D6EAF8", "#85B9DF", "#3182BD", "#08519C", "#08306B")
+)(length(serotype_order))
+
+# Alternate light and dark shades
+n <- length(blue_palette)
+
+blue_palette <- blue_palette[
+  c(rbind(seq_len(ceiling(n / 2)), rev(seq_len(n))[seq_len(ceiling(n / 2))]))
+]
+
+blue_palette <- unique(blue_palette)
+
+serotype_colours <- setNames(
+  blue_palette,
+  serotype_order
+)
+
+serotype_colours["Other"] <- "grey85"
+
+
+
 
   ggplot2::ggplot() +
     ggplot2::geom_area(
@@ -414,11 +445,16 @@ plot_vaccine_total_ipd <- function(
       nrow = 1,
       scales = "fixed"
     ) +
-    ggplot2::scale_fill_viridis_d(
-      option = "mako",
-      begin = 0.15,
-      end = 0.9
-    ) +
+   ggplot2::scale_fill_manual(
+  values = serotype_colours,
+  drop = FALSE
+) +
+ggplot2::guides(
+  fill = ggplot2::guide_legend(
+    nrow = 2,
+    byrow = TRUE
+  )
+) +
     ggplot2::scale_x_continuous(
       breaks = sort(unique(ipd_stacked$year))
     ) +
@@ -431,13 +467,12 @@ plot_vaccine_total_ipd <- function(
       x = "Simulation year",
       y = "Expected IPD cases per 100,000 carriage events",
       fill = "Serotype",
-      title = "Predicted invasive pneumococcal disease",
-      subtitle = "Total IPD and serotype-specific contributions by vaccine"
     ) +
-    ggplot2::theme_bw(base_size = 12) +
-    ggplot2::theme(
-      panel.grid.minor = ggplot2::element_blank(),
-      legend.position = "right",
-      plot.title = ggplot2::element_text(face = "bold")
+   theme_paper2() +
+  ggplot2::guides(
+    fill = ggplot2::guide_legend(
+      nrow = 2,
+      byrow = TRUE
     )
+  )
 }

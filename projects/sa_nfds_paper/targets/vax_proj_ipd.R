@@ -88,14 +88,15 @@ targets_vax_proj_ipd <- list(
   ),
 
   # Plot projected cumulative IPD composition
-  tar_target(
-    vaccine_ipd_dotplot,
-    plot_vaccine_ipd_dotplot(
-      vaccine_ipd_composition,
-      invasiveness_lookup,
-      top_n = IPD_DOT_TOP_N
-    )
-  ),
+tar_target(
+  vaccine_ipd_dotplot,
+  plot_vaccine_ipd_dotplot(
+    vaccine_ipd_composition,
+    invasiveness_lookup,
+    vaccine_colours = VACCINE_COLOURS,
+    top_n = IPD_DOT_TOP_N
+  )
+),
 
   # Save dot plot
   tar_target(

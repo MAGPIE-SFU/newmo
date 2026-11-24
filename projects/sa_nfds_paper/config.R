@@ -125,6 +125,11 @@ IPD_N_CARRIAGE <- 100000
 FIRST_SIM_CALENDAR_YEAR <- 2011 # corresponds to year.1 in the simulation
 # IPD Plot
 IPD_DOT_TOP_N <- 20 # number of serotypes in the IPD dot plot
+VACCINE_COLOURS <- c(
+  "PCV13" = "#A94C22",
+  "Greedy" = "#4292C6",
+  "Exhaustive" = "#084594"
+)
 
 # Vaccine design
 VD_CANDIDATE_VACCINES <- c("PCV7", "PCV13", "PCV15", "PCV20", "PCV23") # in priority order

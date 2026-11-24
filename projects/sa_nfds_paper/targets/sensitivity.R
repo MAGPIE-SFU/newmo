@@ -90,40 +90,36 @@ targets_sensitivity <- list(
     )),
     format = "file"
   ),
-  tar_target(
-    sensitivity_best_groups_pdf,
-    save_plot_output(
-      add_sensitivity_ribbon(
-        top_group_plot(
-          FIG_SETTINGS$vax_start,
-          FIG_SETTINGS$prevax_years,
-          FIG_SETTINGS$n_groups,
-          samodel,
-          xt_grouped_uncertainty,
-          setNames(sim_overall_best, "Overall best"),
-          drop_vt = FALSE,
-          vaccine = FIG_SETTINGS$vaccine
-        ),
-        sensitivity,
-        fit_selection$overall_best$key,
-        vax_start = FIG_SETTINGS$vax_start,
-        qtile = SENS_QTILE
-      ) +
-        ggplot2::labs(
-          subtitle = paste0(
-            "Overall best fit (",
-            fit_selection$overall_best$key,
-            ") with ",
-            SENS_QTILE * 100,
-            "% sensitivity band"
-          )
-        ),
-      file.path(sens_dir, "overall_best_with_sensitivity.pdf"),
-      width = 14,
-      height = 10
-    ),
-    format = "file"
+tar_target(
+  sensitivity_best_groups_pdf,
+  save_plot_output(
+    add_sensitivity_ribbon(
+      top_group_plot(
+        FIG_SETTINGS$vax_start,
+        FIG_SETTINGS$prevax_years,
+        FIG_SETTINGS$n_groups,
+        samodel,
+        xt_grouped_uncertainty,
+        setNames(sim_overall_best, "Overall best"),
+        drop_vt = FALSE,
+        vaccine = FIG_SETTINGS$vaccine
+      ),
+      sensitivity,
+      fit_selection$overall_best$key,
+      vax_start = FIG_SETTINGS$vax_start,
+      qtile = SENS_QTILE
+    ) +
+      ggplot2::labs(
+        title = NULL,
+        subtitle = NULL,
+        caption = NULL
+      ),
+    file.path(sens_dir, "overall_best_with_sensitivity.pdf"),
+    width = 14,
+    height = 10
   ),
+  format = "file"
+),
   tar_target(
     sensitivity_per_fit_groups_pdf,
     save_plots_pdf(
