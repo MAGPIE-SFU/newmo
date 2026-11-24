@@ -43,6 +43,7 @@ simulate_fits <- function(fits, samodel, nyears, tswitch, use_switch) {
 # Several plots into one multi-page PDF
 save_plots_pdf <- function(plots, out_file, width, height) {
   dir.create(dirname(out_file), recursive = TRUE, showWarnings = FALSE)
+  plots <- lapply(plots, apply_theme_paper)
   grDevices::pdf(out_file, width = width, height = height)
   on.exit(grDevices::dev.off())
   for (p in plots) print(p)
