@@ -35,7 +35,7 @@ getIPD <- function(simulation, inv, group_lookup, years = 6) {
     mutate(IPD = xmean*v_child)
 
   totalIPD = sum(dat$IPD, na.rm = T)
-  return(list(total= totalIPD, seroIPD = dat %>% select(serotype, IPD)))
+  return(list(total = totalIPD, seroIPD = dat %>% select(serotype, IPD)))
 }
 
 #' Score a vaccine by the IPD it leaves
