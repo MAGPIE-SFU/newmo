@@ -317,7 +317,7 @@ plot_sensitivity_vs_data <- function(sens, xt, top_groups, start_year, qtile, be
       geom_ribbon(data=filter(sim_summ, loss==best_loss), aes(ymin=L, ymax=U), alpha=0.2) +
       labs(x="Year", y="ST-SC group frequency",
            title=paste0("Top ",n_groups, " ST-GPSC groups. Ribbons show ", qtile*100, "% range."),
-           subtitle=paste("Based on the optimal fit from the", best_loss, "function.")) +
+           subtitle=paste("Based on fit", best_loss)) +
       facet_wrap(~group, scales="free_y") +
       clean_theme() +
       theme(legend.position="bottom")
