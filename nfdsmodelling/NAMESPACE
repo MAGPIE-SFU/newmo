@@ -2,6 +2,7 @@
 
 export(PAR_NAMES)
 export(VACCINE_TYPES)
+export(add_sensitivity_ribbon)
 export(build_gnfds)
 export(build_invasiveness_lookup)
 export(build_samodel)

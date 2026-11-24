@@ -323,3 +323,44 @@ plot_sensitivity_vs_data <- function(sens, xt, top_groups, start_year, qtile, be
       theme(legend.position="bottom")
   }
 }
+
+#' Add a sensitivity band to a top_group_plot()
+#'
+#' Adds the quantile band of the sensitivity draws for one fit underneath a
+#' plot made with [top_group_plot()], on the same frequency scale and time axis.
+#'
+#' @param p A plot from [top_group_plot()].
+#' @param sens Result of [run_sensitivity()].
+#' @param key Id (`loss` column in `sens`) of the fit to show the band for.
+#' @param vax_start The `vax_start` used in `p`.
+#' @param qtile Quantile range of the band.
+#' @param fill,alpha Fill colour and transparency of the band.
+#' @return The plot with the band underneath all other layers.
+#' @importFrom dplyr %>% filter group_by mutate ungroup summarise
+#' @importFrom ggplot2 geom_ribbon aes
+#' @importFrom stats quantile
+#' @export
+add_sensitivity_ribbon <- function(p, sens, key, vax_start, qtile = 0.95,
+                                   fill = "#1B9E77", alpha = 0.25) {
+  # the groups shown in the plot (the first layer of top_group_plot() is the data error bars)
+  plot_groups <- levels(p$layers[[1]]$data$group)
+
+  # top_group_plot() shows simulations as frequencies, with model year k at vax_start - 1 + k
+  ribbon <- sens$sim_out %>%
+    filter(loss == key, year > 0) %>%                 # year 0 = x0, shown separately
+    group_by(rep, year) %>%
+    mutate(frac = value / sum(value)) %>%             # normalise within each draw and year
+    ungroup() %>%
+    filter(group %in% plot_groups) %>%
+    group_by(group, year) %>%
+    summarise(L = quantile(frac, (1 - qtile) / 2),
+              U = quantile(frac, 1 - (1 - qtile) / 2),
+              .groups = "drop") %>%
+    mutate(year  = vax_start - 1 + year,
+           group = factor(group, levels = plot_groups))
+
+  p$layers <- c(list(geom_ribbon(data = ribbon, aes(x = year, ymin = L, ymax = U),
+                                 fill = fill, alpha = alpha, inherit.aes = FALSE)),
+                p$layers)
+  p
+}
