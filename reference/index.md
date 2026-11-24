@@ -67,6 +67,8 @@
   [`plot_sensitivity_trajectories()`](https://magpie-sfu.github.io/newmo/reference/sensitivity_plots.md)
   [`plot_sensitivity_vs_data()`](https://magpie-sfu.github.io/newmo/reference/sensitivity_plots.md)
   : Sensitivity plots
+- [`add_sensitivity_ribbon()`](https://magpie-sfu.github.io/newmo/reference/add_sensitivity_ribbon.md)
+  : Add a sensitivity band to a top_group_plot()
 
 ## Projected IPD and vaccine design
 
