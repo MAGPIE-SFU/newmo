@@ -30,6 +30,7 @@ build_samodel <- function(G, xt, locus_by_year, x0_years) {
   st_year <- min(xt$year)
   stopifnot(identical(rownames(G), xt$group[xt$year == st_year]))
   stopifnot(identical(colnames(G), locus_by_year$locus[locus_by_year$in_model]))
+  # LB: this is an old comment, parameter_generator does not exist anymore in the workflow:
   # this matters in the parameter generator now: otherwise that file needs to load the model
   #  if you want use loci selected on another
   # criterion (z, or logratio, or delta, or whatever) then you can see that in the
