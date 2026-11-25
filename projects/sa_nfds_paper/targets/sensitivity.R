@@ -1,5 +1,3 @@
-sens_dir <- file.path(results_dir, "plots", "sensitivity")
-
 targets_sensitivity <- list(
   # Optimal fit per loss: the best across seeds
   # One sensitivity run per fit (best per seed x loss); `loss` is the fit's id
@@ -25,7 +23,12 @@ targets_sensitivity <- list(
     sensitivity_failed_csv,
     write_csv_output(
       sensitivity$failed,
-      file.path(results_dir, "computed_data", "sensitivity_failed.csv")
+      file.path(
+        results_dir,
+        "computed_data",
+        "sensitivity",
+        "sensitivity_failed.csv"
+      )
     ),
     format = "file"
   ),
@@ -42,7 +45,12 @@ targets_sensitivity <- list(
         SENS_QTILE,
         best_loss = fit_selection$overall_best$key
       ),
-      file.path(sens_dir, "sensitivity_overall_best.pdf"),
+      file.path(
+        results_dir,
+        "plots",
+        "sensitivity",
+        "sensitivity_overall_best.pdf"
+      ),
       width = 9,
       height = 7
     ),
@@ -63,7 +71,7 @@ targets_sensitivity <- list(
           best_loss = k
         )
       }),
-      file.path(sens_dir, "sensitivity_per_fit.pdf"),
+      file.path(results_dir, "plots", "sensitivity", "sensitivity_per_fit.pdf"),
       width = 9,
       height = 7
     ),
@@ -81,7 +89,12 @@ targets_sensitivity <- list(
             SENS_START_YEAR,
             losses = l
           ),
-          file.path(sens_dir, paste0("sim_trajectories_", l, ".pdf")),
+          file.path(
+            results_dir,
+            "plots",
+            "sensitivity",
+            paste0("sim_trajectories_", l, ".pdf")
+          ),
           width = 9,
           height = 7
         )

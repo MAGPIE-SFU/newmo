@@ -2,6 +2,7 @@
 #  Assess sensitivity of the NFDS model to its input parameters by perturbing
 #  inputs near the optimized parameter settings.
 # ============================================================
+
 # Display names for the loss functions in the plots
 LOSS_LABELS <- c(
   SSE = "SSE",
@@ -12,34 +13,14 @@ loss_labeller <- function(x) {
   ifelse(x %in% names(LOSS_LABELS), LOSS_LABELS[x], x)
 }
 
-# Common sensitivity figure styling. Colours can be overridden via config
-# when calling add_sensitivity_ribbon(); loss colours are distinct blues.
-SENS_LOSS_COLOURS <- c(
-  SSE = "#084594",
-  weighted_composition_distance = "#4292C6",
-  weighted_SSE = "#9ECAE1"
-)
-
-sensitivity_group_labeller <- function(x, pcv13 = c(
-    "1", "3", "4", "5", "6A", "6B", "7F", "9V", "14",
-    "18C", "19A", "19F", "23F"),
-    vt_colour = "#A94C22", nvt_colour = "#084594") {
-  serotype <- sub("_.*$", "", x)
-  colour <- ifelse(serotype %in% pcv13, vt_colour, nvt_colour)
-  paste0("<span style='color:", colour, "'><b>", x, "</b></span>")
-}
-
-sensitivity_paper_theme <- function(coloured_strips = TRUE) {
-  ptheme <- theme_paper2(legend_position = "bottom")
-  if (coloured_strips) {
-    ptheme + ggplot2::theme(
-      strip.text = ggtext::element_markdown(face = "bold")
-    )
-  } else {
-    ptheme + ggplot2::theme(
-      strip.text = ggplot2::element_text(face = "bold")
-    )
-  }
+# default theme for the plots
+#' @importFrom ggplot2 theme element_rect element_line
+clean_theme <- function() {
+  theme(
+    panel.background = element_rect(fill = "white", colour = "black"),
+    panel.grid.major = element_line("grey85"),
+    panel.grid.minor = element_line('grey95')
+  )
 }
 
 #' Largest groups at the start of the simulation
@@ -90,13 +71,15 @@ run_sensitivity <- function(
   n_sims = 100,
   n_cores = 1
 ) {
-# pull out initial conditions
+  # pull out initial conditions
   IC <- data.frame(value = samodel$x0) |>
     rownames_to_column(var = "group") |>
     bind_cols(year = 0)
-# Optimal trajectories
-# ==============================================================================
-# process results for each of the optimal parameter settings
+
+  # Optimal trajectories
+  # ==============================================================================
+
+  # process results for each of the optimal parameter settings
   opt_traj <- lapply(seq_len(nrow(opt_pars)), function(i) {
     run_model(
       as.list(unlist(opt_pars[i, PAR_NAMES])),
@@ -116,11 +99,14 @@ run_sensitivity <- function(
       bind_cols(loss = opt_pars$loss[i])
   }) |>
     list_rbind()
-# Perturbations
-# ==============================================================================
-# For each parameter simulate n_sims draws from a normal distribution with mean
-#  equal to the optimized values and standard deviation loosely based on the
-#  loss function profiles
+
+  # Perturbations
+  # ==============================================================================
+
+  # For each parameter simulate n_sims draws from a normal distribution with mean
+  #  equal to the optimized values and standard deviation loosely based on the
+  #  loss function profiles
+
   par_lookup <- lapply(seq_len(nrow(opt_pars)), function(i) {
     as.data.frame(opt_pars[i, ]) |>
       mutate(
@@ -132,7 +118,8 @@ run_sensitivity <- function(
       pivot_longer(everything(), names_to = "par") |>
       left_join(sd_pars, by = "par")
   })
-# draw from a normal truncated to [lo, hi] via the inverse CDF
+
+  # draw from a normal truncated to [lo, hi] via the inverse CDF
   sim_pars <- Vectorize(
     function(lookup, par_name) {
       row <- lookup[lookup$par == par_name, ]
@@ -145,6 +132,7 @@ run_sensitivity <- function(
     },
     vectorize.args = "par_name"
   )
+
   par_df <- lapply(seq_len(nrow(opt_pars)), function(j) {
     lapply(1:n_sims, function(i) {
       data.frame(par = sd_pars$par) |>
@@ -155,22 +143,26 @@ run_sensitivity <- function(
       bind_cols(loss = opt_pars$loss[j])
   }) |>
     list_rbind()
-# pull out parameters used in the optimal fits
+
+  # pull out parameters used in the optimal fits
   opt_settings <- lapply(seq_along(par_lookup), function(i) {
     par_lookup[[i]] |>
       select(par, value) |>
       bind_cols(loss = opt_pars$loss[i])
   }) |>
     list_rbind()
+
   sim_par_sets <- par_df |>
     pivot_wider(names_from = "par", values_from = "val") |>
     mutate(sigma = exp(logsigma), v1 = exp(logv1), .keep = "unused")
+
   stopifnot(all(between(sim_par_sets$portion, 0, 1)))
-# run the model for each perturbed parameter set, keeping the rep/loss labels
-#  alongside the trajectories so the results can be summarised and plotted
+
+  # run the model for each perturbed parameter set, keeping the rep/loss labels
+  #  alongside the trajectories so the results can be summarised and plotted
   run_one <- function(k) {
     pars_k <- sim_par_sets[k, ]
-# a bad parameter draw shouldn't kill the whole batch; drop it and record why
+    # a bad parameter draw shouldn't kill the whole batch; drop it and record why
     tryCatch(
       run_model(
         as.list(select(pars_k, -rep, -loss)),
@@ -197,8 +189,9 @@ run_sensitivity <- function(
       }
     )
   }
-# ODE solve times vary a lot across parameter draws, so hand out one job at a
-#  time (no prescheduling) rather than one fixed block per core
+
+  # ODE solve times vary a lot across parameter draws, so hand out one job at a
+  #  time (no prescheduling) rather than one fixed block per core
   sim_res <- if (n_cores > 1) {
     parallel::mclapply(
       seq_len(nrow(sim_par_sets)),
@@ -209,6 +202,7 @@ run_sensitivity <- function(
   } else {
     lapply(seq_len(nrow(sim_par_sets)), run_one)
   }
+
   failed <- keep(sim_res, \(x) "error" %in% names(x)) |> list_rbind()
   if (NROW(failed) > 0) {
     warning(nrow(failed), " parameter sets failed; see `failed`")
@@ -219,8 +213,10 @@ run_sensitivity <- function(
       error = character()
     )
   }
+
   sim_out <- discard(sim_res, \(x) "error" %in% names(x)) |>
     list_rbind()
+
   list(
     opt_traj = opt_traj,
     par_df = par_df,
@@ -267,9 +263,10 @@ sensitivity_summary <- function(sens, top_groups, start_year, qtile) {
 #' @return A ggplot.
 #' @name sensitivity_plots
 NULL
+
 #' @describeIn sensitivity_plots Trajectories of the optimal fits.
 #' @importFrom dplyr filter
-#' @importFrom ggplot2 ggplot aes geom_point geom_line facet_wrap theme
+#' @importFrom ggplot2 ggplot aes geom_point geom_line facet_wrap theme scale_colour_brewer
 #' @export
 plot_sensitivity_optimal <- function(sens, top_groups) {
   sens$opt_traj |>
@@ -277,10 +274,10 @@ plot_sensitivity_optimal <- function(sens, top_groups) {
     ggplot(aes(x = year, y = value, colour = loss)) +
     geom_point() +
     geom_line() +
-    facet_wrap(~group, ncol = 4, scales = "free_y",
-               labeller = ggplot2::labeller(group = sensitivity_group_labeller)) +
-    ggplot2::scale_colour_manual(values = SENS_LOSS_COLOURS, labels = loss_labeller) +
-    sensitivity_paper_theme()
+    facet_wrap(~group, ncol = 4, scales = "free_y") +
+    scale_colour_brewer(palette = "Dark2", labels = loss_labeller) +
+    clean_theme() +
+    theme(legend.position = "bottom")
 }
 
 #' @describeIn sensitivity_plots Range of the simulated parameters (sampling scale).
@@ -297,13 +294,12 @@ plot_sensitivity_draws <- function(sens) {
       linewidth = 1,
       linetype = "dashed"
     ) +
-    ggplot2::scale_fill_manual(values = SENS_LOSS_COLOURS, labels = loss_labeller) +
-    sensitivity_paper_theme(coloured_strips = FALSE)
+    clean_theme()
 }
 
 #' @describeIn sensitivity_plots Ribbons with the optimal trajectories (dashed).
 #' @importFrom ggplot2 ggplot aes geom_ribbon geom_line facet_wrap labs
-#'   theme
+#'   scale_colour_brewer scale_fill_brewer theme
 #' @export
 plot_sensitivity_ribbons <- function(sens, top_groups, start_year, qtile) {
   opt_fit <- sensitivity_opt_fit(sens, top_groups, start_year)
@@ -321,23 +317,24 @@ plot_sensitivity_ribbons <- function(sens, top_groups, start_year, qtile) {
       linetype = "dashed",
       linewidth = 1
     ) +
-    facet_wrap(~group, ncol = 4, scales = "free_y",
-               labeller = ggplot2::labeller(group = sensitivity_group_labeller)) +
-    labs(
+    facet_wrap(~group, ncol = 4, scales = "free_y") +
+    # Suppress the warning that Loss function is not in the data (for overall best it does not exist)
+    suppressWarnings(labs(
       x = "Year",
       y = "ST-SC group frequency",
       colour = "Loss function",
       fill = "Loss function"
-    ) +
-    ggplot2::scale_colour_manual(values = SENS_LOSS_COLOURS, labels = loss_labeller) +
-    ggplot2::scale_fill_manual(values = SENS_LOSS_COLOURS, labels = loss_labeller) +
-    sensitivity_paper_theme()
+    )) +
+    scale_colour_brewer(palette = "Dark2", labels = loss_labeller) +
+    scale_fill_brewer(palette = "Dark2", labels = loss_labeller) +
+    clean_theme() +
+    theme(legend.position = "bottom")
 }
 
 #' @describeIn sensitivity_plots All simulated trajectories, for all or some losses.
 #' @importFrom dplyr filter mutate
-#' @importFrom ggplot2 ggplot aes geom_line facet_wrap labs
-#'   theme
+#' @importFrom ggplot2 ggplot aes geom_line facet_wrap labs scale_colour_brewer
+#'   scale_fill_brewer theme
 #' @export
 plot_sensitivity_trajectories <- function(
   sens,
@@ -364,141 +361,102 @@ plot_sensitivity_trajectories <- function(
       linetype = "dashed",
       linewidth = 1
     ) +
-    facet_wrap(~group, ncol = 4, scales = "free_y",
-               labeller = ggplot2::labeller(group = sensitivity_group_labeller)) +
-    labs(
+    facet_wrap(~group, ncol = 4, scales = "free_y") +
+    # Suppressing the warning for when the Loss function label is not defined (overall best)
+    suppressWarnings(labs(
       x = "Year",
       y = "ST-SC group frequency",
       colour = "Loss function",
       fill = "Loss function"
-    ) +
-    ggplot2::scale_colour_manual(values = SENS_LOSS_COLOURS, labels = loss_labeller) +
-    ggplot2::scale_fill_manual(values = SENS_LOSS_COLOURS, labels = loss_labeller) +
-    sensitivity_paper_theme()
+    )) +
+    scale_colour_brewer(palette = "Dark2", labels = loss_labeller) +
+    scale_fill_brewer(palette = "Dark2", labels = loss_labeller) +
+    clean_theme() +
+    theme(legend.position = "bottom")
 }
 
 #' @describeIn sensitivity_plots The data with the optimal fits and the
 #'   sensitivity ribbons, for all losses or only `best_loss`.
 #' @importFrom dplyr filter
 #' @importFrom ggplot2 ggplot aes geom_point geom_line geom_segment geom_ribbon
-#'   labs facet_wrap theme
+#'   labs scale_colour_brewer scale_fill_brewer facet_wrap theme
 #' @export
 plot_sensitivity_vs_data <- function(
-    sens,
-    xt,
-    top_groups,
-    start_year,
-    qtile,
-    best_loss = NULL
+  sens,
+  xt,
+  top_groups,
+  start_year,
+  qtile,
+  best_loss = NULL
 ) {
+  opt_fit <- sensitivity_opt_fit(sens, top_groups, start_year)
+  sim_summ <- sensitivity_summary(sens, top_groups, start_year, qtile)
+  n_groups <- nrow(top_groups)
 
-  opt_fit <- sensitivity_opt_fit(
-    sens, top_groups, start_year
-  )
-
-  sim_summ <- sensitivity_summary(
-    sens, top_groups, start_year, qtile
-  )
-
-  obs <- xt |>
-    filter(group %in% top_groups$group)
-
-  # Initialise plot
-  p <- ggplot(obs, aes(x = year))
+  base <- xt |>
+    filter(group %in% top_groups$group) |>
+    ggplot(aes(x = year)) +
+    geom_point(aes(y = frac), size = 1) +
+    geom_line(aes(y = frac), linewidth = 0.5, linetype = "dashed") +
+    geom_segment(aes(y = frac - frac_sd * 1.96, yend = frac + frac_sd * 1.96))
 
   if (is.null(best_loss)) {
-
-    # Sensitivity ribbons for all loss functions
-    p <- p +
+    # summarise sensitivity for all loss functions
+    base +
+      geom_line(data = opt_fit, aes(y = value, colour = loss), linewidth = 1) +
       geom_ribbon(
         data = sim_summ,
         aes(ymin = L, ymax = U, fill = loss),
-        colour = NA,
         alpha = 0.2
       ) +
-      ggplot2::scale_colour_manual(
-        values = SENS_LOSS_COLOURS,
-        labels = loss_labeller
-      ) +
-      ggplot2::scale_fill_manual(
-        values = SENS_LOSS_COLOURS,
-        labels = loss_labeller
-      )
-
+      # Suppression for when Loss function is not defined (overall best)
+      suppressWarnings(labs(
+        x = "Year",
+        y = "ST-SC group frequency",
+        colour = "Loss function",
+        fill = "Loss function",
+        title = paste0(
+          "Top ",
+          n_groups,
+          " ST-GPSC groups. Ribbons show ",
+          qtile * 100,
+          "% trajectory band."
+        )
+      )) +
+      scale_colour_brewer(palette = "Dark2", labels = loss_labeller) +
+      scale_fill_brewer(palette = "Dark2", labels = loss_labeller) +
+      facet_wrap(~group, scales = "free_y") +
+      clean_theme() +
+      theme(legend.position = "bottom")
   } else {
-
-    # Sensitivity ribbon for the selected fit
-    p <- p +
-      geom_ribbon(
-        data = filter(sim_summ, loss == best_loss),
-        aes(ymin = L, ymax = U),
-        fill = "#6BAED6",
-        colour = NA,
-        alpha = 0.25
-      )
-  }
-
-  # Observed uncertainty intervals and trajectories
-  p <- p +
-    geom_segment(
-      aes(
-        y = frac - frac_sd * 1.96,
-        yend = frac + frac_sd * 1.96,
-        xend = year
-      ),
-      colour = "grey70",
-      linewidth = 0.5
-    ) +
-    geom_line(
-      aes(y = frac),
-      linewidth = 0.5,
-      linetype = "dashed",
-      colour = "grey65"
-    )
-
-  # Add fitted trajectories above the ribbons
-  if (is.null(best_loss)) {
-
-    p <- p +
-      geom_line(
-        data = opt_fit,
-        aes(y = value, colour = loss),
-        linewidth = 1
-      )
-
-  } else {
-
-    p <- p +
+    # summarise sensitivity for just the chosen loss function
+    base +
       geom_line(
         data = filter(opt_fit, loss == best_loss),
         aes(y = value),
-        colour = "#2171B5",
         linewidth = 1
-      )
+      ) +
+      geom_ribbon(
+        data = filter(sim_summ, loss == best_loss),
+        aes(ymin = L, ymax = U),
+        alpha = 0.2
+      ) +
+      labs(
+        x = "Year",
+        y = "ST-SC group frequency",
+        title = paste0(
+          "Top ",
+          n_groups,
+          " ST-GPSC groups. Ribbons show ",
+          qtile * 100,
+          "% range."
+        ),
+        subtitle = paste("Based on fit", best_loss)
+      ) +
+      facet_wrap(~group, scales = "free_y") +
+      clean_theme() +
+      theme(legend.position = "bottom")
   }
-
-  # Add observed points last so they remain fully visible
-  p +
-    geom_point(
-      aes(y = frac),
-      size = 1.5,
-      colour = "black",
-      alpha = 1
-    ) +
-    labs(
-      x = "Year",
-      y = "ST-SC group frequency",
-      colour = "Loss function",
-      fill = "Loss function"
-    ) +
-    facet_wrap(
-      ~group,
-      scales = "free_y",
-      labeller = ggplot2::labeller(
-        group = sensitivity_group_labeller
-      )
-    ) +
-    sensitivity_paper_theme()
 }
 
 #' Add a sensitivity band to a top_group_plot()
@@ -512,9 +470,6 @@ plot_sensitivity_vs_data <- function(
 #' @param vax_start The `vax_start` used in `p`.
 #' @param qtile Quantile range of the band.
 #' @param fill,alpha Fill colour and transparency of the band.
-#' @param pcv13 Character vector of PCV13 serotypes.
-#' @param vt_colour,nvt_colour Colours for vaccine and non-vaccine facet labels.
-#' @param line_colour Colour for the single selected simulation trajectory.
 #' @return The plot with the band underneath all other layers.
 #' @importFrom dplyr %>% filter group_by mutate ungroup summarise
 #' @importFrom ggplot2 geom_ribbon aes
@@ -526,17 +481,13 @@ add_sensitivity_ribbon <- function(
   key,
   vax_start,
   qtile = 0.95,
-  fill = "#6BAED6",
-  alpha = 0.25,
-  pcv13 = c("1", "3", "4", "5", "6A", "6B", "7F", "9V", "14",
-            "18C", "19A", "19F", "23F"),
-  vt_colour = "#A94C22",
-  nvt_colour = "#084594",
-  line_colour = "#2171B5"
+  fill = "#1B9E77",
+  alpha = 0.25
 ) {
-# the groups shown in the plot (the first layer of top_group_plot() is the data error bars)
+  # the groups shown in the plot (the first layer of top_group_plot() is the data error bars)
   plot_groups <- levels(p$layers[[1]]$data$group)
-# top_group_plot() shows simulations as frequencies, with model year k at vax_start - 1 + k
+
+  # top_group_plot() shows simulations as frequencies, with model year k at vax_start - 1 + k
   ribbon <- sens$sim_out %>%
     filter(loss == key, year > 0) %>% # year 0 = x0, shown separately
     group_by(rep, year) %>%
@@ -553,6 +504,7 @@ add_sensitivity_ribbon <- function(
       year = vax_start - 1 + year,
       group = factor(group, levels = plot_groups)
     )
+
   p$layers <- c(
     list(geom_ribbon(
       data = ribbon,
@@ -563,18 +515,5 @@ add_sensitivity_ribbon <- function(
     )),
     p$layers
   )
-  # Preserve the existing facet layout, scales and ordering.
-  p$facet <- ggplot2::ggproto(NULL, p$facet)
-  p$facet$params$labeller <- ggplot2::labeller(
-    group = function(x) sensitivity_group_labeller(
-      x, pcv13 = pcv13, vt_colour = vt_colour, nvt_colour = nvt_colour
-    )
-  )
-
-  # top_group_plot() supplies the trajectory colour mapping. Replace its
-  # scale for this single-fit figure, preserving the simulation legend.
-  p +
-    ggplot2::scale_colour_manual(values = line_colour) +
-    sensitivity_paper_theme() +
-    ggplot2::labs(title = NULL, subtitle = NULL, caption = NULL)
+  p
 }

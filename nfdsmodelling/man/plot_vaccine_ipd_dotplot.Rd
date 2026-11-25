@@ -7,7 +7,12 @@ Compares projected serotype-specific IPD composition across vaccines.
 Serotypes are selected by total expected IPD and ordered by child
 invasiveness.}
 \usage{
-plot_vaccine_ipd_dotplot(dat, invasiveness_lookup, top_n = 20L)
+plot_vaccine_ipd_dotplot(
+  dat,
+  invasiveness_lookup,
+  vaccine_colours,
+  top_n = 20L
+)
 }
 \arguments{
 \item{dat}{Data frame containing cumulative IPD projections by vaccine
