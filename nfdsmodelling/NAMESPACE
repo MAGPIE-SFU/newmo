@@ -15,7 +15,6 @@ export(landscape_best_starts)
 export(load_fit_data)
 export(loss_functions)
 export(make_loss)
-export(plot_ipd_total)
 export(plot_landscape)
 export(plot_profiles)
 export(plot_projected_ipd_check)
@@ -30,7 +29,6 @@ export(plot_vaccine_ipd_dotplot)
 export(plot_vaccine_ranks)
 export(plot_vaccine_total_ipd)
 export(plot_xt_top_groups)
-export(prepare_ipd_serotypes)
 export(profile_best_fits)
 export(reweight_carriage)
 export(reweight_carriage_uncertainty)
@@ -105,7 +103,6 @@ importFrom(ggplot2,
   expansion,
   facet_grid,
   facet_wrap,
-  geom_area,
   geom_errorbar,
   geom_histogram,
   geom_hline,
@@ -128,11 +125,9 @@ importFrom(ggplot2,
   scale_fill_brewer,
   scale_fill_gradient,
   scale_fill_manual,
-  scale_fill_viridis_d,
   scale_x_continuous,
   scale_x_discrete,
   scale_x_log10,
-  scale_y_continuous,
   scale_y_discrete,
   scale_y_log10,
   theme,
