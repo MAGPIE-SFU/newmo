@@ -9,7 +9,7 @@ RUN install2.r --error --skipinstalled \
     targets pkgload here \
     ggplot2 dplyr tidyr stringr readr patchwork \
     deSolve openxlsx dfoptim future future.apply parallelly gt \
-    ggh4x
+    ggh4x ggtext
 
 WORKDIR /repo
 ENV TAR_PROJECT=sa_nfds_paper

@@ -84,7 +84,7 @@ targets_vaccine_design <- list(
     vaccine_heatmap_pdf,
     save_plot_output(
       vaccine_heatmap$plot,
-      file.path(results_dir, "plots", "vaccine_design", "vaccine_heatmap.pdf"),
+      file.path(results_dir, "paper_plots", "figure-3b.pdf"),
       width = vaccine_heatmap$width,
       height = vaccine_heatmap$height
     ),
@@ -102,7 +102,7 @@ targets_vaccine_design <- list(
         n_sample = VD_RANK_N_SAMPLE,
         method_labels = HEATMAP_METHOD_LABELS
       ),
-      file.path(results_dir, "plots", "vaccine_design", "vaccine_ranks.pdf"),
+      file.path(results_dir, "paper_plots", "figure-3a.pdf"),
       width = 10,
       height = 6
     ),

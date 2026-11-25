@@ -131,7 +131,7 @@ targets_no_nfds <- list(
         "Fits with and without NFDS (sigma = 0)",
         FIG_SETTINGS
       ),
-      file.path(results_dir, "plots", "fits", "fit_figures_no_nfds.pdf"),
+      file.path(results_dir, "paper_plots", "supplement", "fit_figures_no_nfds.pdf"),
       width = 14,
       height = 10
     ),

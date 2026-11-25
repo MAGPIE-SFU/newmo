@@ -5,7 +5,6 @@ vd_eval_data_dir <- file.path(
 )
 
 targets_vax_proj_ipd <- list(
-
   # Select vaccine compositions
   tar_target(
     selected_vaccines,
@@ -88,15 +87,15 @@ targets_vax_proj_ipd <- list(
   ),
 
   # Plot projected cumulative IPD composition
-tar_target(
-  vaccine_ipd_dotplot,
-  plot_vaccine_ipd_dotplot(
-    vaccine_ipd_composition,
-    invasiveness_lookup,
-    vaccine_colours = VACCINE_COLOURS,
-    top_n = IPD_DOT_TOP_N
-  )
-),
+  tar_target(
+    vaccine_ipd_dotplot,
+    plot_vaccine_ipd_dotplot(
+      vaccine_ipd_composition,
+      invasiveness_lookup,
+      vaccine_colours = VACCINE_COLOURS,
+      top_n = IPD_DOT_TOP_N
+    )
+  ),
 
   # Save dot plot
   tar_target(
@@ -132,9 +131,8 @@ tar_target(
       vaccine_total_ipd_plot,
       file.path(
         results_dir,
-        "plots",
-        "vax_proj_ipd",
-        "vaccine_total_ipd.pdf"
+        "paper_plots",
+        "figure-4.pdf"
       ),
       width = 13,
       height = 6

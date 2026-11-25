@@ -27,7 +27,9 @@ targets::tar_make()
 
 ## Outputs
 
-- `results/plots/`: figures
+- `results/paper_plots/`: Contains all plots that are in the main paper
+- `results/paper_plots/supplement/`: Contains all plots that are in the supplement
+- `results/plots/`: misc figures that are mostly for diagnostics
 - `results/computed_data/`: tables and data behind the figures
 
 ## Workflow

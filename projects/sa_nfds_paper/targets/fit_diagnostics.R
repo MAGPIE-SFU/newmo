@@ -33,7 +33,12 @@ targets_fit_diagnostics <- list(
         relative_to = PROFILE_RELATIVE_TO,
         ymax = PROFILE_YMAX
       ),
-      file.path(results_dir, "plots", "fits", "profiles_best_by_seed.pdf"),
+      file.path(
+        results_dir,
+        "paper_plots",
+        "supplement",
+        "profiles_best_fit_by_seed.pdf"
+      ),
       width = 16,
       height = diag_plot_height
     ),
